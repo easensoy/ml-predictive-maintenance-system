@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predictive Maintenance System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-blue-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">Industrial Predictive Maintenance</h1>
+            <div class="space-x-4">
+                <a href="/" class="hover:text-blue-200">Home</a>
+                <a href="/dashboard" class="hover:text-blue-200">Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-gray-500 text-sm">System Status</h3>
+                <p class="text-2xl font-bold text-green-600" id="system-status">Online</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-gray-500 text-sm">Predictions Made</h3>
+                <p class="text-2xl font-bold text-blue-600" id="prediction-count">0</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-gray-500 text-sm">Critical Alerts</h3>
+                <p class="text-2xl font-bold text-red-600" id="critical-alerts">0</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-gray-500 text-sm">Model Accuracy</h3>
+                <p class="text-2xl font-bold text-green-600" id="model-accuracy">--</p>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow mb-8">
+            <h2 class="text-xl font-bold mb-4">Equipment Health Prediction</h2>
+            
+            <form id="prediction-form" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Equipment ID</label>
+                        <input type="text" id="equipment-id" placeholder="e.g., EQ_001" 
+                               class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Data Points</label>
+                        <select id="data-points" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                            <option value="24">24 Hours (Recommended)</option>
+                            <option value="12">12 Hours</option>
+                            <option value="6">6 Hours</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <h3 class="font-medium">Latest Sensor Readings</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm text-gray-600">Vibration (RMS)</label>
+                            <input type="number" id="vibration" step="0.01" placeholder="1.5" 
+                                   class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600">Temperature (°C)</label>
+                            <input type="number" id="temperature" step="0.1" placeholder="75.0" 
+                                   class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600">Oil Pressure (PSI)</label>
+                            <input type="number" id="pressure" step="0.1" placeholder="20.0" 
+                                   class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600">RPM</label>
+                            <input type="number" id="rpm" placeholder="1800" 
+                                   class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600">Oil Quality Index</label>
+                            <input type="number" id="oil-quality" min="0" max="100" placeholder="85" 
+                                   class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600">Power (kW)</label>
+                            <input type="number" id="power" step="0.1" placeholder="50.0" 
+                                   class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" 
+                        class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+                    Predict Equipment Health
+                </button>
+            </form>
+        </div>
+
+        <div id="results-section" class="bg-white p-6 rounded-lg shadow hidden">
+            <h2 class="text-xl font-bold mb-4">Prediction Results</h2>
+            <div id="results-content"></div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-bold mb-4">Quick Demo</h2>
+            <p class="text-gray-600 mb-4">
+                Try these preset scenarios to see the system in action:
+            </p>
+            <div class="space-x-2">
+                <button onclick="loadDemoData('healthy')" 
+                        class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    Healthy Equipment
+                </button>
+                <button onclick="loadDemoData('warning')" 
+                        class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
+                    Warning Signs
+                </button>
+                <button onclick="loadDemoData('critical')" 
+                        class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                    Critical Condition
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        checkSystemHealth();
+        loadModelMetrics();
+
+        document.getElementById('prediction-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await makePrediction();
+        });
+
+        async function checkSystemHealth() {
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                
+                document.getElementById('system-status').textContent = 
+                    data.status === 'healthy' ? 'Online' : 'Offline';
+                document.getElementById('system-status').className = 
+                    data.status === 'healthy' ? 'text-2xl font-bold text-green-600' : 'text-2xl font-bold text-red-600';
+            } catch (error) {
+                document.getElementById('system-status').textContent = 'Offline';
+                document.getElementById('system-status').className = 'text-2xl font-bold text-red-600';
+            }
+        }
+
+        async function loadModelMetrics() {
+            try {
+                const response = await fetch('/api/model/metrics');
+                const data = await response.json();
+                
+                if (data.model_info) {
+                    document.getElementById('prediction-count').textContent = 
+                        data.model_info.predictions_made || 0;
+                }
+                
+                if (data.performance_metrics && data.performance_metrics.f1_score) {
+                    document.getElementById('model-accuracy').textContent = 
+                        (data.performance_metrics.f1_score * 100).toFixed(1) + '%';
+                }
+            } catch (error) {
+                console.error('Error loading metrics:', error);
+            }
+        }
+
+        async function makePrediction() {
+            const equipmentId = document.getElementById('equipment-id').value;
+            const dataPoints = parseInt(document.getElementById('data-points').value);
+            
+            if (!equipmentId) {
+                alert('Please enter an equipment ID');
+                return;
+            }
+
+            const sensorReading = {
+                vibration_rms: parseFloat(document.getElementById('vibration').value) || 1.0,
+                temperature_bearing: parseFloat(document.getElementById('temperature').value) || 70.0,
+                pressure_oil: parseFloat(document.getElementById('pressure').value) || 20.0,
+                rpm: parseFloat(document.getElementById('rpm').value) || 1800,
+                oil_quality_index: parseFloat(document.getElementById('oil-quality').value) || 85,
+                power_consumption: parseFloat(document.getElementById('power').value) || 50.0
+            };
+
+            const sensorData = [];
+            for (let i = 0; i < dataPoints; i++) {
+                const variation = 0.1;
+                sensorData.push({
+                    vibration_rms: sensorReading.vibration_rms * (1 + (Math.random() - 0.5) * variation),
+                    temperature_bearing: sensorReading.temperature_bearing * (1 + (Math.random() - 0.5) * variation),
+                    pressure_oil: sensorReading.pressure_oil * (1 + (Math.random() - 0.5) * variation),
+                    rpm: sensorReading.rpm * (1 + (Math.random() - 0.5) * variation),
+                    oil_quality_index: sensorReading.oil_quality_index * (1 + (Math.random() - 0.5) * variation),
+                    power_consumption: sensorReading.power_consumption * (1 + (Math.random() - 0.5) * variation)
+                });
+            }
+
+            try {
+                const response = await fetch('/api/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        equipment_id: equipmentId,
+                        sensor_data: sensorData
+                    })
+                });
+
+                if (!response.ok) throw new Error('Prediction API error');
+                const result = await response.json();
+
+                showResults(result);
+                loadModelMetrics();
+            } catch (error) {
+                alert('Failed to get prediction: ' + error.message);
+            }
+        }
+
+        function showResults(data) {
+            const resultsSection = document.getElementById('results-section');
+            const resultsContent = document.getElementById('results-content');
+            resultsSection.classList.remove('hidden');
+
+            const statusColor = {
+                healthy: 'text-green-600',
+                warning: 'text-yellow-600',
+                critical: 'text-red-600'
+            };
+
+            let html = `
+                <p><strong>Equipment ID:</strong> ${data.equipment_id}</p>
+                <p><strong>Predicted Health Status:</strong> 
+                <span class="${statusColor[data.status] || 'text-gray-600'} font-bold">${data.status.toUpperCase()}</span></p>
+                <p><strong>Failure Probability:</strong> ${(data.failure_probability * 100).toFixed(2)}%</p>
+            `;
+
+            if (data.prediction_date) {
+                html += `<p><strong>Prediction Date:</strong> ${new Date(data.prediction_date).toLocaleString()}</p>`;
+            }
+
+            resultsContent.innerHTML = html;
+        }
+
+        function loadDemoData(type) {
+            const presets = {
+                healthy: {
+                    vibration: 1.0, temperature: 70, pressure: 20, rpm: 1800, oil_quality: 90, power: 50
+                },
+                warning: {
+                    vibration: 2.5, temperature: 85, pressure: 18, rpm: 1700, oil_quality: 65, power: 48
+                },
+                critical: {
+                    vibration: 4.5, temperature: 100, pressure: 10, rpm: 1500, oil_quality: 40, power: 45
+                }
+            };
+
+            if (presets[type]) {
+                document.getElementById('equipment-id').value = `EQ_${type.toUpperCase()}_01`;
+                document.getElementById('vibration').value = presets[type].vibration;
+                document.getElementById('temperature').value = presets[type].temperature;
+                document.getElementById('pressure').value = presets[type].pressure;
+                document.getElementById('rpm').value = presets[type].rpm;
+                document.getElementById('oil-quality').value = presets[type].oil_quality;
+                document.getElementById('power').value = presets[type].power;
+            }
+        }
+    </script>
+</body>
+</html>

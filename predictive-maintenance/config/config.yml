@@ -1,0 +1,87 @@
+model:
+  sequence_length: 24
+  hidden_size: 64
+  num_layers: 2
+  dropout: 0.2
+
+training:
+  batch_size: 32
+  learning_rate: 0.001
+  epochs: 100
+  patience: 20
+  validation_split: 0.2
+
+data:
+  features:
+    - vibration_rms
+    - temperature_bearing
+    - pressure_oil
+    - rpm
+    - oil_quality_index
+    - power_consumption
+  scaling_method: "standard"
+  num_equipments: 50
+  samples_per_equipment: 200
+  noise_level: 0.1
+
+api:
+  host: "0.0.0.0"
+  port: 5000
+  debug: false
+  cors_enabled: true
+  max_requests_per_minute: 100
+  thresholds:
+    low_risk: 0.3
+    medium_risk: 0.6
+    high_risk: 0.8
+
+monitoring:
+  enabled: true
+  drift_detection:
+    enabled: true
+    reference_window_size: 1000
+    drift_threshold: 0.05
+  performance_tracking:
+    enabled: true
+    metrics_retention_days: 30
+  alerts:
+    enabled: true
+    high_risk_threshold: 5
+    low_confidence_threshold: 0.5
+
+logging:
+  level: "INFO"
+  format: "[%(asctime)s] %(levelname)s in %(module)s: %(message)s"
+  file_logging:
+    enabled: true
+    path: "logs/app.log"
+    max_size_mb: 100
+    backup_count: 5
+  external_logging:
+    cloudwatch:
+      enabled: false
+      log_group: "/aws/ec2/predictive-maintenance"
+    elasticsearch:
+      enabled: false
+      host: "localhost"
+      port: 9200
+
+security:
+  api_key_required: false
+  api_keys:
+    - "your-api-key-here"
+  ssl:
+    enabled: false
+    cert_file: "/path/to/cert.pem"
+    key_file: "/path/to/key.pem"
+
+database:
+  enabled: false
+  type: "postgresql"
+  host: "localhost"
+  port: 5432
+  database: "predictive_maintenance"
+  username: "pm_user"
+  password: "secure_password"
+  pool_size: 10
+  max_overflow: 20
