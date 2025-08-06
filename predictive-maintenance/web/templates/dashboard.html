@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Equipment Monitoring Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
         * { 
             margin: 0; 
@@ -174,25 +175,13 @@
             justify-content: center;
             min-height: 0;
             overflow: hidden;
+            position: relative;
         }
         
-        .chart-placeholder {
+        .chart-canvas {
             width: 100%;
             height: 100%;
-            background: linear-gradient(45deg, #f8f9fa 25%, transparent 25%), 
-                        linear-gradient(-45deg, #f8f9fa 25%, transparent 25%), 
-                        linear-gradient(45deg, transparent 75%, #f8f9fa 75%), 
-                        linear-gradient(-45deg, transparent 75%, #f8f9fa 75%);
-            background-size: 20px 20px;
-            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-            border: 2px dashed #dee2e6;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #6c757d;
-            font-style: italic;
-            min-height: 200px;
+            max-height: 300px;
         }
         
         .loading-spinner {
@@ -268,18 +257,14 @@
             <div class="chart-container">
                 <div class="chart-title">Risk Distribution</div>
                 <div class="chart-content">
-                    <div class="chart-placeholder">
-                        Risk distribution chart will display here
-                    </div>
+                    <canvas id="riskChart" class="chart-canvas"></canvas>
                 </div>
             </div>
 
             <div class="chart-container">
                 <div class="chart-title">Equipment Health Trends</div>
                 <div class="chart-content">
-                    <div class="chart-placeholder">
-                        Health trend charts will display here
-                    </div>
+                    <canvas id="healthChart" class="chart-canvas"></canvas>
                 </div>
             </div>
         </div>
@@ -287,12 +272,25 @@
 
     <script>
         let equipmentData = [];
+        let riskChart = null;
+        let healthChart = null;
 
         async function loadDashboardData() {
             try {
                 const response = await fetch('/api/equipment/demo');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Response is not JSON format');
+                }
+                
                 equipmentData = await response.json();
                 displayEquipmentOverview();
+                updateCharts();
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
                 showErrorMessage();
@@ -353,6 +351,164 @@
             `;
             
             return card;
+        }
+
+        function updateCharts() {
+            updateRiskChart();
+            updateHealthChart();
+        }
+
+        function updateRiskChart() {
+            const ctx = document.getElementById('riskChart').getContext('2d');
+            
+            // Calculate risk distribution
+            const riskCounts = {
+                'LOW': 0,
+                'MEDIUM': 0,
+                'HIGH': 0,
+                'CRITICAL': 0
+            };
+            
+            equipmentData.forEach(eq => {
+                const risk = eq.risk_level || 'LOW';
+                riskCounts[risk]++;
+            });
+            
+            if (riskChart) {
+                riskChart.destroy();
+            }
+            
+            riskChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Low Risk', 'Medium Risk', 'High Risk', 'Critical'],
+                    datasets: [{
+                        data: [riskCounts.LOW, riskCounts.MEDIUM, riskCounts.HIGH, riskCounts.CRITICAL],
+                        backgroundColor: [
+                            '#27ae60',
+                            '#f39c12', 
+                            '#e67e22',
+                            '#e74c3c'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateHealthChart() {
+            const ctx = document.getElementById('healthChart').getContext('2d');
+            
+            // Generate trend data (simulated)
+            const labels = [];
+            const vibrationData = [];
+            const temperatureData = [];
+            const pressureData = [];
+            
+            for (let i = 23; i >= 0; i--) {
+                labels.push(`${i}h ago`);
+                
+                // Simulate historical data with some trends
+                const baseVibration = equipmentData[0]?.vibration_rms || 1.0;
+                const baseTemp = equipmentData[0]?.temperature_bearing || 70;
+                const basePressure = equipmentData[0]?.pressure_oil || 20;
+                
+                vibrationData.push(baseVibration + (Math.random() - 0.5) * 0.4);
+                temperatureData.push(baseTemp + (Math.random() - 0.5) * 8);
+                pressureData.push(basePressure + (Math.random() - 0.5) * 3);
+            }
+            
+            if (healthChart) {
+                healthChart.destroy();
+            }
+            
+            healthChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Vibration (RMS)',
+                            data: vibrationData,
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            tension: 0.4,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Temperature (°C)',
+                            data: temperatureData,
+                            borderColor: '#f39c12',
+                            backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                            tension: 0.4,
+                            yAxisID: 'y1'
+                        },
+                        {
+                            label: 'Pressure (PSI)',
+                            data: pressureData,
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            tension: 0.4,
+                            yAxisID: 'y2'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Vibration'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: false,
+                            position: 'right'
+                        },
+                        y2: {
+                            type: 'linear',
+                            display: false,
+                            position: 'right'
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
         }
 
         function getStatusClass(riskLevel) {
