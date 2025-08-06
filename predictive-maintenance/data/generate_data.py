@@ -23,7 +23,10 @@ def generate_sensor_data(num_samples=10000, num_equipments=50):
         for cycle in range(failure_cycles):
             cycle_start = cycle * (samples_per_equipment // failure_cycles)
             cycle_length = samples_per_equipment // failure_cycles
-            failure_point = cycle_start + random.randint(int(cycle_length * 0.6), cycle_length - 30)
+            # Ensure valid range for failure point
+            min_failure = cycle_start + int(cycle_length * 0.7)
+            max_failure = cycle_start + cycle_length - 10
+            failure_point = cycle_start + random.randint(min_failure - cycle_start, max(min_failure - cycle_start + 1, max_failure - cycle_start))
             
             for i in range(cycle_start, min(cycle_start + cycle_length, samples_per_equipment)):
                 timestamp = start_date + timedelta(hours=i)
