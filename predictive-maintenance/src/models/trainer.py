@@ -109,7 +109,8 @@ class ModelTrainer:
                 print(f"Early stopping at epoch {epoch}")
                 break
         
-        self.load_model('models/best_model.pth')
+        if os.path.exists('models/best_model.pth'):
+            self.load_model('models/best_model.pth')
         self.save_training_history()
         self.plot_training_curves()
         
