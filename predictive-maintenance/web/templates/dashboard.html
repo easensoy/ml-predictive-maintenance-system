@@ -3,100 +3,282 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Equipment Dashboard - Predictive Maintenance</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <title>Equipment Monitoring Dashboard</title>
+    <style>
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+        }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f6fa;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4a69bd, #1e3799);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            flex-shrink: 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 { 
+            font-size: 2em; 
+            margin-bottom: 5px; 
+            font-weight: 300; 
+        }
+        
+        .nav-links {
+            float: right;
+            margin-top: -50px;
+        }
+        
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            margin-left: 20px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.1);
+            transition: background 0.3s ease;
+        }
+        
+        .nav-links a:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow: hidden;
+            gap: 20px;
+            max-height: calc(100vh - 100px);
+        }
+        
+        .equipment-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            flex-shrink: 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .equipment-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-left: 4px solid #ddd;
+            transition: transform 0.2s ease;
+            height: fit-content;
+        }
+        
+        .equipment-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .equipment-card.healthy { border-left-color: #27ae60; }
+        .equipment-card.warning { border-left-color: #f39c12; }
+        .equipment-card.critical { border-left-color: #e74c3c; }
+        
+        .equipment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .equipment-name {
+            font-weight: 600;
+            font-size: 1.1em;
+            color: #2c3e50;
+        }
+        
+        .equipment-type {
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-healthy {
+            background: #d5f4e6;
+            color: #27ae60;
+        }
+        
+        .status-warning {
+            background: #fef9e7;
+            color: #f39c12;
+        }
+        
+        .status-critical {
+            background: #fadbd8;
+            color: #e74c3c;
+        }
+        
+        .risk-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9em;
+            color: #34495e;
+        }
+        
+        .charts-section {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            min-height: 0;
+            overflow: hidden;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .chart-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            flex-shrink: 0;
+        }
+        
+        .chart-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 0;
+            overflow: hidden;
+        }
+        
+        .chart-placeholder {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #f8f9fa 25%, transparent 25%), 
+                        linear-gradient(-45deg, #f8f9fa 25%, transparent 25%), 
+                        linear-gradient(45deg, transparent 75%, #f8f9fa 75%), 
+                        linear-gradient(-45deg, transparent 75%, #f8f9fa 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            font-style: italic;
+            min-height: 200px;
+        }
+        
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4a69bd;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .metric-item {
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .metric-value {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #4a69bd;
+        }
+        
+        .metric-label {
+            font-size: 0.8em;
+            color: #6c757d;
+            margin-top: 2px;
+        }
+        
+        @media (max-width: 768px) {
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .equipment-overview {
+                grid-template-columns: 1fr;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <nav class="bg-blue-600 text-white p-4">
-        <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-2xl font-bold">Equipment Monitoring Dashboard</h1>
-            <div class="space-x-4">
-                <a href="/" class="hover:text-blue-200">Home</a>
-                <a href="/dashboard" class="hover:text-blue-200">Dashboard</a>
-            </div>
+<body>
+    <div class="header">
+        <h1>Equipment Monitoring Dashboard</h1>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/dashboard">Dashboard</a>
         </div>
-    </nav>
+    </div>
 
-    <div class="container mx-auto p-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
-            <div class="bg-white p-4 rounded-lg shadow equipment-card" data-status="healthy">
-                <h3 class="font-semibold">EQ_001</h3>
-                <p class="text-sm text-gray-600">Pump A1</p>
-                <div class="mt-2">
-                    <span class="inline-block w-3 h-3 bg-green-500 rounded-full mr-2"></span>
-                    <span class="text-sm">Healthy</span>
-                </div>
-                <p class="text-xs text-gray-500 mt-1">Risk: 12%</p>
-            </div>
-            
-            <div class="bg-white p-4 rounded-lg shadow equipment-card" data-status="warning">
-                <h3 class="font-semibold">EQ_002</h3>
-                <p class="text-sm text-gray-600">Motor B2</p>
-                <div class="mt-2">
-                    <span class="inline-block w-3 h-3 bg-yellow-500 rounded-full mr-2"></span>
-                    <span class="text-sm">Warning</span>
-                </div>
-                <p class="text-xs text-gray-500 mt-1">Risk: 45%</p>
-            </div>
-            
-            <div class="bg-white p-4 rounded-lg shadow equipment-card" data-status="critical">
-                <h3 class="font-semibold">EQ_003</h3>
-                <p class="text-sm text-gray-600">Compressor C1</p>
-                <div class="mt-2">
-                    <span class="inline-block w-3 h-3 bg-red-500 rounded-full mr-2"></span>
-                    <span class="text-sm">Critical</span>
-                </div>
-                <p class="text-xs text-gray-500 mt-1">Risk: 87%</p>
-            </div>
-            
-            <div class="bg-white p-4 rounded-lg shadow equipment-card" data-status="healthy">
-                <h3 class="font-semibold">EQ_004</h3>
-                <p class="text-sm text-gray-600">Fan D1</p>
-                <div class="mt-2">
-                    <span class="inline-block w-3 h-3 bg-green-500 rounded-full mr-2"></span>
-                    <span class="text-sm">Healthy</span>
-                </div>
-                <p class="text-xs text-gray-500 mt-1">Risk: 8%</p>
-            </div>
+    <div class="main-content">
+        <div class="equipment-overview" id="equipmentOverview">
+            <div class="loading-spinner"></div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <div class="bg-white p-6 rounded-lg shadow">
-                <h2 class="text-xl font-bold mb-4">Risk Distribution</h2>
-                <canvas id="riskChart" width="400" height="200"></canvas>
-            </div>
-            
-            <div class="bg-white p-6 rounded-lg shadow">
-                <h2 class="text-xl font-bold mb-4">Equipment Health Trends</h2>
-                <canvas id="trendChart" width="400" height="200"></canvas>
-            </div>
-        </div>
-
-        <div class="bg-white p-6 rounded-lg shadow">
-            <h2 class="text-xl font-bold mb-4">Recent Alerts</h2>
-            <div class="space-y-3">
-                <div class="flex items-center p-3 bg-red-50 border-l-4 border-red-500">
-                    <div class="flex-1">
-                        <p class="font-semibold text-red-800">Critical Alert: EQ_003</p>
-                        <p class="text-sm text-red-600">High vibration detected - immediate maintenance required</p>
-                        <p class="text-xs text-gray-500">2 minutes ago</p>
+        <div class="charts-section">
+            <div class="chart-container">
+                <div class="chart-title">Risk Distribution</div>
+                <div class="chart-content">
+                    <div class="chart-placeholder">
+                        Risk distribution chart will display here
                     </div>
                 </div>
-                
-                <div class="flex items-center p-3 bg-yellow-50 border-l-4 border-yellow-500">
-                    <div class="flex-1">
-                        <p class="font-semibold text-yellow-800">Warning: EQ_002</p>
-                        <p class="text-sm text-yellow-600">Temperature trending upward</p>
-                        <p class="text-xs text-gray-500">15 minutes ago</p>
-                    </div>
-                </div>
-                
-                <div class="flex items-center p-3 bg-blue-50 border-l-4 border-blue-500">
-                    <div class="flex-1">
-                        <p class="font-semibold text-blue-800">Info: EQ_001</p>
-                        <p class="text-sm text-blue-600">Scheduled maintenance completed</p>
-                        <p class="text-xs text-gray-500">2 hours ago</p>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-title">Equipment Health Trends</div>
+                <div class="chart-content">
+                    <div class="chart-placeholder">
+                        Health trend charts will display here
                     </div>
                 </div>
             </div>
@@ -104,94 +286,126 @@
     </div>
 
     <script>
-        initializeCharts();
+        let equipmentData = [];
 
-        function initializeCharts() {
-            const riskCtx = document.getElementById('riskChart').getContext('2d');
-            new Chart(riskCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Healthy', 'Warning', 'Critical'],
-                    datasets: [{
-                        data: [75, 20, 5],
-                        backgroundColor: ['#10B981', '#F59E0B', '#EF4444'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
-                }
-            });
+        async function loadDashboardData() {
+            try {
+                const response = await fetch('/api/equipment/demo');
+                equipmentData = await response.json();
+                displayEquipmentOverview();
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+                showErrorMessage();
+            }
+        }
 
-            const trendCtx = document.getElementById('trendChart').getContext('2d');
-            new Chart(trendCtx, {
-                type: 'line',
-                data: {
-                    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
-                    datasets: [{
-                        label: 'EQ_001',
-                        data: [12, 15, 13, 14, 12, 11],
-                        borderColor: '#10B981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        tension: 0.4
-                    }, {
-                        label: 'EQ_002',
-                        data: [30, 35, 40, 42, 45, 47],
-                        borderColor: '#F59E0B',
-                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                        tension: 0.4
-                    }, {
-                        label: 'EQ_003',
-                        data: [60, 70, 75, 80, 85, 87],
-                        borderColor: '#EF4444',
-                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            title: {
-                                display: true,
-                                text: 'Failure Risk (%)'
-                            }
-                        },
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Time'
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            position: 'top'
-                        }
-                    }
-                }
+        function displayEquipmentOverview() {
+            const container = document.getElementById('equipmentOverview');
+            container.innerHTML = '';
+
+            equipmentData.forEach(equipment => {
+                const card = createEquipmentCard(equipment);
+                container.appendChild(card);
             });
         }
 
-        document.querySelectorAll('.equipment-card').forEach(card => {
-            card.addEventListener('click', function() {
-                const equipmentId = this.querySelector('h3').textContent;
-                alert(`Detailed view for ${equipmentId} would open here`);
-            });
-        });
+        function createEquipmentCard(equipment) {
+            const card = document.createElement('div');
+            const riskLevel = equipment.risk_level || 'LOW';
+            const statusClass = getStatusClass(riskLevel);
+            
+            card.className = `equipment-card ${statusClass}`;
+            
+            card.innerHTML = `
+                <div class="equipment-header">
+                    <div>
+                        <div class="equipment-name">${equipment.equipment_id}</div>
+                        <div class="equipment-type">${getEquipmentType(equipment.equipment_id)}</div>
+                    </div>
+                    <div class="status-badge status-${statusClass}">
+                        ${riskLevel}
+                    </div>
+                </div>
+                
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="metric-value">${(equipment.vibration_rms || 0).toFixed(1)}</div>
+                        <div class="metric-label">Vibration</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value">${Math.round(equipment.temperature_bearing || 0)}°</div>
+                        <div class="metric-label">Temp</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value">${(equipment.pressure_oil || 0).toFixed(1)}</div>
+                        <div class="metric-label">Pressure</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value">${Math.round((equipment.failure_probability || 0) * 100)}%</div>
+                        <div class="metric-label">Risk</div>
+                    </div>
+                </div>
+                
+                <div class="risk-info">
+                    <span>Status: ${getStatusText(riskLevel)}</span>
+                    <span>Risk: ${Math.round((equipment.failure_probability || 0) * 100)}%</span>
+                </div>
+            `;
+            
+            return card;
+        }
 
-        setInterval(() => {
-            console.log('Refreshing dashboard data...');
-        }, 30000);
+        function getStatusClass(riskLevel) {
+            switch(riskLevel) {
+                case 'CRITICAL': return 'critical';
+                case 'HIGH': return 'warning';
+                case 'MEDIUM': return 'warning';
+                default: return 'healthy';
+            }
+        }
+
+        function getStatusText(riskLevel) {
+            switch(riskLevel) {
+                case 'CRITICAL': return 'Critical';
+                case 'HIGH': return 'High Risk';
+                case 'MEDIUM': return 'Medium Risk';
+                default: return 'Healthy';
+            }
+        }
+
+        function getEquipmentType(equipmentId) {
+            const types = {
+                'EQ_001': 'Pump A1',
+                'EQ_002': 'Motor B2', 
+                'EQ_003': 'Compressor C1',
+                'EQ_004': 'Fan D1'
+            };
+            return types[equipmentId] || 'Industrial Equipment';
+        }
+
+        function showErrorMessage() {
+            const container = document.getElementById('equipmentOverview');
+            container.innerHTML = `
+                <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #e74c3c;">
+                    <h3>Unable to load equipment data</h3>
+                    <p>Please check your connection and try again.</p>
+                    <button onclick="loadDashboardData()" style="margin-top: 15px; padding: 10px 20px; background: #4a69bd; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        Retry
+                    </button>
+                </div>
+            `;
+        }
+
+        // Auto-refresh every 30 seconds
+        function startAutoRefresh() {
+            setInterval(loadDashboardData, 30000);
+        }
+
+        // Initialize dashboard
+        window.addEventListener('load', () => {
+            loadDashboardData();
+            startAutoRefresh();
+        });
     </script>
 </body>
 </html>
