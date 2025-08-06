@@ -57,8 +57,8 @@ class ModelMetrics:
         self.losses = []
     
     def update(self, predictions, targets, loss):
-        self.predictions.extend(predictions.cpu().numpy())
-        self.targets.extend(targets.cpu().numpy())
+        self.predictions.extend(predictions.detach().cpu().numpy())
+        self.targets.extend(targets.detach().cpu().numpy())
         self.losses.append(loss)
     
     def get_metrics(self):
