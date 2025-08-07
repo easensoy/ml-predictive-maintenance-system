@@ -1,0 +1,35 @@
+{
+  "family": "predictive-maintenance-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::974136094538:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "predictive-maintenance-container",
+      "image": "974136094538.dkr.ecr.eu-west-2.amazonaws.com/predictive-maintenance:latest",
+      "portMappings": [
+        {
+          "containerPort": 5000,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        {
+          "name": "FLASK_ENV",
+          "value": "production"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/predictive-maintenance",
+          "awslogs-region": "eu-west-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}
