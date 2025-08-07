@@ -3,8 +3,8 @@ version: '3.8'
 services:
   predictive-maintenance:
     build: 
-      context: .
-      dockerfile: Dockerfile
+      context: ..      
+      dockerfile: deployment/Dockerfile
     container_name: predictive-maintenance-app
     ports:
       - "5000:5000"
@@ -44,7 +44,7 @@ services:
     image: nginx:alpine
     container_name: predictive-maintenance-nginx
     ports:
-      - "80:80"
+      - "8080:80"
       - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
