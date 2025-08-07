@@ -2,49 +2,64 @@ version: '3.8'
 
 services:
   predictive-maintenance:
-    build:
+    build: 
       context: .
-      dockerfile: deployment/Dockerfile
+      dockerfile: Dockerfile
+    container_name: predictive-maintenance-app
     ports:
       - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - FLASK_APP=run_api.py
+      - PYTHONPATH=/app
     volumes:
       - ./models:/app/models
       - ./data:/app/data
-      - ./monitoring:/app/monitoring
       - ./logs:/app/logs
-    environment:
-      - FLASK_ENV=production
-      - PYTHONPATH=/app/src
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 40s
+    networks:
+      - maintenance-network
 
-  prometheus:
-    image: prom/prometheus:latest
+  # Optional: Redis for caching (production enhancement)
+  redis:
+    image: redis:7-alpine
+    container_name: predictive-maintenance-redis
     ports:
-      - "9090:9090"
+      - "6379:6379"
     volumes:
-      - ./deployment/prometheus.yml:/etc/prometheus/prometheus.yml
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
+      - redis_data:/data
     restart: unless-stopped
+    command: redis-server --appendonly yes
+    networks:
+      - maintenance-network
 
-  grafana:
-    image: grafana/grafana:latest
+  # Optional: Nginx reverse proxy (production)
+  nginx:
+    image: nginx:alpine
+    container_name: predictive-maintenance-nginx
     ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - "80:80"
+      - "443:443"
     volumes:
-      - grafana-storage:/var/lib/grafana
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - predictive-maintenance
     restart: unless-stopped
+    networks:
+      - maintenance-network
 
 volumes:
-  grafana-storage:
+  redis_data:
+  model_data:
+  log_data:
+
+networks:
+  maintenance-network:
+    driver: bridge
