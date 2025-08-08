@@ -9,18 +9,7 @@ echo ============================================
 
 echo 1. Setting up budget protection...
 echo Creating budget configuration...
-echo {
-  "BudgetName": "predictive-maintenance-pytorch-budget",
-  "BudgetLimit": {
-    "Amount": "5.00",
-    "Unit": "USD"
-  },
-  "TimeUnit": "MONTHLY",
-  "BudgetType": "COST",
-  "CostFilters": {
-    "Service": ["Amazon Elastic Container Service", "Amazon EC2 Container Registry"]
-  }
-} > budget-config.json
+echo {"BudgetName":"predictive-maintenance-pytorch-budget","BudgetLimit":{"Amount":"5.00","Unit":"USD"},"TimeUnit":"MONTHLY","BudgetType":"COST","CostFilters":{"Service":["Amazon Elastic Container Service","Amazon EC2 Container Registry"]}} > budget-config.json
 
 echo 2. Creating budget with automatic monitoring...
 aws budgets create-budget --account-id 974136094538 --budget file://budget-config.json 2>nul || echo Budget already exists - continuing...

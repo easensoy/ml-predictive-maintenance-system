@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 # Copy TensorFlow Lite requirements (415MB total packages)
-COPY deployment/requirements-tflite.txt ./requirements.txt
+COPY deployment/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt \
     && pip cache purge
 
