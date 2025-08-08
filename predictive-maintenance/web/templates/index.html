@@ -8,18 +8,14 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
+        <header class="header">
             <h1>🔧 Predictive Maintenance</h1>
             <p>AI-Powered Equipment Failure Prediction System</p>
-        </div>
+        </header>
 
-        <div class="stats-grid">
+        <section class="stats-grid">
             <div class="stat-card">
                 <div class="stat-number">92%</div>
-                <div class="stat-label">F1 Score</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">94%</div>
                 <div class="stat-label">Accuracy</div>
             </div>
             <div class="stat-card">
@@ -30,59 +26,36 @@
                 <div class="stat-number">24/7</div>
                 <div class="stat-label">Monitoring</div>
             </div>
-        </div>
+        </section>
 
-        <div class="equipment-section">
-            <div class="equipment-grid">
-                <!-- Equipment cards will be populated by JavaScript -->
-            </div>
+        <main class="equipment-section">
+            <div class="equipment-grid"></div>
 
-            <div class="equipment-card">
-                <div class="form-title">🔍 Equipment Health Prediction</div>
-                <form id="predictionForm">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="equipment_id">Equipment ID:</label>
-                            <input type="text" name="equipment_id" placeholder="e.g., PUMP-001" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="vibration">Vibration (RMS):</label>
-                            <input type="number" name="vibration" step="0.1" placeholder="1.5" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="temperature">Temperature (°C):</label>
-                            <input type="number" name="temperature" placeholder="75" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="pressure">Oil Pressure (bar):</label>
-                            <input type="number" name="pressure" step="0.1" placeholder="20.5" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="rpm">RPM:</label>
-                            <input type="number" name="rpm" placeholder="1750" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="oil_quality">Oil Quality (0-1):</label>
-                            <input type="number" name="oil_quality" step="0.01" min="0" max="1" placeholder="0.85" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="power">Power (kW):</label>
-                            <input type="number" name="power" step="0.1" placeholder="15.2" required>
-                        </div>
-                    </div>
-                    <button type="submit" class="predict-btn">🔮 Predict Failure Risk</button>
-                </form>
+            <form id="predictionForm" class="equipment-card">
+                <h2 class="form-title">🔍 Equipment Health Prediction</h2>
+                
+                <div class="form-grid">
+                    <input type="text" name="equipment_id" placeholder="Equipment ID (e.g., PUMP-001)" required>
+                    <input type="number" name="vibration" step="0.1" placeholder="Vibration RMS" required>
+                    <input type="number" name="temperature" placeholder="Temperature °C" required>
+                    <input type="number" name="pressure" step="0.1" placeholder="Oil Pressure (bar)" required>
+                    <input type="number" name="rpm" placeholder="RPM" required>
+                    <input type="number" name="oil_quality" step="0.01" min="0" max="1" placeholder="Oil Quality (0-1)" required>
+                    <input type="number" name="power" step="0.1" placeholder="Power (kW)" required>
+                </div>
+                
+                <button type="submit" class="predict-btn">🔮 Predict Failure Risk</button>
                 
                 <div class="loading">
                     <div class="spinner"></div>
                     <p>Analyzing equipment data...</p>
                 </div>
-            </div>
-        </div>
+            </form>
+        </main>
 
-        <div class="footer">
+        <footer class="footer">
             <p>Powered by Advanced LSTM Neural Networks | Real-time Sensor Analytics</p>
-        </div>
+        </footer>
     </div>
 
     <script src="/static/js/index.js"></script>
