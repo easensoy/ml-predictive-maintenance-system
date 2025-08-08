@@ -1,22 +1,18 @@
-// Main Page Functionality
 document.addEventListener('DOMContentLoaded', function() {
     initializePage();
     loadEquipmentData();
 });
 
-// Page Initialization
 function initializePage() {
     const form = document.getElementById('predictionForm');
     if (form) {
         form.addEventListener('submit', handlePredictionSubmit);
     }
     
-    // Initialize any interactive elements
     initializeStatCounters();
     setupEquipmentCards();
 }
 
-// Equipment Prediction Form Handler
 async function handlePredictionSubmit(event) {
     event.preventDefault();
     
@@ -45,7 +41,6 @@ async function handlePredictionSubmit(event) {
     }
 }
 
-// API Communication
 async function makePrediction(data) {
     const response = await fetch('/api/predict', {
         method: 'POST',
@@ -68,6 +63,8 @@ async function loadEquipmentData() {
         if (response.ok) {
             const data = await response.json();
             updateEquipmentGrid(data);
+        } else {
+            generateDemoEquipment();
         }
     } catch (error) {
         console.log('Equipment data not available, using demo mode');
@@ -75,7 +72,6 @@ async function loadEquipmentData() {
     }
 }
 
-// UI Update Functions
 function displayPredictionResult(result) {
     const resultContainer = document.getElementById('predictionResult') || createResultContainer();
     
@@ -138,23 +134,54 @@ function createEquipmentOverviewCard(equipment) {
     
     card.className = 'equipment-card';
     card.innerHTML = `
-        <h3 style="color: #333; margin-bottom: 10px;">${equipment.equipment_id}</h3>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <span style="color: #666;">${getEquipmentType(equipment.equipment_id)}</span>
-            <span style="
-                background: ${riskColor}; 
-                color: white; 
-                padding: 4px 8px; 
-                border-radius: 12px; 
-                font-size: 0.8em;
-                font-weight: bold;
-            ">${riskLevel}</span>
+        <div class="equipment-header">
+            <div>
+                <div class="equipment-name">${equipment.equipment_id}</div>
+                <div class="equipment-type">${getEquipmentType(equipment.equipment_id)}</div>
+            </div>
+            <div class="status-badge status-${getStatusClass(riskLevel)}">
+                ${riskLevel}
+            </div>
         </div>
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 0.9em;">
-            <div>Vibration: ${(equipment.vibration_rms || 0).toFixed(1)}</div>
-            <div>Temp: ${Math.round(equipment.temperature_bearing || 0)}°C</div>
-            <div>Pressure: ${(equipment.pressure_oil || 0).toFixed(1)} bar</div>
-            <div>Risk: ${Math.round(equipment.failure_probability * 100)}%</div>
+        
+        <div class="equipment-metrics">
+            <div class="metric-row">
+                <span class="metric-label">Vibration:</span>
+                <span class="metric-value">${(equipment.vibration_rms || 0).toFixed(1)} RMS</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Temperature:</span>
+                <span class="metric-value">${Math.round(equipment.temperature_bearing || 0)}°C</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Pressure:</span>
+                <span class="metric-value">${(equipment.pressure_oil || 0).toFixed(1)} PSI</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">RPM:</span>
+                <span class="metric-value">${equipment.rpm || 0}</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Oil Quality:</span>
+                <span class="metric-value">${Math.round((equipment.oil_quality || 0) * 100)}%</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Power:</span>
+                <span class="metric-value">${(equipment.power_consumption || 0).toFixed(1)} kW</span>
+            </div>
+        </div>
+        
+        <div class="failure-probability">
+            <div class="probability-label">Failure Probability</div>
+            <div class="probability-value">${Math.round(equipment.failure_probability * 100)}%</div>
+            <div class="probability-bar">
+                <div class="probability-fill" style="width: ${equipment.failure_probability * 100}%"></div>
+            </div>
+        </div>
+        
+        <div class="recommendation">
+            <div class="recommendation-title">Recommendation:</div>
+            <div class="recommendation-text">${getRecommendation(riskLevel)}</div>
         </div>
     `;
     
@@ -165,43 +192,43 @@ function createEquipmentOverviewCard(equipment) {
     return card;
 }
 
-// Demo Data Generation
 function generateDemoEquipment() {
     const demoEquipment = [
         {
-            equipment_id: 'PUMP-001',
+            equipment_id: 'EQ_001',
             vibration_rms: 1.2,
             temperature_bearing: 75,
-            pressure_oil: 22,
-            failure_probability: 0.15
+            pressure_oil: 18.5,
+            rpm: 1750,
+            oil_quality: 0.85,
+            power_consumption: 48.0,
+            failure_probability: 0.05
         },
         {
-            equipment_id: 'MOTOR-003',
-            vibration_rms: 2.1,
-            temperature_bearing: 85,
-            pressure_oil: 18,
-            failure_probability: 0.45
+            equipment_id: 'EQ_002',
+            vibration_rms: 2.8,
+            temperature_bearing: 92,
+            pressure_oil: 12.0,
+            rpm: 1650,
+            oil_quality: 0.45,
+            power_consumption: 65.0,
+            failure_probability: 0.95
         },
         {
-            equipment_id: 'COMP-007',
-            vibration_rms: 0.9,
+            equipment_id: 'EQ_003',
+            vibration_rms: 0.8,
             temperature_bearing: 68,
-            pressure_oil: 25,
-            failure_probability: 0.08
-        },
-        {
-            equipment_id: 'TURB-012',
-            vibration_rms: 3.2,
-            temperature_bearing: 95,
-            pressure_oil: 15,
-            failure_probability: 0.78
+            pressure_oil: 22.0,
+            rpm: 1820,
+            oil_quality: 0.90,
+            power_consumption: 46.0,
+            failure_probability: 0.02
         }
     ];
     
     updateEquipmentGrid(demoEquipment);
 }
 
-// Utility Functions
 function getRiskLevel(probability) {
     if (probability < 0.2) return 'LOW';
     if (probability < 0.5) return 'MEDIUM';
@@ -217,6 +244,10 @@ function getRiskColor(riskLevel) {
         'CRITICAL': '#e74c3c'
     };
     return colors[riskLevel] || '#27ae60';
+}
+
+function getStatusClass(riskLevel) {
+    return riskLevel.toLowerCase();
 }
 
 function getRecommendation(riskLevel) {
@@ -241,20 +272,34 @@ function populateFormWithEquipment(equipment) {
     const form = document.getElementById('predictionForm');
     if (!form) return;
     
-    form.querySelector('[name="equipment_id"]').value = equipment.equipment_id || '';
-    form.querySelector('[name="vibration"]').value = equipment.vibration_rms || '';
-    form.querySelector('[name="temperature"]').value = equipment.temperature_bearing || '';
-    form.querySelector('[name="pressure"]').value = equipment.pressure_oil || '';
-    form.querySelector('[name="rpm"]').value = equipment.rpm || '';
-    form.querySelector('[name="oil_quality"]').value = equipment.oil_quality || '';
-    form.querySelector('[name="power"]').value = equipment.power_consumption || '';
+    const fields = {
+        'equipment_id': equipment.equipment_id || '',
+        'vibration': equipment.vibration_rms || '',
+        'temperature': equipment.temperature_bearing || '',
+        'pressure': equipment.pressure_oil || '',
+        'rpm': equipment.rpm || '',
+        'oil_quality': equipment.oil_quality || '',
+        'power': equipment.power_consumption || ''
+    };
+    
+    Object.keys(fields).forEach(field => {
+        const input = form.querySelector(`[name="${field}"]`);
+        if (input) {
+            input.value = fields[field];
+        }
+    });
 }
 
-// Loading and Error States
 function showLoading(show) {
     const loadingElement = document.querySelector('.loading');
     if (loadingElement) {
         loadingElement.style.display = show ? 'block' : 'none';
+    }
+    
+    const button = document.querySelector('.predict-btn');
+    if (button) {
+        button.disabled = show;
+        button.textContent = show ? 'Analyzing...' : '🔮 Predict Failure Risk';
     }
 }
 
@@ -268,6 +313,7 @@ function showError(message) {
             border-radius: 8px;
             border: 1px solid #f5c6cb;
             margin-top: 15px;
+            text-align: center;
         ">
             ${message}
         </div>
@@ -292,7 +338,6 @@ function createErrorContainer() {
     return container;
 }
 
-// Statistics Animation
 function initializeStatCounters() {
     const statNumbers = document.querySelectorAll('.stat-number');
     statNumbers.forEach(stat => {
@@ -302,8 +347,11 @@ function initializeStatCounters() {
 }
 
 function animateCounter(element, target) {
-    const numericTarget = parseInt(target.replace(/[^\d]/g, ''));
-    const suffix = target.replace(/[\d]/g, '');
+    const numericPart = target.match(/[\d.]+/);
+    if (!numericPart) return;
+    
+    const numericTarget = parseFloat(numericPart[0]);
+    const suffix = target.replace(numericPart[0], '');
     let current = 0;
     const increment = numericTarget / 30;
     
@@ -313,7 +361,8 @@ function animateCounter(element, target) {
             element.textContent = target;
             clearInterval(timer);
         } else {
-            element.textContent = Math.floor(current) + suffix;
+            const displayValue = suffix.includes('%') ? Math.floor(current) : current.toFixed(1);
+            element.textContent = displayValue + suffix;
         }
     }, 50);
 }
