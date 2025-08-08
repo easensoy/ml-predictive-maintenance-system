@@ -1,7 +1,7 @@
 const DEMO_EQUIPMENT = [
-    { equipment_id: 'EQ_001', vibration_rms: 1.2, temperature_bearing: 75, pressure_oil: 18.5, rpm: 1750, oil_quality: 0.85, power_consumption: 48.0, failure_probability: 0.05 },
-    { equipment_id: 'EQ_002', vibration_rms: 2.8, temperature_bearing: 92, pressure_oil: 12.0, rpm: 1650, oil_quality: 0.45, power_consumption: 65.0, failure_probability: 0.95 },
-    { equipment_id: 'EQ_003', vibration_rms: 0.8, temperature_bearing: 68, pressure_oil: 22.0, rpm: 1820, oil_quality: 0.90, power_consumption: 46.0, failure_probability: 0.02 }
+    { equipment_id: 'PUMP_001', vibration_rms: 1.2, temperature_bearing: 75, pressure_oil: 18.5, rpm: 1750, oil_quality: 0.85, power_consumption: 48.0, failure_probability: 0.05 },
+    { equipment_id: 'MOTOR_002', vibration_rms: 2.8, temperature_bearing: 92, pressure_oil: 12.0, rpm: 1650, oil_quality: 0.45, power_consumption: 65.0, failure_probability: 0.95 },
+    { equipment_id: 'COMP_003', vibration_rms: 0.8, temperature_bearing: 68, pressure_oil: 22.0, rpm: 1820, oil_quality: 0.90, power_consumption: 46.0, failure_probability: 0.02 }
 ];
 
 const RISK_CONFIG = {
@@ -63,13 +63,11 @@ async function handlePredict(e) {
     }
 }
 
-async function loadEquipment() {
-    try {
-        const data = await fetch('/api/equipment/summary').then(r => r.ok ? r.json() : Promise.reject());
-        updateGrid(data);
-    } catch {
-        updateGrid(DEMO_EQUIPMENT);
-    }
+function loadEquipment() {
+    fetch('/api/equipment/summary')
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(updateGrid)
+        .catch(() => updateGrid(DEMO_EQUIPMENT));
 }
 
 function updateGrid(equipment) {
