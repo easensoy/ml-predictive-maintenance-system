@@ -1,26 +1,26 @@
-// Dashboard Data Management
 let equipmentData = [];
 let riskChart = null;
 let healthChart = null;
 
-// Initialize dashboard when page loads
 document.addEventListener('DOMContentLoaded', function() {
     loadDashboardData();
-    setInterval(loadDashboardData, 30000); // Refresh every 30 seconds
+    setInterval(loadDashboardData, 30000);
 });
 
-// API Data Loading
 async function loadDashboardData() {
     try {
         const response = await fetch('/api/equipment/demo');
         
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            console.log('Demo API not available, generating demo data');
+            generateDemoData();
+            return;
         }
         
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
-            throw new Error('Response is not JSON format');
+            generateDemoData();
+            return;
         }
         
         equipmentData = await response.json();
@@ -28,11 +28,73 @@ async function loadDashboardData() {
         updateCharts();
     } catch (error) {
         console.error('Error loading dashboard data:', error);
-        showErrorMessage();
+        generateDemoData();
     }
 }
 
-// Equipment Display Functions
+function generateDemoData() {
+    equipmentData = [
+        {
+            equipment_id: 'PUMP-001',
+            vibration_rms: 1.2,
+            temperature_bearing: 75,
+            pressure_oil: 18.5,
+            rpm: 1750,
+            oil_quality: 0.85,
+            power_consumption: 48.0,
+            failure_probability: 0.15,
+            risk_level: 'LOW'
+        },
+        {
+            equipment_id: 'MOTOR-003',
+            vibration_rms: 2.1,
+            temperature_bearing: 85,
+            pressure_oil: 16.0,
+            rpm: 1680,
+            oil_quality: 0.72,
+            power_consumption: 52.0,
+            failure_probability: 0.45,
+            risk_level: 'MEDIUM'
+        },
+        {
+            equipment_id: 'COMP-007',
+            vibration_rms: 0.9,
+            temperature_bearing: 68,
+            pressure_oil: 22.0,
+            rpm: 1820,
+            oil_quality: 0.90,
+            power_consumption: 46.0,
+            failure_probability: 0.08,
+            risk_level: 'LOW'
+        },
+        {
+            equipment_id: 'TURB-012',
+            vibration_rms: 3.2,
+            temperature_bearing: 95,
+            pressure_oil: 12.0,
+            rpm: 1520,
+            oil_quality: 0.35,
+            power_consumption: 68.0,
+            failure_probability: 0.78,
+            risk_level: 'CRITICAL'
+        },
+        {
+            equipment_id: 'MOTOR-008',
+            vibration_rms: 2.5,
+            temperature_bearing: 88,
+            pressure_oil: 14.5,
+            rpm: 1640,
+            oil_quality: 0.58,
+            power_consumption: 55.0,
+            failure_probability: 0.62,
+            risk_level: 'HIGH'
+        }
+    ];
+    
+    displayEquipmentOverview();
+    updateCharts();
+}
+
 function displayEquipmentOverview() {
     const container = document.getElementById('equipmentOverview');
     container.innerHTML = '';
@@ -45,7 +107,7 @@ function displayEquipmentOverview() {
 
 function createEquipmentCard(equipment) {
     const card = document.createElement('div');
-    const riskLevel = equipment.risk_level || 'LOW';
+    const riskLevel = equipment.risk_level || getRiskLevel(equipment.failure_probability);
     const statusClass = getStatusClass(riskLevel);
     
     card.className = `equipment-card ${statusClass}`;
@@ -86,19 +148,24 @@ function createEquipmentCard(equipment) {
         </div>
     `;
     
+    card.addEventListener('click', () => {
+        showEquipmentDetails(equipment);
+    });
+    
     return card;
 }
 
-// Chart Management
 function updateCharts() {
     updateRiskChart();
     updateHealthChart();
 }
 
 function updateRiskChart() {
-    const ctx = document.getElementById('riskChart').getContext('2d');
+    const ctx = document.getElementById('riskChart');
+    if (!ctx) return;
     
-    // Calculate risk distribution
+    const context = ctx.getContext('2d');
+    
     const riskCounts = {
         'LOW': 0,
         'MEDIUM': 0,
@@ -107,7 +174,7 @@ function updateRiskChart() {
     };
     
     equipmentData.forEach(eq => {
-        const risk = eq.risk_level || 'LOW';
+        const risk = eq.risk_level || getRiskLevel(eq.failure_probability);
         riskCounts[risk]++;
     });
     
@@ -115,7 +182,7 @@ function updateRiskChart() {
         riskChart.destroy();
     }
     
-    riskChart = new Chart(ctx, {
+    riskChart = new Chart(context, {
         type: 'doughnut',
         data: {
             labels: ['Low Risk', 'Medium Risk', 'High Risk', 'Critical'],
@@ -139,7 +206,10 @@ function updateRiskChart() {
                     position: 'bottom',
                     labels: {
                         padding: 20,
-                        usePointStyle: true
+                        usePointStyle: true,
+                        font: {
+                            size: 12
+                        }
                     }
                 }
             }
@@ -148,9 +218,11 @@ function updateRiskChart() {
 }
 
 function updateHealthChart() {
-    const ctx = document.getElementById('healthChart').getContext('2d');
+    const ctx = document.getElementById('healthChart');
+    if (!ctx) return;
     
-    // Generate trend data (simulated historical data)
+    const context = ctx.getContext('2d');
+    
     const labels = [];
     const vibrationData = [];
     const temperatureData = [];
@@ -159,7 +231,6 @@ function updateHealthChart() {
     for (let i = 23; i >= 0; i--) {
         labels.push(`${i}h ago`);
         
-        // Simulate historical data with realistic trends
         const baseVibration = equipmentData[0]?.vibration_rms || 1.0;
         const baseTemp = equipmentData[0]?.temperature_bearing || 70;
         const basePressure = equipmentData[0]?.pressure_oil || 20;
@@ -173,7 +244,7 @@ function updateHealthChart() {
         healthChart.destroy();
     }
     
-    healthChart = new Chart(ctx, {
+    healthChart = new Chart(context, {
         type: 'line',
         data: {
             labels: labels,
@@ -184,7 +255,9 @@ function updateHealthChart() {
                     borderColor: '#e74c3c',
                     backgroundColor: 'rgba(231, 76, 60, 0.1)',
                     tension: 0.4,
-                    fill: false
+                    fill: false,
+                    pointRadius: 2,
+                    pointHoverRadius: 4
                 },
                 {
                     label: 'Temperature (°C)',
@@ -192,15 +265,19 @@ function updateHealthChart() {
                     borderColor: '#f39c12',
                     backgroundColor: 'rgba(243, 156, 18, 0.1)',
                     tension: 0.4,
-                    fill: false
+                    fill: false,
+                    pointRadius: 2,
+                    pointHoverRadius: 4
                 },
                 {
-                    label: 'Pressure (bar)',
+                    label: 'Pressure (PSI)',
                     data: pressureData,
                     borderColor: '#3498db',
                     backgroundColor: 'rgba(52, 152, 219, 0.1)',
                     tension: 0.4,
-                    fill: false
+                    fill: false,
+                    pointRadius: 2,
+                    pointHoverRadius: 4
                 }
             ]
         },
@@ -213,7 +290,12 @@ function updateHealthChart() {
             },
             plugins: {
                 legend: {
-                    position: 'bottom'
+                    position: 'bottom',
+                    labels: {
+                        font: {
+                            size: 12
+                        }
+                    }
                 }
             },
             scales: {
@@ -221,14 +303,26 @@ function updateHealthChart() {
                     display: true,
                     title: {
                         display: true,
-                        text: 'Time'
+                        text: 'Time',
+                        font: {
+                            size: 12
+                        }
+                    },
+                    grid: {
+                        display: false
                     }
                 },
                 y: {
                     display: true,
                     title: {
                         display: true,
-                        text: 'Sensor Values'
+                        text: 'Sensor Values',
+                        font: {
+                            size: 12
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
                     }
                 }
             }
@@ -236,7 +330,13 @@ function updateHealthChart() {
     });
 }
 
-// Utility Functions
+function getRiskLevel(probability) {
+    if (probability < 0.2) return 'LOW';
+    if (probability < 0.5) return 'MEDIUM';
+    if (probability < 0.8) return 'HIGH';
+    return 'CRITICAL';
+}
+
 function getStatusClass(riskLevel) {
     const statusMap = {
         'LOW': 'low',
@@ -258,7 +358,6 @@ function getStatusText(riskLevel) {
 }
 
 function getEquipmentType(equipmentId) {
-    // Simple mapping based on equipment ID patterns
     if (equipmentId.includes('PUMP')) return 'Centrifugal Pump';
     if (equipmentId.includes('MOTOR')) return 'Electric Motor';
     if (equipmentId.includes('COMP')) return 'Compressor';
@@ -266,30 +365,26 @@ function getEquipmentType(equipmentId) {
     return 'Industrial Equipment';
 }
 
-// Error Handling
+function showEquipmentDetails(equipment) {
+    alert(`Equipment: ${equipment.equipment_id}\nRisk Level: ${equipment.risk_level || getRiskLevel(equipment.failure_probability)}\nFailure Probability: ${Math.round(equipment.failure_probability * 100)}%\nVibration: ${equipment.vibration_rms} RMS\nTemperature: ${equipment.temperature_bearing}°C\nPressure: ${equipment.pressure_oil} PSI`);
+}
+
 function showErrorMessage() {
     const container = document.getElementById('equipmentOverview');
     container.innerHTML = `
-        <div class="error-message" style="
-            grid-column: 1 / -1;
-            background: #fdebea;
-            color: #e74c3c;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            border: 1px solid #f5c6cb;
-        ">
+        <div class="error-message">
             <h3>Unable to load equipment data</h3>
             <p>Please check your connection and try refreshing the page.</p>
-            <button onclick="loadDashboardData()" style="
-                margin-top: 10px;
-                background: #e74c3c;
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 4px;
-                cursor: pointer;
-            ">Retry</button>
+            <button onclick="loadDashboardData()">Retry</button>
         </div>
     `;
 }
+
+window.addEventListener('resize', function() {
+    if (riskChart) {
+        riskChart.resize();
+    }
+    if (healthChart) {
+        healthChart.resize();
+    }
+});
