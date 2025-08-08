@@ -1,0 +1,267 @@
+/* Global Reset and Base Styles */
+* { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+}
+
+body { 
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f5f6fa;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header Styles */
+.header {
+    background: linear-gradient(135deg, #4a69bd, #1e3799);
+    color: white;
+    padding: 20px;
+    text-align: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.header h1 { 
+    font-size: 2em; 
+    margin-bottom: 5px; 
+    font-weight: 300; 
+}
+
+/* Navigation */
+.nav-links {
+    float: right;
+    margin-top: -50px;
+}
+
+.nav-links a {
+    color: white;
+    text-decoration: none;
+    margin-left: 20px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.1);
+    transition: background 0.3s ease;
+}
+
+.nav-links a:hover {
+    background: rgba(255,255,255,0.2);
+}
+
+/* Main Content Layout */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    overflow: hidden;
+    gap: 20px;
+    max-height: calc(100vh - 100px);
+}
+
+/* Equipment Overview */
+.equipment-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    flex-shrink: 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.equipment-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-left: 4px solid #4a69bd;
+    transition: transform 0.2s ease;
+}
+
+.equipment-card:hover {
+    transform: translateY(-2px);
+}
+
+.equipment-card.status-low {
+    border-left-color: #27ae60;
+}
+
+.equipment-card.status-medium {
+    border-left-color: #f39c12;
+}
+
+.equipment-card.status-high {
+    border-left-color: #e67e22;
+}
+
+.equipment-card.status-critical {
+    border-left-color: #e74c3c;
+}
+
+.equipment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.equipment-name {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.equipment-type {
+    font-size: 0.9em;
+    color: #7f8c8d;
+    margin-top: 2px;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.status-low {
+    background: #d5f4e6;
+    color: #27ae60;
+}
+
+.status-badge.status-medium {
+    background: #fef9e7;
+    color: #f39c12;
+}
+
+.status-badge.status-high {
+    background: #fdf2e9;
+    color: #e67e22;
+}
+
+.status-badge.status-critical {
+    background: #fdebea;
+    color: #e74c3c;
+}
+
+/* Charts Section */
+.charts-section {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    min-height: 0;
+}
+
+.chart-container {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.chart-title {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.chart-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+}
+
+.chart-canvas {
+    width: 100%;
+    height: 100%;
+    max-height: 300px;
+}
+
+/* Loading States */
+.loading-spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #4a69bd;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Metrics Grid */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.metric-item {
+    text-align: center;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.metric-value {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: #4a69bd;
+}
+
+.metric-label {
+    font-size: 0.8em;
+    color: #6c757d;
+    margin-top: 2px;
+}
+
+.risk-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9em;
+    color: #7f8c8d;
+    padding-top: 10px;
+    border-top: 1px solid #ecf0f1;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .charts-section {
+        grid-template-columns: 1fr;
+    }
+    
+    .equipment-overview {
+        grid-template-columns: 1fr;
+    }
+    
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .nav-links {
+        float: none;
+        margin-top: 10px;
+        text-align: center;
+    }
+    
+    .header h1 {
+        font-size: 1.5em;
+    }
+}
