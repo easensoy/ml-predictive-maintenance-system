@@ -75,51 +75,77 @@ async function loadEquipmentData() {
 function displayPredictionResult(result) {
     const resultContainer = document.getElementById('predictionResult') || createResultContainer();
     
+    clearElement(resultContainer);
+    
     const riskLevel = getRiskLevel(result.failure_probability);
     const riskColor = getRiskColor(riskLevel);
     
-    resultContainer.innerHTML = `
-        <div class="prediction-result" style="
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-            margin-top: 20px;
-            border-left: 5px solid ${riskColor};
-        ">
-            <h3 style="color: #333; margin-bottom: 15px;">Prediction Results</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                <div style="text-align: center;">
-                    <div style="font-size: 2em; font-weight: bold; color: ${riskColor};">
-                        ${Math.round(result.failure_probability * 100)}%
-                    </div>
-                    <div style="color: #666;">Failure Risk</div>
-                </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 1.5em; font-weight: bold; color: ${riskColor};">
-                        ${riskLevel}
-                    </div>
-                    <div style="color: #666;">Risk Level</div>
-                </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 1.2em; font-weight: bold; color: #4a69bd;">
-                        ${result.confidence ? Math.round(result.confidence * 100) : 95}%
-                    </div>
-                    <div style="color: #666;">Confidence</div>
-                </div>
-            </div>
-            <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                <strong>Recommendation:</strong> ${getRecommendation(riskLevel)}
-            </div>
-        </div>
+    const resultDiv = createElement('div', 'prediction-result');
+    resultDiv.style.cssText = `
+        background: white;
+        padding: 25px;
+        border-radius: 15px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        margin-top: 20px;
+        border-left: 5px solid ${riskColor};
     `;
+    
+    const title = createElement('h3');
+    title.textContent = 'Prediction Results';
+    title.style.cssText = 'color: #333; margin-bottom: 15px;';
+    resultDiv.appendChild(title);
+    
+    const metricsGrid = createElement('div');
+    metricsGrid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;';
+    
+    const riskMetric = createMetricCard(Math.round(result.failure_probability * 100) + '%', 'Failure Risk', riskColor);
+    const levelMetric = createMetricCard(riskLevel, 'Risk Level', riskColor);
+    const confidenceMetric = createMetricCard((result.confidence ? Math.round(result.confidence * 100) : 95) + '%', 'Confidence', '#4a69bd');
+    
+    metricsGrid.appendChild(riskMetric);
+    metricsGrid.appendChild(levelMetric);
+    metricsGrid.appendChild(confidenceMetric);
+    resultDiv.appendChild(metricsGrid);
+    
+    const recommendation = createElement('div');
+    recommendation.style.cssText = 'margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;';
+    
+    const recTitle = createElement('strong');
+    recTitle.textContent = 'Recommendation: ';
+    
+    const recText = createElement('span');
+    recText.textContent = getRecommendation(riskLevel);
+    
+    recommendation.appendChild(recTitle);
+    recommendation.appendChild(recText);
+    resultDiv.appendChild(recommendation);
+    
+    resultContainer.appendChild(resultDiv);
+}
+
+function createMetricCard(value, label, color) {
+    const card = createElement('div');
+    card.style.textAlign = 'center';
+    
+    const valueDiv = createElement('div');
+    valueDiv.textContent = value;
+    valueDiv.style.cssText = `font-size: 2em; font-weight: bold; color: ${color};`;
+    
+    const labelDiv = createElement('div');
+    labelDiv.textContent = label;
+    labelDiv.style.color = '#666';
+    
+    card.appendChild(valueDiv);
+    card.appendChild(labelDiv);
+    
+    return card;
 }
 
 function updateEquipmentGrid(equipmentData) {
     const gridContainer = document.querySelector('.equipment-grid');
     if (!gridContainer) return;
     
-    gridContainer.innerHTML = '';
+    clearElement(gridContainer);
     
     equipmentData.forEach(equipment => {
         const card = createEquipmentOverviewCard(equipment);
@@ -128,68 +154,109 @@ function updateEquipmentGrid(equipmentData) {
 }
 
 function createEquipmentOverviewCard(equipment) {
-    const card = document.createElement('div');
-    const riskLevel = getRiskLevel(equipment.failure_probability);
-    const riskColor = getRiskColor(riskLevel);
+    const card = createElement('div', 'equipment-card');
     
-    card.className = 'equipment-card';
-    card.innerHTML = `
-        <div class="equipment-header">
-            <div>
-                <div class="equipment-name">${equipment.equipment_id}</div>
-                <div class="equipment-type">${getEquipmentType(equipment.equipment_id)}</div>
-            </div>
-            <div class="status-badge status-${getStatusClass(riskLevel)}">
-                ${riskLevel}
-            </div>
-        </div>
-        
-        <div class="equipment-metrics">
-            <div class="metric-row">
-                <span class="metric-label">Vibration:</span>
-                <span class="metric-value">${(equipment.vibration_rms || 0).toFixed(1)} RMS</span>
-            </div>
-            <div class="metric-row">
-                <span class="metric-label">Temperature:</span>
-                <span class="metric-value">${Math.round(equipment.temperature_bearing || 0)}°C</span>
-            </div>
-            <div class="metric-row">
-                <span class="metric-label">Pressure:</span>
-                <span class="metric-value">${(equipment.pressure_oil || 0).toFixed(1)} PSI</span>
-            </div>
-            <div class="metric-row">
-                <span class="metric-label">RPM:</span>
-                <span class="metric-value">${equipment.rpm || 0}</span>
-            </div>
-            <div class="metric-row">
-                <span class="metric-label">Oil Quality:</span>
-                <span class="metric-value">${Math.round((equipment.oil_quality || 0) * 100)}%</span>
-            </div>
-            <div class="metric-row">
-                <span class="metric-label">Power:</span>
-                <span class="metric-value">${(equipment.power_consumption || 0).toFixed(1)} kW</span>
-            </div>
-        </div>
-        
-        <div class="failure-probability">
-            <div class="probability-label">Failure Probability</div>
-            <div class="probability-value">${Math.round(equipment.failure_probability * 100)}%</div>
-            <div class="probability-bar">
-                <div class="probability-fill" style="width: ${equipment.failure_probability * 100}%"></div>
-            </div>
-        </div>
-        
-        <div class="recommendation">
-            <div class="recommendation-title">Recommendation:</div>
-            <div class="recommendation-text">${getRecommendation(riskLevel)}</div>
-        </div>
-    `;
+    const riskLevel = getRiskLevel(equipment.failure_probability);
+    const statusClass = getStatusClass(riskLevel);
+    
+    const header = createElement('div', 'equipment-header');
+    
+    const infoDiv = createElement('div');
+    const nameDiv = createElement('div', 'equipment-name');
+    nameDiv.textContent = equipment.equipment_id;
+    const typeDiv = createElement('div', 'equipment-type');
+    typeDiv.textContent = getEquipmentType(equipment.equipment_id);
+    
+    infoDiv.appendChild(nameDiv);
+    infoDiv.appendChild(typeDiv);
+    
+    const statusBadge = createElement('div', `status-badge status-${statusClass}`);
+    statusBadge.textContent = riskLevel;
+    
+    header.appendChild(infoDiv);
+    header.appendChild(statusBadge);
+    card.appendChild(header);
+    
+    const metricsDiv = createElement('div', 'equipment-metrics');
+    
+    const metrics = [
+        { label: 'Vibration:', value: (equipment.vibration_rms || 0).toFixed(1) + ' RMS' },
+        { label: 'Temperature:', value: Math.round(equipment.temperature_bearing || 0) + '°C' },
+        { label: 'Pressure:', value: (equipment.pressure_oil || 0).toFixed(1) + ' PSI' },
+        { label: 'RPM:', value: equipment.rpm || 0 },
+        { label: 'Oil Quality:', value: Math.round((equipment.oil_quality || 0) * 100) + '%' },
+        { label: 'Power:', value: (equipment.power_consumption || 0).toFixed(1) + ' kW' }
+    ];
+    
+    metrics.forEach(metric => {
+        const metricRow = createMetricRow(metric.label, metric.value);
+        metricsDiv.appendChild(metricRow);
+    });
+    
+    card.appendChild(metricsDiv);
+    
+    const probabilityDiv = createProbabilityDisplay(equipment.failure_probability);
+    card.appendChild(probabilityDiv);
+    
+    const recommendationDiv = createRecommendationDisplay(riskLevel);
+    card.appendChild(recommendationDiv);
     
     card.addEventListener('click', () => {
         populateFormWithEquipment(equipment);
     });
     
     return card;
+}
+
+function createMetricRow(label, value) {
+    const row = createElement('div', 'metric-row');
+    
+    const labelSpan = createElement('span', 'metric-label');
+    labelSpan.textContent = label;
+    
+    const valueSpan = createElement('span', 'metric-value');
+    valueSpan.textContent = value;
+    
+    row.appendChild(labelSpan);
+    row.appendChild(valueSpan);
+    
+    return row;
+}
+
+function createProbabilityDisplay(probability) {
+    const container = createElement('div', 'failure-probability');
+    
+    const label = createElement('div', 'probability-label');
+    label.textContent = 'Failure Probability';
+    
+    const value = createElement('div', 'probability-value');
+    value.textContent = Math.round(probability * 100) + '%';
+    
+    const barContainer = createElement('div', 'probability-bar');
+    const barFill = createElement('div', 'probability-fill');
+    barFill.style.width = (probability * 100) + '%';
+    
+    barContainer.appendChild(barFill);
+    container.appendChild(label);
+    container.appendChild(value);
+    container.appendChild(barContainer);
+    
+    return container;
+}
+
+function createRecommendationDisplay(riskLevel) {
+    const container = createElement('div', 'recommendation');
+    
+    const title = createElement('div', 'recommendation-title');
+    title.textContent = 'Recommendation:';
+    
+    const text = createElement('div', 'recommendation-text');
+    text.textContent = getRecommendation(riskLevel);
+    
+    container.appendChild(title);
+    container.appendChild(text);
+    
+    return container;
 }
 
 function generateDemoEquipment() {
@@ -305,34 +372,36 @@ function showLoading(show) {
 
 function showError(message) {
     const errorContainer = document.getElementById('errorContainer') || createErrorContainer();
-    errorContainer.innerHTML = `
-        <div style="
-            background: #fdebea;
-            color: #e74c3c;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #f5c6cb;
-            margin-top: 15px;
-            text-align: center;
-        ">
-            ${message}
-        </div>
+    clearElement(errorContainer);
+    
+    const errorDiv = createElement('div');
+    errorDiv.style.cssText = `
+        background: #fdebea;
+        color: #e74c3c;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #f5c6cb;
+        margin-top: 15px;
+        text-align: center;
     `;
+    errorDiv.textContent = message;
+    
+    errorContainer.appendChild(errorDiv);
     
     setTimeout(() => {
-        errorContainer.innerHTML = '';
+        clearElement(errorContainer);
     }, 5000);
 }
 
 function createResultContainer() {
-    const container = document.createElement('div');
+    const container = createElement('div');
     container.id = 'predictionResult';
     document.querySelector('.equipment-section').appendChild(container);
     return container;
 }
 
 function createErrorContainer() {
-    const container = document.createElement('div');
+    const container = createElement('div');
     container.id = 'errorContainer';
     document.querySelector('.equipment-section').appendChild(container);
     return container;
@@ -377,4 +446,18 @@ function setupEquipmentCards() {
             }, 150);
         }
     });
+}
+
+function createElement(tag, className = '') {
+    const element = document.createElement(tag);
+    if (className) {
+        element.className = className;
+    }
+    return element;
+}
+
+function clearElement(element) {
+    while (element.firstChild) {
+        element.removeChild(element.firstChild);
+    }
 }
