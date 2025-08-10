@@ -193,5 +193,34 @@ class Dashboard {
     }
 }
 
+// Auto-refresh live data every 30 seconds
+setInterval(async () => {
+    try {
+        const response = await fetch('/api/equipment/summary');
+        if (response.ok) {
+            const data = await response.json();
+            updateDashboard(data);
+            
+            // Show live indicator
+            document.querySelector('.live-indicator')?.classList.add('live');
+        }
+    } catch (error) {
+        console.error('Live data update failed:', error);
+    }
+}, 30000);
+
+function updateDashboard(equipment) {
+    // Update equipment cards with new data
+    equipment.forEach(eq => {
+        const card = document.querySelector(`[data-equipment="${eq.equipment_id}"]`);
+        if (card) {
+            // Update temperature, vibration, etc.
+            card.querySelector('.temperature').textContent = `${eq.temperature_bearing.toFixed(1)}°C`;
+            card.querySelector('.vibration').textContent = `${eq.vibration_rms.toFixed(2)} RMS`;
+            // ... update other values
+        }
+    });
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => new Dashboard());
