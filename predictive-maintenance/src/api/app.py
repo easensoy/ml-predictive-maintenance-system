@@ -1,115 +1,76 @@
-from flask import Flask, request, jsonify, render_template
-from flask_cors import CORS
-import numpy as np
-import logging
-import os
 from datetime import datetime
-import traceback
+import sys
+import os
 
-from .prediction_service import PredictionService
+from flask import app, jsonify
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from src.live_sensor_collector import get_live_equipment_data
 
-app = Flask(__name__, 
-           template_folder='../../web/templates',
-           static_folder='../../web/static')
-CORS(app)
+# Import the live sensor collector
+try:
+    from src.live_sensor_collector import get_live_equipment_data
+    LIVE_DATA_AVAILABLE = True
+    print("✅ Live data collector loaded successfully")
+except ImportError as e:
+    LIVE_DATA_AVAILABLE = False
+    print(f"⚠️ Live data collector not available: {e}")
 
-prediction_service = PredictionService()
+@app.route('/api/equipment/summary')
+def get_equipment_summary():
+    try:
+        equipment_data = get_live_equipment_data()
+        return jsonify(equipment_data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/dashboard')
-def dashboard():
-    return render_template('dashboard.html')
-
-@app.route('/api/health')
-def health_check():
+# ADD new route for live data status
+@app.route('/api/live-status')
+def get_live_status():
+    """
+    Check live data collection status
+    """
     return jsonify({
-        'status': 'healthy',
-        'timestamp': datetime.now().isoformat(),
-        'model_loaded': prediction_service.is_model_loaded(),
-        'version': '1.0.0'
+        'live_data_available': LIVE_DATA_AVAILABLE,
+        'thingspeak_enabled': True,
+        'openweather_enabled': False,
+        'timestamp': datetime.now().isoformat()
     })
 
-@app.route('/api/predict', methods=['POST'])
-def predict():
+# ADD new route for real-time data streaming
+@app.route('/api/live-data')
+def get_live_data():
+    """
+    Get current live sensor data
+    """
     try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'error': 'No data provided'}), 400
-        required_fields = ['equipment_id', 'sensor_data']
-        if not all(field in data for field in required_fields):
+        if LIVE_DATA_AVAILABLE:
+            from src.live_sensor_collector import LiveSensorDataCollector
+            collector = LiveSensorDataCollector()
+            live_data = collector.collect_live_data()
+            
             return jsonify({
-                'error': f'Missing required fields: {required_fields}'
-            }), 400
-        result = prediction_service.predict_single(
-            equipment_id=data['equipment_id'],
-            sensor_data=data['sensor_data']
-        )
-        logger.info(f"Prediction made for {data['equipment_id']}: {result['failure_probability']:.3f}")
-        return jsonify(result)
+                'success': True,
+                'data': live_data,
+                'timestamp': live_data['collection_timestamp']
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Live data collection not available'
+            }), 503
+            
     except Exception as e:
-        logger.error(f"Prediction error: {str(e)}")
-        logger.error(traceback.format_exc())
-        return jsonify({'error': 'Internal server error'}), 500
-
-@app.route('/api/predict/batch', methods=['POST'])
-def predict_batch():
-    try:
-        data = request.get_json()
-        if not data or 'equipments' not in data:
-            return jsonify({'error': 'No equipment data provided'}), 400
-        results = []
-        for equipment_data in data['equipments']:
-            try:
-                result = prediction_service.predict_single(
-                    equipment_id=equipment_data['equipment_id'],
-                    sensor_data=equipment_data['sensor_data']
-                )
-                results.append(result)
-            except Exception as e:
-                logger.error(f"Error processing {equipment_data.get('equipment_id', 'unknown')}: {str(e)}")
-                results.append({
-                    'equipment_id': equipment_data.get('equipment_id', 'unknown'),
-                    'error': str(e)
-                })
-        return jsonify({'results': results})
-    except Exception as e:
-        logger.error(f"Batch prediction error: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
-
-@app.route('/api/model/metrics')
-def get_model_metrics():
-    try:
-        metrics = prediction_service.get_model_metrics()
-        return jsonify(metrics)
-    except Exception as e:
-        logger.error(f"Error getting metrics: {str(e)}")
-        return jsonify({'error': 'Could not retrieve metrics'}), 500
-
-@app.route('/api/model/retrain', methods=['POST'])
-def trigger_retrain():
-    try:
         return jsonify({
-            'message': 'Retraining triggered',
-            'status': 'queued',
-            'timestamp': datetime.now().isoformat()
-        })
-    except Exception as e:
-        logger.error(f"Retrain error: {str(e)}")
-        return jsonify({'error': 'Could not trigger retraining'}), 500
-
-@app.errorhandler(404)
-def not_found(error):
-    return jsonify({'error': 'Endpoint not found'}), 404
-
-@app.errorhandler(500)
-def internal_error(error):
-    return jsonify({'error': 'Internal server error'}), 500
+            'success': False,
+            'error': str(e)
+        }), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    print("🚀 Starting Predictive Maintenance System with Live Data Integration")
+    print("📡 Live data sources: ThingSpeak public channels")
+    print("🌐 Dashboard: http://localhost:5000")
+    print("📊 Live Data API: http://localhost:5000/api/live-data")
+    print("📈 Equipment Summary: http://localhost:5000/api/equipment/summary")
+    
+    app.run(debug=True, host='0.0.0.0', port=5000)
