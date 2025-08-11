@@ -1,0 +1,112 @@
+# config/api_keys.yaml
+# Live Sensor Data API Configuration for Predictive Maintenance
+
+# ThingSpeak Configuration
+thingspeak:
+  # Your channel credentials
+  write_api_key: "2ZPPU9L06NNGD860"
+  channel_id: "3031670"
+  read_api_key: "6AGWH7LEB9BJ2BRP"
+  
+  # Public channels for additional live data
+  public_channels:
+    weather_station:
+      channel_id: 936796
+      description: "Weather station with temperature, humidity, pressure"
+      fields:
+        1: "temperature"
+        2: "humidity" 
+        3: "pressure"
+    
+    industrial_sensors:
+      channel_id: 762208
+      description: "Industrial sensors for vibration and temperature"
+      fields:
+        1: "temperature"
+        2: "vibration"
+
+# OpenWeatherMap Configuration (Free: 1000 calls/day)
+openweather:
+  api_key: "YOUR_OPENWEATHER_API_KEY"  # Get from https://openweathermap.org/api
+  base_url: "https://api.openweathermap.org/data/2.5"
+  location:
+    lat: 52.7698   # Loughborough latitude
+    lon: -1.2041   # Loughborough longitude
+    name: "Loughborough, UK"
+
+# Data collection settings
+data_collection:
+  update_intervals:
+    live_collection: 30      # Collect live data every 30 seconds
+    prediction_update: 60    # Update predictions every minute
+    dashboard_refresh: 10    # Refresh dashboard every 10 seconds
+  
+  retry_settings:
+    max_retries: 3
+    retry_delay: 5           # seconds
+    timeout: 10              # seconds
+
+# Equipment configuration for realistic simulation
+equipment:
+  EQ_001:
+    name: "Turbine Generator"
+    base_rpm: 1800
+    temp_factor: 1.2
+    type: "generator"
+  
+  EQ_002:
+    name: "Air Compressor" 
+    base_rpm: 1750
+    temp_factor: 1.1
+    type: "compressor"
+  
+  EQ_003:
+    name: "Hydraulic Pump"
+    base_rpm: 1650
+    temp_factor: 0.9
+    type: "pump"
+  
+  EQ_004:
+    name: "Cooling System"
+    base_rpm: 1200
+    temp_factor: 0.8
+    type: "cooling"
+  
+  EQ_005:
+    name: "Conveyor Motor"
+    base_rpm: 1500
+    temp_factor: 1.0
+    type: "motor"
+
+# Sensor field mappings for ThingSpeak
+sensor_fields:
+  temperature: 1
+  vibration: 2
+  pressure: 3
+  rpm: 4
+  oil_quality: 5
+  power: 6
+
+# Alert thresholds
+thresholds:
+  vibration:
+    normal: 2.0
+    warning: 2.5
+    critical: 3.5
+  
+  temperature:
+    normal: 80
+    warning: 90
+    critical: 100
+  
+  oil_quality:
+    normal: 80
+    warning: 60
+    critical: 40
+
+# System settings
+system:
+  debug: true
+  log_level: "INFO"
+  enable_fallback: true     # Use simulated data when APIs fail
+  fallback_mode: "realistic" # or "random"
