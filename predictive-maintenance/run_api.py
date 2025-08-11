@@ -1,9 +1,9 @@
 from flask import Flask, request, jsonify, render_template
+from datetime import datetime
 import sys
 import os
 sys.path.append('.')
 
-# Initialize prediction service with error handling
 try:
     from src.api.prediction_service import PredictionService
     prediction_service = PredictionService()
@@ -11,30 +11,80 @@ except Exception as e:
     print(f"Warning: Could not load prediction service: {e}")
     prediction_service = None
 
+try:
+    from src.live_sensor_collector import get_live_equipment_data, LiveSensorDataCollector
+    LIVE_DATA_AVAILABLE = True
+    print("✅ Live data collector loaded successfully")
+except ImportError as e:
+    LIVE_DATA_AVAILABLE = False
+    print(f"⚠️ Live data collector not available: {e}")
+
 app = Flask(__name__, template_folder='web/templates', static_folder='web/static')
 
 @app.route('/')
 def index():
-    """Main dashboard page"""
     return render_template('index.html')
 
 @app.route('/dashboard')
 def dashboard():
-    """Equipment monitoring dashboard"""
     return render_template('dashboard.html')
 
 @app.route('/api/health')
 def health_check():
-    """API health check"""
     return jsonify({
         'status': 'healthy',
         'service': 'Predictive Maintenance API',
-        'model_loaded': prediction_service is not None and prediction_service.model is not None
+        'model_loaded': prediction_service is not None and prediction_service.model is not None,
+        'live_data_available': LIVE_DATA_AVAILABLE,
+        'timestamp': datetime.now().isoformat()
     })
+
+@app.route('/api/live-status')
+def get_live_status():
+    return jsonify({
+        'live_data_available': LIVE_DATA_AVAILABLE,
+        'thingspeak_enabled': True,
+        'openweather_enabled': False,
+        'timestamp': datetime.now().isoformat()
+    })
+
+@app.route('/api/equipment/summary')
+def get_equipment_summary():
+    try:
+        if LIVE_DATA_AVAILABLE:
+            equipment_data = get_live_equipment_data()
+            return jsonify(equipment_data)
+        else:
+            return jsonify({'error': 'Live data collection not available'}), 503
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/live-data')
+def get_live_data():
+    try:
+        if LIVE_DATA_AVAILABLE:
+            collector = LiveSensorDataCollector()
+            live_data = collector.collect_live_data()
+            
+            return jsonify({
+                'success': True,
+                'data': live_data,
+                'timestamp': live_data['collection_timestamp']
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Live data collection not available'
+            }), 503
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/api/predict', methods=['POST'])
 def predict():
-    """Single equipment prediction"""
     try:
         if not prediction_service:
             return jsonify({'error': 'Prediction service not available'}), 503
@@ -50,7 +100,6 @@ def predict():
 
 @app.route('/api/predict/batch', methods=['POST'])
 def predict_batch():
-    """Batch equipment predictions"""
     try:
         if not prediction_service:
             return jsonify({'error': 'Prediction service not available'}), 503
@@ -62,69 +111,46 @@ def predict_batch():
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
-@app.route('/api/model/info')
-def model_info():
-    """Get model information and metrics"""
-    if prediction_service:
-        return jsonify(prediction_service.get_model_info())
-    else:
-        return jsonify({
-            'model_type': 'Demo Mode',
-            'status': 'Prediction service unavailable'
-        })
-
 @app.route('/api/equipment/demo')
-def demo_equipment():
-    """Generate demo equipment data for testing"""
+def get_demo_data():
     try:
-        demo_data = [
-            {
-                'equipment_id': 'EQ_001',
-                'vibration_rms': 1.2,
-                'temperature_bearing': 75.0,
-                'pressure_oil': 18.5,
-                'rpm': 1750.0,
-                'oil_quality_index': 85.0,
-                'power_consumption': 48.0,
-                'status': 'Running'
-            },
-            {
-                'equipment_id': 'EQ_002', 
-                'vibration_rms': 2.8,
-                'temperature_bearing': 92.0,
-                'pressure_oil': 12.0,
-                'rpm': 1650.0,
-                'oil_quality_index': 45.0,
-                'power_consumption': 65.0,
-                'status': 'Warning'
-            },
-            {
-                'equipment_id': 'EQ_003',
-                'vibration_rms': 0.8,
-                'temperature_bearing': 68.0,
-                'pressure_oil': 22.0,
-                'rpm': 1820.0,
-                'oil_quality_index': 90.0,
-                'power_consumption': 46.0,
-                'status': 'Healthy'
-            }
-        ]
+        import random
         
-        # Add predictions to each equipment
-        for equipment in demo_data:
-            if prediction_service:
+        demo_data = []
+        equipment_ids = ['EQ_001', 'EQ_002', 'EQ_003', 'EQ_004', 'EQ_005']
+        equipment_names = ['Turbine Generator', 'Air Compressor', 'Hydraulic Pump', 'Cooling System', 'Conveyor Motor']
+        
+        for i, equipment_id in enumerate(equipment_ids):
+            equipment = {
+                'equipment_id': equipment_id,
+                'equipment_name': equipment_names[i],
+                'vibration_rms': random.uniform(0.8, 2.8),
+                'temperature_bearing': random.uniform(65, 95),
+                'pressure_oil': random.uniform(10, 18),
+                'rpm': random.uniform(1200, 1850),
+                'oil_quality_index': random.uniform(45, 98),
+                'power_consumption': random.uniform(35, 75),
+                'data_source': 'Demo Generation'
+            }
+            
+            if prediction_service and prediction_service.model:
                 try:
-                    prediction = prediction_service.predict_single(equipment)
-                    equipment.update(prediction)
-                except Exception as e:
-                    # Fallback to manual risk calculation
+                    prediction = prediction_service.predict_single({
+                        'equipment_id': equipment_id,
+                        'sensor_data': [equipment]
+                    })
+                    equipment.update({
+                        'failure_probability': prediction.get('failure_probability', 0.1),
+                        'risk_level': prediction.get('risk_level', 'LOW'),
+                        'recommended_action': prediction.get('recommendation', 'Normal operation')
+                    })
+                except:
                     equipment.update({
                         'failure_probability': 0.5 if equipment['vibration_rms'] > 2.0 else 0.2,
                         'risk_level': 'MEDIUM' if equipment['vibration_rms'] > 2.0 else 'LOW',
                         'recommended_action': 'Monitor closely' if equipment['vibration_rms'] > 2.0 else 'Normal operation'
                     })
             else:
-                # Manual risk calculation when service unavailable
                 risk_score = 0
                 if equipment['vibration_rms'] > 2.5: risk_score += 0.4
                 if equipment['temperature_bearing'] > 85: risk_score += 0.3
@@ -135,6 +161,8 @@ def demo_equipment():
                     'risk_level': 'HIGH' if risk_score > 0.6 else 'MEDIUM' if risk_score > 0.3 else 'LOW',
                     'recommended_action': 'Schedule maintenance' if risk_score > 0.6 else 'Monitor' if risk_score > 0.3 else 'Normal operation'
                 })
+            
+            demo_data.append(equipment)
         
         return jsonify(demo_data)
         
@@ -148,16 +176,3 @@ def not_found(error):
 @app.errorhandler(500)
 def internal_error(error):
     return jsonify({'error': 'Internal server error'}), 500
-
-if __name__ == '__main__':
-    print("=" * 60)
-    print("PREDICTIVE MAINTENANCE API SERVER")
-    print("=" * 60)
-    print("Starting server...")
-    print("API will be available at: http://localhost:5000")
-    print("Dashboard available at: http://localhost:5000/dashboard")
-    print("API health check: http://localhost:5000/api/health")
-    print("Demo data: http://localhost:5000/api/equipment/demo")
-    print("=" * 60)
-    
-    app.run(debug=True, host='0.0.0.0', port=5000)
