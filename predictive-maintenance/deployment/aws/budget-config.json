@@ -1,0 +1,1 @@
+{"BudgetName":"predictive-maintenance-pytorch-budget","BudgetLimit":{"Amount":"5.00","Unit":"USD"},"TimeUnit":"MONTHLY","BudgetType":"COST","CostFilters":{"Service":["Amazon Elastic Container Service","Amazon EC2 Container Registry"]}} 
