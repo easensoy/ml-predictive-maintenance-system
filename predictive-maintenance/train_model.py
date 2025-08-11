@@ -5,7 +5,7 @@ import sys
 import json
 import pickle
 import argparse
-import matplotlib.pyplot as plt
+import time
 from datetime import datetime
 
 import numpy as np
@@ -19,8 +19,46 @@ from sklearn.model_selection import train_test_split
 
 sys.path.append('src')
 
-from data.generate_data import generate_sensor_data
 from src.models.lstm_model import PredictiveMaintenanceLSTM, MetricsTracker, EarlyStopping, count_parameters
+from src.live_sensor_collector import LiveSensorDataCollector
+
+def collect_live_data_for_training(hours=72, interval_minutes=30):
+    """Collect live sensor data over time for training"""
+    collector = LiveSensorDataCollector()
+    all_data = []
+    total_collections = int(hours * 60 / interval_minutes)
+    
+    print(f"Collecting live data for {hours} hours ({total_collections} collections)...")
+    print("This may take a while. Consider using existing data for faster training.")
+    
+    for i in range(total_collections):
+        try:
+            live_data = collector.collect_live_data()
+            for equipment in live_data['equipment_data']:
+                equipment['timestamp'] = live_data['collection_timestamp']
+                all_data.append(equipment)
+            
+            print(f"Collection {i+1}/{total_collections} complete ({len(all_data)} total records)")
+            
+            if i < total_collections - 1:
+                time.sleep(interval_minutes * 60)
+        except Exception as e:
+            print(f"Error collecting data at iteration {i+1}: {e}")
+            continue
+    
+    if not all_data:
+        raise ValueError("No live data collected. Check sensor connections.")
+    
+    return pd.DataFrame(all_data)
+
+def load_data(data_path, use_live=False, live_hours=72):
+    """Load data from CSV file or collect live data"""
+    if use_live:
+        return collect_live_data_for_training(hours=live_hours)
+    elif os.path.exists(data_path):
+        return pd.read_csv(data_path)
+    else:
+        raise FileNotFoundError(f"Data file not found: {data_path}")
 
 def create_sequences(data, seq_len=24):
     sequences, targets = [], []
@@ -35,15 +73,32 @@ def create_sequences(data, seq_len=24):
     return np.array(sequences, dtype=np.float32), np.array(targets, dtype=np.float32)
 
 def preprocess_data(data):
-    data['hour'] = pd.to_datetime(data['timestamp']).dt.hour
-    data['day_of_week'] = pd.to_datetime(data['timestamp']).dt.dayofweek
+    data['timestamp'] = pd.to_datetime(data['timestamp'])
+    data['hour'] = data['timestamp'].dt.hour
+    data['day_of_week'] = data['timestamp'].dt.dayofweek
     
     encoder = LabelEncoder()
     data['equipment_encoded'] = encoder.fit_transform(data['equipment_id'])
     
-    feature_cols = ['vibration_rms', 'temperature_bearing', 'pressure_oil', 
-                   'rpm', 'oil_quality_index', 'power_consumption',
-                   'hour', 'day_of_week', 'equipment_encoded']
+    # Handle both live data format and CSV format
+    feature_cols = []
+    required_cols = ['vibration_rms', 'temperature_bearing', 'pressure_oil', 
+                    'rpm', 'power_consumption', 'hour', 'day_of_week', 'equipment_encoded']
+    
+    for col in required_cols:
+        if col in data.columns:
+            feature_cols.append(col)
+    
+    # Handle different naming conventions
+    if 'oil_quality_index' in data.columns:
+        feature_cols.append('oil_quality_index')
+    elif 'oil_quality' in data.columns:
+        data['oil_quality_index'] = data['oil_quality'] * 100
+        feature_cols.append('oil_quality_index')
+    
+    # Create failure target if it doesn't exist (for live data)
+    if 'failure_within_24h' not in data.columns:
+        data['failure_within_24h'] = (data['failure_probability'] > 0.5).astype(int)
     
     return data[feature_cols + ['equipment_id', 'timestamp', 'failure_within_24h']], encoder
 
@@ -121,7 +176,9 @@ def scale_data(X_train, X_val, X_test):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--generate-data', action='store_true')
+    parser.add_argument('--data-path', type=str, default='data/raw/sensor_data.csv', help='Path to training data CSV file')
+    parser.add_argument('--use-live', action='store_true', help='Collect live sensor data for training')
+    parser.add_argument('--live-hours', type=int, default=72, help='Hours of live data to collect')
     parser.add_argument('--epochs', type=int, default=20)
     parser.add_argument('--batch-size', type=int, default=32)
     parser.add_argument('--learning-rate', type=float, default=0.001)
@@ -134,14 +191,12 @@ def main():
     for dir_name in ['models', 'data/raw', 'data/processed', 'logs']:
         os.makedirs(dir_name, exist_ok=True)
     
-    if args.generate_data:
-        generate_sensor_data(num_samples=10000, num_equipments=50)
+    print(f"Loading data from {'live sensors' if args.use_live else args.data_path}...")
+    data = load_data(args.data_path, args.use_live)
     
-    if not os.path.exists('data/raw/sensor_data.csv'):
-        print("No data found. Generate data first with --generate-data")
-        return
-    
-    data = pd.read_csv('data/raw/sensor_data.csv')
+    if args.use_live:
+        data.to_csv('data/processed/live_training_data.csv', index=False)
+        print(f"Saved {len(data)} live data points to data/processed/live_training_data.csv")
     data, encoder = preprocess_data(data)
     X, y = create_sequences(data, seq_len=24)
     
@@ -197,7 +252,8 @@ def main():
     
     save_artifacts(model, scaler, encoder, history, test_metrics, args, n_features)
     
-    print(f"Training completed. Test F1: {test_metrics['f1_score']:.4f}")
+    data_source = "live sensors" if args.use_live else "CSV file"
+    print(f"Training completed using {data_source}. Test F1: {test_metrics['f1_score']:.4f}")
 
 if __name__ == "__main__":
     main()
