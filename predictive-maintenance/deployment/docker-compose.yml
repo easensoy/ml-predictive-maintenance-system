@@ -26,7 +26,6 @@ services:
     networks:
       - maintenance-network
 
-  # Optional: Redis for caching (production enhancement)
   redis:
     image: redis:7-alpine
     container_name: predictive-maintenance-redis
@@ -39,7 +38,6 @@ services:
     networks:
       - maintenance-network
 
-  # Optional: Nginx reverse proxy (production)
   nginx:
     image: nginx:alpine
     container_name: predictive-maintenance-nginx
