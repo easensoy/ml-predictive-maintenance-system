@@ -1,0 +1,22 @@
+{
+  "model_type": "PyTorch LSTM + Attention",
+  "framework": "PyTorch",
+  "input_features": 19,
+  "sequence_length": 24,
+  "hidden_size": 64,
+  "num_layers": 2,
+  "prediction_horizon": "24 hours",
+  "training_samples": 5641,
+  "validation_samples": 1411,
+  "test_samples": 1764,
+  "epochs_trained": 20,
+  "batch_size": 32,
+  "learning_rate": 0.001,
+  "training_time": "2025-08-07T23:08:44.246480",
+  "accuracy": 0.9682539682539683,
+  "precision": 0.9556509298998569,
+  "recall": 0.963924963924964,
+  "f1_score": 0.9597701149425287,
+  "false_alarm_rate": 0.028944911297852476,
+  "avg_loss": 0.09687699901821491
+}
