@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Equipment Monitoring Dashboard</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link rel="stylesheet" href="/static/css/tailwind.css">
     <link rel="stylesheet" href="/static/css/dashboard.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
 </head>
-<div class="live-indicator">🔴 Live Data</div>
 
 <body>
     <div class="header">
@@ -40,6 +41,9 @@
         </div>
     </div>
 
+    <div class="live-indicator">🔴 Connecting...</div>
+    
+    <script src="/static/js/websocket-client.js"></script>
     <script src="/static/js/dashboard.js"></script>
 </body>
 </html>
