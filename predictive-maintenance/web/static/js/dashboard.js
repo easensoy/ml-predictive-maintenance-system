@@ -1,4 +1,3 @@
-// Compact Dashboard Manager - Minimal Code
 class Dashboard {
     constructor() {
         this.data = [];
@@ -202,7 +201,6 @@ class Dashboard {
         );
     }
 
-    // Utility methods
     getStatus(risk) {
         return { LOW: 'healthy', MEDIUM: 'warning', HIGH: 'warning', CRITICAL: 'critical' }[risk] || 'healthy';
     }
@@ -222,6 +220,4 @@ class Dashboard {
     }
 }
 
-
-// Initialize
 document.addEventListener('DOMContentLoaded', () => new Dashboard());
