@@ -23,7 +23,6 @@ from src.models.lstm_model import PredictiveMaintenanceLSTM, MetricsTracker, Ear
 from src.live_sensor_collector import LiveSensorDataCollector
 
 def collect_live_data_for_training(hours=72, interval_minutes=30):
-    """Collect live sensor data over time for training"""
     collector = LiveSensorDataCollector()
     all_data = []
     total_collections = int(hours * 60 / interval_minutes)
@@ -52,7 +51,6 @@ def collect_live_data_for_training(hours=72, interval_minutes=30):
     return pd.DataFrame(all_data)
 
 def load_data(data_path, use_live=False, live_hours=72):
-    """Load data from CSV file or collect live data"""
     if use_live:
         return collect_live_data_for_training(hours=live_hours)
     elif os.path.exists(data_path):
@@ -80,7 +78,6 @@ def preprocess_data(data):
     encoder = LabelEncoder()
     data['equipment_encoded'] = encoder.fit_transform(data['equipment_id'])
     
-    # Handle both live data format and CSV format
     feature_cols = []
     required_cols = ['vibration_rms', 'temperature_bearing', 'pressure_oil', 
                     'rpm', 'power_consumption', 'hour', 'day_of_week', 'equipment_encoded']
@@ -89,14 +86,12 @@ def preprocess_data(data):
         if col in data.columns:
             feature_cols.append(col)
     
-    # Handle different naming conventions
     if 'oil_quality_index' in data.columns:
         feature_cols.append('oil_quality_index')
     elif 'oil_quality' in data.columns:
         data['oil_quality_index'] = data['oil_quality'] * 100
         feature_cols.append('oil_quality_index')
     
-    # Create failure target if it doesn't exist (for live data)
     if 'failure_within_24h' not in data.columns:
         data['failure_within_24h'] = (data['failure_probability'] > 0.5).astype(int)
     
@@ -176,9 +171,9 @@ def scale_data(X_train, X_val, X_test):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data-path', type=str, default='data/raw/sensor_data.csv', help='Path to training data CSV file')
-    parser.add_argument('--use-live', action='store_true', help='Collect live sensor data for training')
-    parser.add_argument('--live-hours', type=int, default=72, help='Hours of live data to collect')
+    parser.add_argument('--data-path', type=str, default='data/raw/sensor_data.csv')
+    parser.add_argument('--use-live', action='store_true')
+    parser.add_argument('--live-hours', type=int, default=72)
     parser.add_argument('--epochs', type=int, default=20)
     parser.add_argument('--batch-size', type=int, default=32)
     parser.add_argument('--learning-rate', type=float, default=0.001)
