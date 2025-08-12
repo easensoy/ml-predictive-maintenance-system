@@ -1,9 +1,3 @@
-# src/live_sensor_collector.py
-"""
-Live Sensor Data Collector for Predictive Maintenance
-ThingSpeak Only - Import Path Fixed
-"""
-
 import requests
 import json
 import time
@@ -12,10 +6,8 @@ import sys
 import os
 from datetime import datetime
 
-# Add the parent directory to the path to find the config module
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Global variable for config availability
 CONFIG_AVAILABLE = False
 config_loader_available = False
 
@@ -29,26 +21,18 @@ except ImportError as e:
     print("Using fallback configuration...")
 
 class LiveSensorDataCollector:
-    """
-    Collects live sensor data from ThingSpeak public channels
-    Generates realistic equipment data based on live conditions
-    """
-    
     def __init__(self):
         self.config_available = config_loader_available
         
         if self.config_available:
             try:
-                # Load configuration from YAML
                 self.config = get_config()
                 self.thingspeak_config = get_thingspeak_config()
                 self.equipment_config = get_equipment_config()
                 
-                # Get update intervals from config
                 intervals = self.config.get_update_intervals()
                 self.update_interval = intervals.get('live_collection', 30)
                 
-                # Get retry settings
                 data_config = self.config.get_data_collection_config()
                 retry_settings = data_config.get('retry_settings', {})
                 self.timeout = retry_settings.get('timeout', 10)
@@ -59,7 +43,6 @@ class LiveSensorDataCollector:
                 self.config_available = False
         
         if not self.config_available:
-            # Fallback configuration
             self.thingspeak_config = {
                 'write_api_key': '2ZPPU9L06NNGD860',
                 'channel_id': '3031670',
@@ -87,9 +70,6 @@ class LiveSensorDataCollector:
             print("✅ Using fallback configuration")
 
     def get_thingspeak_public_data(self, channel_id, field_num):
-        """
-        Get live data from ThingSpeak public channels
-        """
         try:
             url = f"https://api.thingspeak.com/channels/{channel_id}/fields/{field_num}/last.json"
             response = requests.get(url, timeout=self.timeout)
@@ -112,20 +92,15 @@ class LiveSensorDataCollector:
             return None
 
     def send_to_thingspeak(self, sensor_data):
-        """
-        Send equipment data to your ThingSpeak channel
-        """
         try:
             write_api_key = self.thingspeak_config.get('write_api_key')
             if not write_api_key or 'YOUR_' in write_api_key:
                 print("⚠️ ThingSpeak Write API key not configured")
                 return None
             
-            # Build the API request
             url = "https://api.thingspeak.com/update"
             params = {'api_key': write_api_key}
             
-            # Map sensor data to fields
             if 'temperature_bearing' in sensor_data:
                 params['field1'] = sensor_data['temperature_bearing']
             if 'vibration_rms' in sensor_data:
@@ -153,14 +128,10 @@ class LiveSensorDataCollector:
             return None
 
     def get_ambient_conditions_from_thingspeak(self):
-        """
-        Get ambient temperature and pressure from ThingSpeak public channels
-        """
         ambient_data = {'temperature': 20, 'pressure': 10.13, 'humidity': 65, 'source': 'fallback'}
         
         print("📡 Fetching live ambient data from ThingSpeak...")
         
-        # Try to get real data from public channels
         public_channels = self.thingspeak_config.get('public_channels', {})
         live_data_found = False
         
@@ -174,12 +145,12 @@ class LiveSensorDataCollector:
                 data = self.get_thingspeak_public_data(channel_id, field_id)
                 if data and data['value'] > 0:
                     live_data_found = True
-                    if field_name == 'temperature' and 0 < data['value'] < 50:  # Reasonable temperature range
+                    if field_name == 'temperature' and 0 < data['value'] < 50:
                         ambient_data['temperature'] = data['value']
                         ambient_data['source'] = f'ThingSpeak-{channel_name}'
                         print(f"   ✅ Got temperature: {data['value']}°C")
-                    elif field_name == 'pressure' and 800 < data['value'] < 1200:  # Reasonable pressure range in hPa
-                        ambient_data['pressure'] = data['value'] / 100  # Convert hPa to bar
+                    elif field_name == 'pressure' and 800 < data['value'] < 1200:
+                        ambient_data['pressure'] = data['value'] / 100
                         ambient_data['source'] = f'ThingSpeak-{channel_name}'
                         print(f"   ✅ Got pressure: {data['value']} hPa")
                     elif field_name == 'humidity' and 0 < data['value'] <= 100:
@@ -196,12 +167,8 @@ class LiveSensorDataCollector:
         return ambient_data
 
     def calculate_failure_risk(self, vibration, temperature, oil_quality, pressure):
-        """
-        Calculate failure risk based on sensor readings
-        """
         risk_score = 0
         
-        # Vibration analysis
         if vibration > 3.5:
             risk_score += 0.4
         elif vibration > 2.5:
@@ -209,7 +176,6 @@ class LiveSensorDataCollector:
         elif vibration > 2.0:
             risk_score += 0.1
         
-        # Temperature analysis
         if temperature > 100:
             risk_score += 0.3
         elif temperature > 90:
@@ -217,7 +183,6 @@ class LiveSensorDataCollector:
         elif temperature > 80:
             risk_score += 0.05
         
-        # Oil quality analysis
         if oil_quality < 40:
             risk_score += 0.3
         elif oil_quality < 60:
@@ -225,45 +190,33 @@ class LiveSensorDataCollector:
         elif oil_quality < 80:
             risk_score += 0.05
         
-        # Pressure analysis (low pressure indicates problems)
         if pressure < 8:
             risk_score += 0.2
         elif pressure < 12:
             risk_score += 0.1
         
-        # Add some randomness for realism
         risk_score += random.uniform(0, 0.1)
         
         return min(risk_score, 0.95)
 
     def simulate_industrial_data(self, base_temp, base_pressure):
-        """
-        Generate realistic industrial sensor data based on ambient conditions
-        """
         equipment_data = []
         
         for eq_id, specs in self.equipment_config.items():
-            # Temperature: ambient + heat from equipment operation
             equipment_temp = base_temp + random.uniform(40, 80) * specs.get('temp_factor', 1.0)
             
-            # Vibration: related to RPM and equipment condition
             base_rpm = specs.get('base_rpm', 1500)
             base_vibration = 0.8 + (base_rpm / 2000) * 0.5
             vibration_rms = base_vibration + random.uniform(-0.3, 0.7)
             
-            # Oil pressure: varies with temperature and load
             oil_pressure = base_pressure + random.uniform(5, 15)
             
-            # RPM: varies around base with some fluctuation
             rpm = base_rpm + random.uniform(-50, 50)
             
-            # Oil quality: degrades over time (simulate aging)
             oil_quality = random.uniform(85, 100) - (equipment_temp - 60) * 0.1
             
-            # Power consumption: related to load and efficiency
             power_consumption = 45 + (vibration_rms - 1.0) * 20 + random.uniform(-5, 5)
             
-            # Calculate failure probability
             failure_risk = self.calculate_failure_risk(
                 vibration_rms, equipment_temp, oil_quality, oil_pressure
             )
@@ -285,17 +238,12 @@ class LiveSensorDataCollector:
         return equipment_data
 
     def collect_live_data(self):
-        """
-        Main function to collect all live sensor data
-        """
         print("🌡️ Collecting live sensor data from ThingSpeak...")
         
-        # Get ambient conditions from ThingSpeak public channels
         ambient_data = self.get_ambient_conditions_from_thingspeak()
         
         print(f"📍 Ambient conditions - Temp: {ambient_data['temperature']}°C, Pressure: {ambient_data['pressure']} bar")
         
-        # Generate industrial equipment data based on live conditions
         equipment_data = self.simulate_industrial_data(
             ambient_data['temperature'], 
             ambient_data['pressure']
@@ -310,12 +258,8 @@ class LiveSensorDataCollector:
         }
 
     def get_equipment_summary(self):
-        """
-        Get equipment summary for the API endpoint
-        """
         live_data = self.collect_live_data()
         
-        # Format data for the existing API structure
         summary = []
         for equipment in live_data['equipment_data']:
             summary.append({
@@ -324,7 +268,7 @@ class LiveSensorDataCollector:
                 'temperature_bearing': equipment['temperature_bearing'],
                 'pressure_oil': equipment['pressure_oil'],
                 'rpm': equipment['rpm'],
-                'oil_quality': equipment['oil_quality_index'] / 100,  # Convert to 0-1 scale
+                'oil_quality': equipment['oil_quality_index'] / 100,
                 'power_consumption': equipment['power_consumption'],
                 'failure_probability': equipment['failure_probability']
             })
@@ -332,21 +276,14 @@ class LiveSensorDataCollector:
         return summary
 
 def get_live_equipment_data():
-    """
-    Function to be used by the Flask API to get live equipment data
-    """
     try:
         collector = LiveSensorDataCollector()
         return collector.get_equipment_summary()
     except Exception as e:
         print(f"Error collecting live data: {e}")
-        # Return fallback data if live collection fails
         return generate_fallback_equipment_data()
 
 def generate_fallback_equipment_data():
-    """
-    Generate fallback equipment data when live collection fails
-    """
     equipment_data = []
     equipment_ids = ['EQ_001', 'EQ_002', 'EQ_003', 'EQ_004', 'EQ_005']
     
@@ -365,7 +302,6 @@ def generate_fallback_equipment_data():
     return equipment_data
 
 if __name__ == "__main__":
-    # Test the collector
     print("🔧 Testing Live Sensor Data Collector")
     print("=" * 50)
     
@@ -379,7 +315,6 @@ if __name__ == "__main__":
         print(f"📡 Configuration: {live_data['config_type']}")
         print(f"🌍 Ambient source: {live_data['ambient_conditions']['source']}")
         
-        # Show sample equipment data
         for equipment in live_data['equipment_data'][:2]:
             print(f"\n🔧 {equipment['equipment_id']} ({equipment['equipment_name']}):")
             print(f"   Temperature: {equipment['temperature_bearing']:.1f}°C")
