@@ -19,7 +19,19 @@ except ImportError as e:
     LIVE_DATA_AVAILABLE = False
     print(f"⚠️ Live data collector not available: {e}")
 
+try:
+    from src.websocket.websocket_server import WebSocketManager
+    WEBSOCKET_AVAILABLE = True
+    print("✅ WebSocket server loaded successfully")
+except ImportError as e:
+    WEBSOCKET_AVAILABLE = False
+    print(f"⚠️ WebSocket server not available: {e}")
+
 app = Flask(__name__, template_folder='web/templates', static_folder='web/static')
+
+if WEBSOCKET_AVAILABLE:
+    ws_manager = WebSocketManager(app)
+    ws_manager.start_periodic_updates()
 
 @app.route('/')
 def index():
@@ -176,3 +188,9 @@ def not_found(error):
 @app.errorhandler(500)
 def internal_error(error):
     return jsonify({'error': 'Internal server error'}), 500
+
+if __name__ == '__main__':
+    if WEBSOCKET_AVAILABLE:
+        ws_manager.run(app, debug=True, host='0.0.0.0', port=5000)
+    else:
+        app.run(debug=True, host='0.0.0.0', port=5000)
