@@ -3,12 +3,41 @@ class Dashboard {
     constructor() {
         this.data = [];
         this.charts = {};
+        this.wsClient = null;
         this.init();
     }
 
     async init() {
+        this.initWebSocket();
         await this.loadData();
-        setInterval(() => this.loadData(), 30000);
+    }
+
+    initWebSocket() {
+        this.wsClient = new WebSocketClient();
+        
+        this.wsClient.on('liveData', (data) => {
+            if (data && !data.error) {
+                this.data = Array.isArray(data) ? data : [data];
+                this.render();
+            }
+        });
+
+        this.wsClient.on('connected', () => {
+            this.wsClient.startPeriodicUpdates(5000);
+        });
+
+        this.wsClient.on('systemAlert', (alert) => {
+            this.showAlert(alert);
+        });
+    }
+
+    showAlert(alert) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'fixed top-16 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50';
+        alertDiv.textContent = alert.message || 'System Alert';
+        document.body.appendChild(alertDiv);
+        
+        setTimeout(() => alertDiv.remove(), 5000);
     }
 
     async loadData() {
@@ -193,34 +222,6 @@ class Dashboard {
     }
 }
 
-// Auto-refresh live data every 30 seconds
-setInterval(async () => {
-    try {
-        const response = await fetch('/api/equipment/summary');
-        if (response.ok) {
-            const data = await response.json();
-            updateDashboard(data);
-            
-            // Show live indicator
-            document.querySelector('.live-indicator')?.classList.add('live');
-        }
-    } catch (error) {
-        console.error('Live data update failed:', error);
-    }
-}, 30000);
-
-function updateDashboard(equipment) {
-    // Update equipment cards with new data
-    equipment.forEach(eq => {
-        const card = document.querySelector(`[data-equipment="${eq.equipment_id}"]`);
-        if (card) {
-            // Update temperature, vibration, etc.
-            card.querySelector('.temperature').textContent = `${eq.temperature_bearing.toFixed(1)}°C`;
-            card.querySelector('.vibration').textContent = `${eq.vibration_rms.toFixed(2)} RMS`;
-            // ... update other values
-        }
-    });
-}
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => new Dashboard());
