@@ -97,11 +97,137 @@ def preprocess_data(data):
     
     return data[feature_cols + ['equipment_id', 'timestamp', 'failure_within_24h']], encoder
 
-def train_epoch(model, loader, optimizer, criterion, device):
-            loss = criterion(output, target)
-            metrics.update(output, target, loss.item())
-    
-    return metrics.compute_metrics()
+
+def train_model_pipeline(
+    data_path='data/raw/sensor_data.csv',
+    use_live=False,
+    live_hours=72,
+    epochs=20,
+    batch_size=32,
+    learning_rate=0.001,
+    hidden_size=64,
+    num_layers=2,
+    device=None
+):
+    if device is None:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    for dir_name in ['models', 'data/raw', 'data/processed', 'logs']:
+        os.makedirs(dir_name, exist_ok=True)
+
+    print(f"Loading data from {'live sensors' if use_live else data_path}...")
+    data = load_data(data_path, use_live, live_hours)
+
+    if use_live:
+        data.to_csv('data/processed/live_training_data.csv', index=False)
+        print(f"Saved {len(data)} live data points to data/processed/live_training_data.csv")
+    data, encoder = preprocess_data(data)
+    X, y = create_sequences(data, seq_len=24)
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42, stratify=y_train)
+
+    X_train_scaled, X_val_scaled, X_test_scaled, scaler = scale_data(X_train, X_val, X_test)
+    train_loader, val_loader, test_loader = create_data_loaders(
+        X_train_scaled, X_val_scaled, X_test_scaled, y_train, y_val, y_test, batch_size
+    )
+
+    n_features = X_train_scaled.shape[2]
+    model = PredictiveMaintenanceLSTM(
+        input_size=n_features,
+        hidden_size=hidden_size,
+        num_layers=num_layers
+    ).to(device)
+
+    pos_weight = torch.tensor([(y_train == 0).sum() / (y_train == 1).sum()]).to(device)
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-5)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, factor=0.5)
+    early_stopping = EarlyStopping(patience=7, min_delta=0.001)
+
+    history = {'train_loss': [], 'val_loss': [], 'train_f1': [], 'val_f1': []}
+    best_val_f1 = 0
+
+    for epoch in range(epochs):
+        model.train()
+        train_loss, train_outputs, train_targets = 0, [], []
+        for xb, yb in train_loader:
+            xb, yb = xb.to(device), yb.to(device)
+            optimizer.zero_grad()
+            logits = model(xb)
+            loss = criterion(logits.squeeze(), yb)
+            loss.backward()
+            optimizer.step()
+            train_loss += loss.item() * xb.size(0)
+            train_outputs.append(torch.sigmoid(logits.detach().cpu()).numpy())
+            train_targets.append(yb.detach().cpu().numpy())
+        train_loss /= len(train_loader.dataset)
+        train_outputs = np.concatenate(train_outputs)
+        train_targets = np.concatenate(train_targets)
+        train_pred = (train_outputs > 0.5).astype(int)
+        train_f1 = (2 * (train_pred * train_targets).sum()) / (train_pred.sum() + train_targets.sum() + 1e-8)
+
+        model.eval()
+        val_loss, val_outputs, val_targets = 0, [], []
+        with torch.no_grad():
+            for xb, yb in val_loader:
+                xb, yb = xb.to(device), yb.to(device)
+                logits = model(xb)
+                loss = criterion(logits.squeeze(), yb)
+                val_loss += loss.item() * xb.size(0)
+                val_outputs.append(torch.sigmoid(logits.cpu()).numpy())
+                val_targets.append(yb.cpu().numpy())
+        val_loss /= len(val_loader.dataset)
+        val_outputs = np.concatenate(val_outputs)
+        val_targets = np.concatenate(val_targets)
+        val_pred = (val_outputs > 0.5).astype(int)
+        val_f1 = (2 * (val_pred * val_targets).sum()) / (val_pred.sum() + val_targets.sum() + 1e-8)
+
+        history['train_loss'].append(train_loss)
+        history['val_loss'].append(val_loss)
+        history['train_f1'].append(train_f1)
+        history['val_f1'].append(val_f1)
+
+        scheduler.step(val_loss)
+        if val_f1 > best_val_f1:
+            best_val_f1 = val_f1
+            torch.save({
+                'model_state_dict': model.state_dict(),
+                'model_params': {'input_size': n_features, 'hidden_size': hidden_size, 'num_layers': num_layers}
+            }, 'models/best_model.pth')
+        if early_stopping(val_loss, model):
+            break
+
+    checkpoint = torch.load('models/best_model.pth', map_location=device)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    model.eval()
+    test_loss, test_outputs, test_targets = 0, [], []
+    with torch.no_grad():
+        for xb, yb in test_loader:
+            xb, yb = xb.to(device), yb.to(device)
+            logits = model(xb)
+            loss = criterion(logits.squeeze(), yb)
+            test_loss += loss.item() * xb.size(0)
+            test_outputs.append(torch.sigmoid(logits.cpu()).numpy())
+            test_targets.append(yb.cpu().numpy())
+    test_loss /= len(test_loader.dataset)
+    test_outputs = np.concatenate(test_outputs)
+    test_targets = np.concatenate(test_targets)
+    test_pred = (test_outputs > 0.5).astype(int)
+    test_f1 = (2 * (test_pred * test_targets).sum()) / (test_pred.sum() + test_targets.sum() + 1e-8)
+
+    test_metrics = {
+        'test_loss': float(test_loss),
+        'f1_score': float(test_f1)
+    }
+
+    save_artifacts(model, scaler, encoder, history, test_metrics, argparse.Namespace(
+        hidden_size=hidden_size, num_layers=num_layers
+    ), n_features)
+
+    data_source = "live sensors" if use_live else "CSV file"
+    print(f"Training completed using {data_source}. Test F1: {test_metrics['f1_score']:.4f}")
+    return test_metrics
 
 def save_artifacts(model, scaler, encoder, history, test_metrics, args, n_features):
     os.makedirs('models', exist_ok=True)
