@@ -301,29 +301,3 @@ def generate_fallback_equipment_data():
     
     return equipment_data
 
-if __name__ == "__main__":
-    print("🔧 Testing Live Sensor Data Collector")
-    print("=" * 50)
-    
-    try:
-        collector = LiveSensorDataCollector()
-        
-        print("\n📊 Collecting test data...")
-        live_data = collector.collect_live_data()
-        
-        print(f"\n✅ Collected data for {len(live_data['equipment_data'])} pieces of equipment")
-        print(f"📡 Configuration: {live_data['config_type']}")
-        print(f"🌍 Ambient source: {live_data['ambient_conditions']['source']}")
-        
-        for equipment in live_data['equipment_data'][:2]:
-            print(f"\n🔧 {equipment['equipment_id']} ({equipment['equipment_name']}):")
-            print(f"   Temperature: {equipment['temperature_bearing']:.1f}°C")
-            print(f"   Vibration: {equipment['vibration_rms']:.2f} RMS")
-            print(f"   Failure Risk: {equipment['failure_probability']*100:.1f}%")
-            
-        print(f"\n🕐 Data collected at: {live_data['collection_timestamp']}")
-        
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        import traceback
-        traceback.print_exc()
