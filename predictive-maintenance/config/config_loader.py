@@ -122,10 +122,3 @@ def get_equipment_config():
 def validate_configuration():
     return get_config().validate_config()
 
-if __name__ == "__main__":
-    try:
-        config = ConfigLoader()
-        config.print_config_summary()
-        config.validate_config()
-    except Exception as e:
-        print(f"❌ Configuration Error: {e}")
