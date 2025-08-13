@@ -98,29 +98,6 @@ def preprocess_data(data):
     return data[feature_cols + ['equipment_id', 'timestamp', 'failure_within_24h']], encoder
 
 def train_epoch(model, loader, optimizer, criterion, device):
-    model.train()
-    metrics = MetricsTracker()
-    
-    for data, target in loader:
-        data, target = data.to(device), target.to(device)
-        optimizer.zero_grad()
-        output = model(data)
-        loss = criterion(output, target)
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-        optimizer.step()
-        metrics.update(output, target, loss.item())
-    
-    return metrics.compute_metrics()
-
-def evaluate_model(model, loader, criterion, device):
-    model.eval()
-    metrics = MetricsTracker()
-    
-    with torch.no_grad():
-        for data, target in loader:
-            data, target = data.to(device), target.to(device)
-            output = model(data)
             loss = criterion(output, target)
             metrics.update(output, target, loss.item())
     
