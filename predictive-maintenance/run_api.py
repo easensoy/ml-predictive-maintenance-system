@@ -27,18 +27,18 @@ class PredictiveMaintenanceAPI:
             self.get_live_equipment_data = get_live_equipment_data
             self.LiveSensorDataCollector = LiveSensorDataCollector
             self.LIVE_DATA_AVAILABLE = True
-            print("✅ Live data collector loaded successfully")
+            print("[OK] Live data collector loaded successfully")
         except ImportError as e:
             self.LIVE_DATA_AVAILABLE = False
-            print(f"⚠️ Live data collector not available: {e}")
+            print(f"[WARNING] Live data collector not available: {e}")
         try:
             from src.websocket.websocket_server import WebSocketManager
             self.WebSocketManager = WebSocketManager
             self.WEBSOCKET_AVAILABLE = True
-            print("✅ WebSocket server loaded successfully")
+            print("[OK] WebSocket server loaded successfully")
         except ImportError as e:
             self.WEBSOCKET_AVAILABLE = False
-            print(f"⚠️ WebSocket server not available: {e}")
+            print(f"[WARNING] WebSocket server not available: {e}")
         if self.WEBSOCKET_AVAILABLE:
             self.ws_manager = self.WebSocketManager(self.app)
             self.ws_manager.start_periodic_updates()

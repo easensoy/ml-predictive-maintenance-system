@@ -15,9 +15,9 @@ try:
     from config.config_loader import get_config, get_thingspeak_config, get_equipment_config
     CONFIG_AVAILABLE = True
     config_loader_available = True
-    print("✅ Configuration loaded successfully")
+    print("[OK] Configuration loaded successfully")
 except ImportError as e:
-    print(f"⚠️ Configuration module not available: {e}")
+    print(f"[WARNING] Configuration module not available: {e}")
     print("Using fallback configuration...")
 
 class LiveSensorDataCollector:
