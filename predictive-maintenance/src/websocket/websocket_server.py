@@ -3,9 +3,16 @@ from datetime import datetime
 import json
 import threading
 import time
+import yaml
 
 class WebSocketManager:
-    def __init__(self, app):
+    def __init__(self, app, config_path=None):
+        if config_path:
+            with open(config_path, 'r') as f:
+                config = yaml.safe_load(f)
+            self.update_interval = config['websocket']['update_interval']
+        else:
+            self.update_interval = 5
         self.socketio = SocketIO(app, cors_allowed_origins="*")
         self.active_connections = 0
         self.setup_events()
@@ -43,7 +50,7 @@ class WebSocketManager:
             while True:
                 if self.active_connections > 0:
                     self.send_live_data()
-                time.sleep(5)
+                time.sleep(self.update_interval)
                 
         thread = threading.Thread(target=update_loop, daemon=True)
         thread.start()
