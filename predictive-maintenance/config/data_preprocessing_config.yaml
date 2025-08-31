@@ -1,0 +1,46 @@
+# Data Preprocessing Configuration
+
+# Sequence parameters
+sequence:
+  length: 24  # Time series sequence length (hours)
+
+# Feature engineering
+feature_engineering:
+  rolling_window: 6  # Rolling window size in hours
+  statistical_features: true
+  lag_features: true
+
+# Data splitting
+data_split:
+  test_size: 0.2
+  random_state: 42
+  stratify: true
+
+# Scaling and normalization
+scaling:
+  method: 'StandardScaler'  # Options: StandardScaler, MinMaxScaler, RobustScaler
+  feature_range: [0, 1]  # For MinMaxScaler
+
+# Missing data handling
+missing_data:
+  strategy: 'forward_fill'  # Options: forward_fill, backward_fill, interpolate, drop
+  max_consecutive_missing: 3  # Maximum consecutive missing values allowed
+
+# Outlier detection
+outlier_detection:
+  method: 'iqr'  # Options: iqr, zscore, isolation_forest
+  threshold: 3.0  # Z-score threshold or IQR multiplier
+  action: 'clip'  # Options: remove, clip, flag
+
+# Feature selection
+feature_selection:
+  enabled: true
+  method: 'correlation'  # Options: correlation, mutual_info, rfe
+  threshold: 0.05  # Correlation threshold
+  max_features: null  # Maximum number of features to select
+
+# Validation
+validation:
+  check_data_quality: true
+  min_samples: 100
+  required_columns: ['vibration_rms', 'temperature_bearing', 'pressure_oil', 'rpm']
