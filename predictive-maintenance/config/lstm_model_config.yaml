@@ -1,0 +1,29 @@
+# LSTM Model Configuration
+model:
+  input_size: 19
+  hidden_size: 64
+  num_layers: 2
+  dropout: 0.2
+
+# Neural Network Architecture
+classifier:
+  hidden_layer_1: 32
+  hidden_layer_2: 16
+  output_layer: 1
+
+# Metrics Tracking
+metrics:
+  threshold: 0.5
+  zero_division_default: 0
+  false_negative_count: 0
+
+# Early Stopping
+early_stopping:
+  patience: 7
+  min_delta: 0.001
+
+# Training Parameters
+training:
+  batch_first: true
+  dropout_min_layers: 1
+  weight_init_bias_fill: 0
