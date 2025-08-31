@@ -1,0 +1,97 @@
+# Prediction Service Configuration
+
+# Model Parameters (defaults if not found in checkpoint)
+model_defaults:
+  input_size: 19
+  hidden_size: 64
+  num_layers: 2
+
+# File paths
+paths:
+  model: 'models/best_model.pth'
+  scaler: 'models/scaler.pkl'
+  equipment_encoder: 'models/equipment_encoder.pkl'
+  model_metadata: 'models/model_metadata.json'
+
+# Rule-based prediction parameters
+rule_based:
+  defaults:
+    vibration_rms: 1.0
+    temperature_bearing: 70
+    pressure_oil: 15
+    oil_quality_index: 85
+  
+  # Risk thresholds and weights
+  thresholds:
+    vibration:
+      - condition: 3.0
+        weight: 0.4
+      - condition: 2.5
+        weight: 0.2
+      - condition: 2.0
+        weight: 0.1
+    
+    temperature:
+      - condition: 95
+        weight: 0.3
+      - condition: 85
+        weight: 0.15
+      - condition: 75
+        weight: 0.05
+    
+    oil_quality:
+      - condition: 40
+        operator: "less_than"
+        weight: 0.3
+      - condition: 60
+        operator: "less_than"
+        weight: 0.15
+      - condition: 80
+        operator: "less_than"
+        weight: 0.05
+    
+    pressure:
+      - condition: 8
+        operator: "less_than"
+        weight: 0.2
+      - condition: 12
+        operator: "less_than"
+        weight: 0.1
+    
+    # Combined conditions
+    combined_vibration_temp:
+      vibration_threshold: 2.5
+      temperature_threshold: 85
+      weight: 0.15
+    
+    combined_oil_pressure:
+      oil_quality_threshold: 40
+      pressure_threshold: 15
+      weight: 0.1
+  
+  # Risk calculation
+  risk_multiplier: 0.9
+  max_risk: 1.0
+
+# Sequence creation
+sequence:
+  features: ['vibration_rms', 'temperature_bearing', 'pressure_oil', 'rpm', 'oil_quality_index', 'power_consumption']
+  sequence_length: 24
+  padding_mode: 'edge'
+
+# Risk level thresholds
+risk_levels:
+  critical: 0.8
+  high: 0.6
+  medium: 0.3
+
+# Recommendations
+recommendations:
+  CRITICAL: 'IMMEDIATE SHUTDOWN - Schedule emergency maintenance within 4 hours'
+  HIGH: 'URGENT - Schedule maintenance within 24 hours'
+  MEDIUM: 'CAUTION - Schedule preventive maintenance within 7 days'
+  LOW: 'NORMAL - Continue regular monitoring'
+
+# Output formatting
+output:
+  probability_decimals: 4
