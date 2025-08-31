@@ -4,13 +4,21 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.model_selection import train_test_split
 import joblib
 import os
+import yaml
 
 class DataPreprocessor:
     
-    def __init__(self):
+    def __init__(self, config_path=None):
+        if config_path:
+            with open(config_path, 'r') as f:
+                self.config = yaml.safe_load(f)
+            self.sequence_length = self.config['sequence']['length']
+        else:
+            self.config = None
+            self.sequence_length = 24
+            
         self.scaler = StandardScaler()
         self.equipment_encoder = LabelEncoder()
-        self.sequence_length = 24
         
     def load_and_preprocess(self, file_path):
         df = pd.read_csv(file_path)
@@ -19,8 +27,9 @@ class DataPreprocessor:
         feature_cols = ['vibration_rms', 'temperature_bearing', 'pressure_oil', 
                        'rpm', 'oil_quality_index', 'power_consumption']
         for col in feature_cols:
-            df[f'{col}_rolling_mean_6h'] = df.groupby('equipment_id')[col].rolling(6).mean().values
-            df[f'{col}_rolling_std_6h'] = df.groupby('equipment_id')[col].rolling(6).std().values
+            rolling_window = self.config['feature_engineering']['rolling_window'] if self.config else 6
+            df[f'{col}_rolling_mean_{rolling_window}h'] = df.groupby('equipment_id')[col].rolling(rolling_window).mean().values
+            df[f'{col}_rolling_std_{rolling_window}h'] = df.groupby('equipment_id')[col].rolling(rolling_window).std().values
         df = df.dropna()
         df['equipment_encoded'] = self.equipment_encoder.fit_transform(df['equipment_id'])
         return df
@@ -56,8 +65,17 @@ class DataPreprocessor:
         print("Creating sequences...")
         X, y, equipment_ids = self.create_sequences(df)
         print("Splitting data...")
+        if self.config:
+            test_size = self.config['data_split']['test_size']
+            random_state = self.config['data_split']['random_state']
+            stratify_option = y if self.config['data_split']['stratify'] else None
+        else:
+            test_size = 0.2
+            random_state = 42
+            stratify_option = y
+            
         X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y
+            X, y, test_size=test_size, random_state=random_state, stratify=stratify_option
         )
         print("Scaling features...")
         X_train_scaled, X_test_scaled = self.scale_features(X_train, X_test)
