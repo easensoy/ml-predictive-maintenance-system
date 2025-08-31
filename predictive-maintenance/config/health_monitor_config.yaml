@@ -1,0 +1,49 @@
+# Health Monitor Configuration
+
+# System resource thresholds
+thresholds:
+  cpu_usage: 80.0      # CPU usage percentage threshold
+  memory_usage: 85.0   # Memory usage percentage threshold
+  disk_usage: 90.0     # Disk usage percentage threshold
+  response_latency: 5.0 # Response latency threshold in seconds
+
+# Monitoring settings
+monitoring:
+  interval_seconds: 60  # Default monitoring interval
+  max_metrics_history: 1440  # Maximum metrics history size (24 hours worth)
+  max_alerts_history: 500    # Maximum alerts history size
+
+# Alert settings
+alerts:
+  recent_window_hours: 1    # Time window for recent alerts
+  high_severity_multiplier: 1.1  # Multiplier for high severity alerts
+
+# Health scoring
+health_score:
+  thresholds:
+    excellent: 80    # Health score > 80 = excellent
+    good: 50        # Health score > 50 = good
+    # Below 50 = poor
+  
+  penalties:
+    high_cpu: 15        # Penalty for high CPU usage
+    high_memory: 20     # Penalty for high memory usage
+    high_disk: 25       # Penalty for high disk usage
+    high_latency: 10    # Penalty for high latency
+    per_alert: 5        # Penalty per active alert
+    max_alerts: 3       # Maximum alerts before critical
+
+# Performance trends
+performance:
+  trend_window_hours: 24  # Default window for performance trends
+  time_conversion_factor: 60  # Convert seconds to minutes
+
+# System conversion factors
+system:
+  bytes_to_gb: 1073741824  # 1024^3 for byte to GB conversion
+
+# Status mapping
+status:
+  healthy_threshold: 80   # Health score threshold for healthy status
+  warning_threshold: 50   # Health score threshold for warning status
+  # Below warning_threshold = critical
