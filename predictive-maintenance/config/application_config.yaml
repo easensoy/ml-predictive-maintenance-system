@@ -1,0 +1,83 @@
+# Application Configuration
+
+# Flask server settings
+server:
+  host: '0.0.0.0'
+  port: 5000
+  debug: true
+  threaded: true
+
+# WebSocket settings
+websocket:
+  update_interval: 5  # Update interval in seconds
+  max_connections: 100
+  heartbeat_interval: 30
+
+# Live sensor collection
+sensor_collection:
+  default_interval: 30  # Default collection interval in seconds
+  api_timeout: 10       # API timeout in seconds
+  max_retries: 3
+
+# Equipment configuration
+equipment:
+  default_configs:
+    compressor:
+      base_rpm: 1500
+      temp_factor: 1.2
+    pump:
+      base_rpm: 1200
+      temp_factor: 1.0
+    motor:
+      base_rpm: 1800
+      temp_factor: 1.1
+    fan:
+      base_rpm: 900
+      temp_factor: 0.8
+
+# Data quality analyzer
+data_quality:
+  thresholds:
+    missing_data_ratio: 0.05
+    outlier_ratio: 0.1
+    noise_threshold: 3.0
+    correlation_threshold: 0.001
+    completeness_threshold: 0.95
+  
+  sensor_ranges:
+    vibration_rms: [0.1, 10.0]
+    temperature_bearing: [20, 120]
+    pressure_oil: [5, 30]
+    rpm: [500, 3000]
+    oil_quality_index: [0, 100]
+    power_consumption: [10, 500]
+
+# Training pipeline
+training_pipeline:
+  default_params:
+    epochs: 20
+    batch_size: 32
+    learning_rate: 0.001
+    hidden_size: 64
+    num_layers: 2
+  
+  data_collection:
+    hours: 72
+    interval_minutes: 30
+  
+  evaluation:
+    failure_threshold: 0.5
+    test_size: 0.2
+    random_state: 42
+
+# Risk assessment (for API demo)
+risk_assessment:
+  vibration_threshold: 2.0
+  combined_thresholds:
+    vibration: 2.5
+    temperature: 85
+    oil_quality: 50
+  
+  risk_levels:
+    high: 0.6
+    medium: 0.3
