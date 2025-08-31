@@ -18,44 +18,6 @@ class ModelPerformanceTracker:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS predictions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TEXT NOT NULL,
-                equipment_id TEXT NOT NULL,
-                predicted_value REAL NOT NULL,
-                actual_value REAL,
-                prediction_confidence REAL,
-                model_version TEXT,
-                feature_drift_detected BOOLEAN DEFAULT 0
-            )
-        ''')
-        
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS model_metrics (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                date TEXT NOT NULL,
-                accuracy REAL,
-                precision_score REAL,
-                recall REAL,
-                f1_score REAL,
-                auc_score REAL,
-                total_predictions INTEGER,
-                drift_warnings INTEGER
-            )
-        ''')
-        
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS performance_alerts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TEXT NOT NULL,
-                alert_type TEXT NOT NULL,
-                message TEXT NOT NULL,
-                severity TEXT NOT NULL,
-                resolved BOOLEAN DEFAULT 0
-            )
-        ''')
-        
         conn.commit()
         conn.close()
     
