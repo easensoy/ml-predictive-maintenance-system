@@ -1,0 +1,50 @@
+# Model Training Configuration
+
+# Training hyperparameters
+training:
+  batch_size: 32
+  epochs: 100
+  learning_rate: 0.001
+  weight_decay: 1e-5
+  max_gradient_norm: 1.0
+
+# Learning rate scheduler
+scheduler:
+  factor: 0.5
+  patience: 10
+
+# Early stopping
+early_stopping:
+  patience: 20
+  min_delta: 0.001
+
+# Logging and monitoring
+logging:
+  progress_interval: 10  # Log every N epochs
+  save_best_model: true
+  verbose: true
+
+# Visualization settings
+visualization:
+  plot_size:
+    width: 15
+    height: 10
+  save_plots: true
+  dpi: 300
+  show_plots: false
+
+# Model checkpointing
+checkpointing:
+  save_intermediate: true
+  checkpoint_interval: 10  # Save checkpoint every N epochs
+  keep_best_only: false
+
+# Validation
+validation:
+  split_ratio: 0.2
+  random_state: 42
+
+# Device settings
+device:
+  use_cuda: true  # Use CUDA if available
+  device_id: null  # null for auto-selection
