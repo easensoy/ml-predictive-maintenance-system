@@ -1,87 +1,88 @@
-import pytest
+"""Shared fixtures: a small synthetic dataset in the exact C-MAPSS file format, and a model
+trained on it once per test session. Tests never touch the real data/ or artifacts/ folders."""
+
+from pathlib import Path
+
 import numpy as np
-import pandas as pd
-import torch
-import tempfile
-import os
-import sys
-from unittest.mock import Mock
-from datetime import datetime, timedelta
+import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+from predmaint.config import Settings
+from predmaint.data import SENSORS
+from predmaint.train import TrainConfig, run
+
+FD002_REGIMES = [
+    (0.0, 0.0, 100.0),
+    (10.0, 0.25, 100.0),
+    (20.0, 0.70, 100.0),
+    (25.0, 0.62, 60.0),
+    (35.0, 0.84, 100.0),
+    (42.0, 0.84, 100.0),
+]
+INFORMATIVE = {2, 3, 4, 7, 8, 9, 11, 12, 13, 14, 15, 17, 20, 21}
+
+
+def _engine_rows(rng, unit: int, n_cycles: int, regimes: list[tuple[float, float, float]]):
+    base = 100 + 10 * np.arange(len(SENSORS), dtype=float)
+    drift = np.where(
+        np.isin(np.arange(1, 22), list(INFORMATIVE)), rng.uniform(2, 6, len(SENSORS)), 0.0
+    )
+    rows = []
+    for cycle in range(1, n_cycles + 1):
+        regime = rng.integers(len(regimes))
+        settings = np.array(regimes[regime]) + rng.normal(0, 0.001, 3)
+        wear = (cycle / n_cycles) ** 2
+        values = base + 25 * regime + drift * 10 * wear + rng.normal(0, 0.3, len(SENSORS))
+        rows.append([unit, cycle, *settings.round(4), *values.round(4)])
+    return rows
+
+
+def _write(path: Path, rows) -> None:
+    path.write_text("".join(" ".join(str(v) for v in row) + " \n" for row in rows))
+
+
+def write_synthetic_cmapss(data_dir: Path, seed: int = 0, n_units: int = 24) -> None:
+    rng = np.random.default_rng(seed)
+    for subset, regimes in (("FD001", [(0.0, 0.0, 100.0)]), ("FD002", FD002_REGIMES)):
+        train, test, final_rul = [], [], []
+        for unit in range(1, n_units + 1):
+            train += _engine_rows(rng, unit, int(rng.integers(60, 90)), regimes)
+            life = int(rng.integers(60, 90))
+            cut = int(rng.integers(12, life - 4))
+            test += _engine_rows(rng, unit, life, regimes)[:cut]
+            final_rul.append(life - cut)
+        _write(data_dir / f"train_{subset}.txt", train)
+        _write(data_dir / f"test_{subset}.txt", test)
+        (data_dir / f"RUL_{subset}.txt").write_text("".join(f"{r} \n" for r in final_rul))
+
+
+@pytest.fixture(scope="session")
+def cmapss_dir(tmp_path_factory) -> Path:
+    data_dir = tmp_path_factory.mktemp("cmapss")
+    write_synthetic_cmapss(data_dir)
+    return data_dir
+
+
+TINY = {
+    "seeds": [0, 1],
+    "epochs": 3,
+    "patience": 3,
+    "window": 10,
+    "hidden": 16,
+    "layers": 1,
+    "batch_size": 64,
+}
+
+
+@pytest.fixture(scope="session")
+def artifacts_dir(tmp_path_factory, cmapss_dir) -> Path:
+    artifacts = tmp_path_factory.mktemp("artifacts")
+    settings = Settings(data_dir=cmapss_dir, artifacts_dir=artifacts)
+    run(TrainConfig(subset="FD001", **TINY), settings, artifacts / "FD001")
+    return artifacts
+
 
 @pytest.fixture
-def sample_sensor_data():
-    np.random.seed(42)
-    n_samples = 100
-    data = {
-        'timestamp': [datetime.now() - timedelta(hours=i) for i in range(n_samples)],
-        'equipment_id': ['TEST_EQ_001'] * n_samples,
-        'vibration_rms': np.random.normal(1.5, 0.3, n_samples),
-        'temperature_bearing': np.random.normal(75, 5, n_samples),
-        'pressure_oil': np.random.normal(20, 2, n_samples),
-        'rpm': np.random.normal(1800, 50, n_samples),
-        'oil_quality_index': np.random.normal(85, 10, n_samples),
-        'power_consumption': np.random.normal(50, 5, n_samples),
-        'failure_within_24h': np.random.choice([0, 1], n_samples, p=[0.9, 0.1])
-    }
-    df = pd.DataFrame(data)
-    df['vibration_rms'] = np.clip(df['vibration_rms'], 0.1, 10)
-    df['temperature_bearing'] = np.clip(df['temperature_bearing'], 20, 120)
-    df['pressure_oil'] = np.clip(df['pressure_oil'], 5, 30)
-    df['rpm'] = np.clip(df['rpm'], 1000, 2500)
-    df['oil_quality_index'] = np.clip(df['oil_quality_index'], 0, 100)
-    df['power_consumption'] = np.clip(df['power_consumption'], 10, 100)
-    return df
-
-@pytest.fixture
-def sample_sequences():
-    batch_size = 10
-    sequence_length = 24
-    num_features = 13
-    X = np.random.randn(batch_size, sequence_length, num_features).astype(np.float32)
-    y = np.random.choice([0, 1], batch_size)
-    return torch.FloatTensor(X), torch.LongTensor(y)
-
-@pytest.fixture
-def temp_model_dir():
-    with tempfile.TemporaryDirectory() as temp_dir:
-        models_dir = os.path.join(temp_dir, 'models')
-        os.makedirs(models_dir, exist_ok=True)
-        data_dir = os.path.join(temp_dir, 'data', 'raw')
-        os.makedirs(data_dir, exist_ok=True)
-        yield temp_dir
-
-@pytest.fixture
-def mock_trained_model():
-    mock_model = Mock()
-    mock_model.eval.return_value = None
-    mock_model.return_value = torch.tensor([0.7])
-    return mock_model
-
-@pytest.fixture
-def sample_api_data():
-    return {
-        'equipment_id': 'TEST_EQ_001',
-        'sensor_data': [
-            {
-                'vibration_rms': 1.5,
-                'temperature_bearing': 75.0,
-                'pressure_oil': 20.0,
-                'rpm': 1800,
-                'oil_quality_index': 85,
-                'power_consumption': 50.0
-            }
-        ] * 24
-    }
-
-@pytest.fixture
-def flask_test_client():
-    from src.api.app import app
-    app.config['TESTING'] = True
-    with app.test_client() as client:
-        yield client
-
-def pytest_configure(config):
-    config.addinivalue_line("markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')")
-    config.addinivalue_line("markers", "integration: marks tests as integration tests")
+def settings(cmapss_dir, artifacts_dir) -> Settings:
+    return Settings(
+        data_dir=cmapss_dir, artifacts_dir=artifacts_dir, replay_autostart=False, replay_engines=3
+    )
