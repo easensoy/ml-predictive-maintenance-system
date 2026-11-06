@@ -1,0 +1,595 @@
+{
+  "subset": "FD004",
+  "created_at": "2026-11-06T21:33:49+0000",
+  "training_seconds": 397.6,
+  "code": {
+    "predmaint": "2.0.0",
+    "source_sha256": "7ce7c9f6425cd685",
+    "git_commit": "d7cefb3-dirty"
+  },
+  "environment": {
+    "python": "3.15.2",
+    "torch": "2.15.0+cu132",
+    "numpy": "2.5.4",
+    "pandas": "3.1.1",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "training_device": "NVIDIA RTX 1000 Ada Generation Laptop GPU"
+  },
+  "data": {
+    "source": "https://phm-datasets.s3.amazonaws.com/NASA/6.+Turbofan+Engine+Degradation+Simulation+Data+Set.zip",
+    "archive_sha256": "c9c5dec12a945a82e8bb4446589d7fb3cc057b5e5d81fa1a12e25ee9912ad3b2",
+    "train_engines": 249,
+    "test_engines": 248,
+    "split_seed": 42,
+    "split_engines": {
+      "val": [
+        4,
+        39,
+        47,
+        51,
+        52,
+        55,
+        71,
+        76,
+        81,
+        90,
+        95,
+        96,
+        125,
+        129,
+        132,
+        133,
+        135,
+        139,
+        145,
+        150,
+        153,
+        157,
+        162,
+        167,
+        169,
+        178,
+        179,
+        186,
+        204,
+        218,
+        220,
+        221,
+        222,
+        225,
+        235,
+        239,
+        245
+      ],
+      "holdout": [
+        8,
+        9,
+        10,
+        21,
+        25,
+        26,
+        27,
+        30,
+        34,
+        38,
+        80,
+        85,
+        89,
+        101,
+        105,
+        109,
+        119,
+        121,
+        136,
+        146,
+        149,
+        159,
+        163,
+        171,
+        174,
+        180,
+        185,
+        188,
+        190,
+        197,
+        205,
+        208,
+        226,
+        237,
+        241,
+        244,
+        249
+      ],
+      "train": [
+        1,
+        2,
+        3,
+        5,
+        6,
+        7,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        22,
+        23,
+        24,
+        28,
+        29,
+        31,
+        32,
+        33,
+        35,
+        36,
+        37,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        48,
+        49,
+        50,
+        53,
+        54,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        72,
+        73,
+        74,
+        75,
+        77,
+        78,
+        79,
+        82,
+        83,
+        84,
+        86,
+        87,
+        88,
+        91,
+        92,
+        93,
+        94,
+        97,
+        98,
+        99,
+        100,
+        102,
+        103,
+        104,
+        106,
+        107,
+        108,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        120,
+        122,
+        123,
+        124,
+        126,
+        127,
+        128,
+        130,
+        131,
+        134,
+        137,
+        138,
+        140,
+        141,
+        142,
+        143,
+        144,
+        147,
+        148,
+        151,
+        152,
+        154,
+        155,
+        156,
+        158,
+        160,
+        161,
+        164,
+        165,
+        166,
+        168,
+        170,
+        172,
+        173,
+        175,
+        176,
+        177,
+        181,
+        182,
+        183,
+        184,
+        187,
+        189,
+        191,
+        192,
+        193,
+        194,
+        195,
+        196,
+        198,
+        199,
+        200,
+        201,
+        202,
+        203,
+        206,
+        207,
+        209,
+        210,
+        211,
+        212,
+        213,
+        214,
+        215,
+        216,
+        217,
+        219,
+        223,
+        224,
+        227,
+        228,
+        229,
+        230,
+        231,
+        232,
+        233,
+        234,
+        236,
+        238,
+        240,
+        242,
+        243,
+        246,
+        247,
+        248
+      ]
+    }
+  },
+  "config": {
+    "subset": "FD004",
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "split_seed": 42,
+    "window": 50,
+    "max_rul": 125,
+    "alert_cycles": 30,
+    "hidden": 64,
+    "layers": 2,
+    "dropout": 0.2,
+    "epochs": 80,
+    "patience": 12,
+    "batch_size": 256,
+    "lr": 0.001,
+    "weight_decay": 1e-05,
+    "alpha": 0.1,
+    "alert_threshold": 0.5,
+    "ewma_alpha": null,
+    "baseline": true,
+    "device": "cuda"
+  },
+  "calibration": {
+    "interval": 0.9,
+    "conformal_margin": -0.01807934045791626,
+    "temperature": 1.5967589616775513,
+    "alert_threshold": 0.5
+  },
+  "test": {
+    "rmse": 13.058248298260017,
+    "mae": 9.286478311784807,
+    "nasa_score": 764.2301561685406,
+    "rmse_uncapped": 25.84363127474187,
+    "nasa_score_uncapped": 4252.695831421388,
+    "interval_coverage": 0.8225806451612904,
+    "interval_width": 30.475318908691406,
+    "alert": {
+      "threshold": 0.5,
+      "n": 248,
+      "positives": 53,
+      "average_precision": 0.9812875587327158,
+      "precision": 0.864406779661017,
+      "recall": 0.9622641509433962,
+      "f1": 0.9107142857142857,
+      "brier": 0.02520528994500637,
+      "ece": 0.02680241327071863
+    }
+  },
+  "test_single_models": {
+    "rmse_mean": 13.777276887400507,
+    "rmse_std": 0.4093998558721795,
+    "nasa_score_mean": 896.1978821978577,
+    "nasa_score_std": 88.37645336682733
+  },
+  "baseline_lightgbm": {
+    "rmse": 13.484573807663484,
+    "mae": 9.043633441844404,
+    "nasa_score": 976.2908243823183,
+    "rmse_uncapped": 25.911660652587713,
+    "nasa_score_uncapped": 4537.625469897159
+  },
+  "holdout": {
+    "rmse_all_cycles": 11.936841854250142,
+    "interval_coverage": 0.8828076685219542,
+    "alert": {
+      "threshold": 0.5,
+      "n": 9702,
+      "positives": 1147,
+      "average_precision": 0.9672316070838717,
+      "precision": 0.8774038461538461,
+      "recall": 0.9546643417611159,
+      "f1": 0.9144050104384134,
+      "brier": 0.015467568300664425,
+      "ece": 0.009198434855554723
+    },
+    "reliability": [
+      {
+        "bin_low": 0.0,
+        "bin_high": 0.1,
+        "mean_probability": 0.003408801509067416,
+        "observed_rate": 0.0002446183953033268,
+        "count": 8176
+      },
+      {
+        "bin_low": 0.1,
+        "bin_high": 0.2,
+        "mean_probability": 0.1435997635126114,
+        "observed_rate": 0.06201550387596899,
+        "count": 129
+      },
+      {
+        "bin_low": 0.2,
+        "bin_high": 0.30000000000000004,
+        "mean_probability": 0.242176353931427,
+        "observed_rate": 0.1864406779661017,
+        "count": 59
+      },
+      {
+        "bin_low": 0.30000000000000004,
+        "bin_high": 0.4,
+        "mean_probability": 0.34813952445983887,
+        "observed_rate": 0.3137254901960784,
+        "count": 51
+      },
+      {
+        "bin_low": 0.4,
+        "bin_high": 0.5,
+        "mean_probability": 0.44851934909820557,
+        "observed_rate": 0.38461538461538464,
+        "count": 39
+      },
+      {
+        "bin_low": 0.5,
+        "bin_high": 0.6000000000000001,
+        "mean_probability": 0.5470451712608337,
+        "observed_rate": 0.48936170212765956,
+        "count": 47
+      },
+      {
+        "bin_low": 0.6000000000000001,
+        "bin_high": 0.7000000000000001,
+        "mean_probability": 0.6529881358146667,
+        "observed_rate": 0.46296296296296297,
+        "count": 54
+      },
+      {
+        "bin_low": 0.7000000000000001,
+        "bin_high": 0.8,
+        "mean_probability": 0.7583497762680054,
+        "observed_rate": 0.618421052631579,
+        "count": 76
+      },
+      {
+        "bin_low": 0.8,
+        "bin_high": 0.9,
+        "mean_probability": 0.8500464558601379,
+        "observed_rate": 0.8013698630136986,
+        "count": 146
+      },
+      {
+        "bin_low": 0.9,
+        "bin_high": 1.0,
+        "mean_probability": 0.9703771471977234,
+        "observed_rate": 0.9545945945945946,
+        "count": 925
+      }
+    ],
+    "lead_time": {
+      "threshold": 0.5,
+      "units": 37,
+      "missed": 0,
+      "early": 1,
+      "early_definition_cycles": 60,
+      "median": 32.0,
+      "p25": 28.0,
+      "p75": 35.0,
+      "per_unit": [
+        {
+          "unit": 8,
+          "lead_time": 35
+        },
+        {
+          "unit": 9,
+          "lead_time": 28
+        },
+        {
+          "unit": 10,
+          "lead_time": 31
+        },
+        {
+          "unit": 21,
+          "lead_time": 30
+        },
+        {
+          "unit": 25,
+          "lead_time": 26
+        },
+        {
+          "unit": 26,
+          "lead_time": 35
+        },
+        {
+          "unit": 27,
+          "lead_time": 32
+        },
+        {
+          "unit": 30,
+          "lead_time": 45
+        },
+        {
+          "unit": 34,
+          "lead_time": 33
+        },
+        {
+          "unit": 38,
+          "lead_time": 28
+        },
+        {
+          "unit": 80,
+          "lead_time": 34
+        },
+        {
+          "unit": 85,
+          "lead_time": 39
+        },
+        {
+          "unit": 89,
+          "lead_time": 27
+        },
+        {
+          "unit": 101,
+          "lead_time": 37
+        },
+        {
+          "unit": 105,
+          "lead_time": 23
+        },
+        {
+          "unit": 109,
+          "lead_time": 32
+        },
+        {
+          "unit": 119,
+          "lead_time": 38
+        },
+        {
+          "unit": 121,
+          "lead_time": 23
+        },
+        {
+          "unit": 136,
+          "lead_time": 25
+        },
+        {
+          "unit": 146,
+          "lead_time": 46
+        },
+        {
+          "unit": 149,
+          "lead_time": 31
+        },
+        {
+          "unit": 159,
+          "lead_time": 26
+        },
+        {
+          "unit": 163,
+          "lead_time": 25
+        },
+        {
+          "unit": 171,
+          "lead_time": 38
+        },
+        {
+          "unit": 174,
+          "lead_time": 32
+        },
+        {
+          "unit": 180,
+          "lead_time": 29
+        },
+        {
+          "unit": 185,
+          "lead_time": 90
+        },
+        {
+          "unit": 188,
+          "lead_time": 46
+        },
+        {
+          "unit": 190,
+          "lead_time": 33
+        },
+        {
+          "unit": 197,
+          "lead_time": 33
+        },
+        {
+          "unit": 205,
+          "lead_time": 33
+        },
+        {
+          "unit": 208,
+          "lead_time": 35
+        },
+        {
+          "unit": 226,
+          "lead_time": 29
+        },
+        {
+          "unit": 237,
+          "lead_time": 28
+        },
+        {
+          "unit": 241,
+          "lead_time": 36
+        },
+        {
+          "unit": 244,
+          "lead_time": 30
+        },
+        {
+          "unit": 249,
+          "lead_time": 26
+        }
+      ]
+    }
+  }
+}
