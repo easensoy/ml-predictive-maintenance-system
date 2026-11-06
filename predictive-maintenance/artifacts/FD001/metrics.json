@@ -1,0 +1,358 @@
+{
+  "subset": "FD001",
+  "created_at": "2026-11-06T21:30:05+0000",
+  "training_seconds": 173.4,
+  "code": {
+    "predmaint": "2.0.0",
+    "source_sha256": "7ce7c9f6425cd685",
+    "git_commit": "d7cefb3-dirty"
+  },
+  "environment": {
+    "python": "3.15.2",
+    "torch": "2.15.0+cu132",
+    "numpy": "2.5.4",
+    "pandas": "3.1.1",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "training_device": "NVIDIA RTX 1000 Ada Generation Laptop GPU"
+  },
+  "data": {
+    "source": "https://phm-datasets.s3.amazonaws.com/NASA/6.+Turbofan+Engine+Degradation+Simulation+Data+Set.zip",
+    "archive_sha256": "c9c5dec12a945a82e8bb4446589d7fb3cc057b5e5d81fa1a12e25ee9912ad3b2",
+    "train_engines": 100,
+    "test_engines": 100,
+    "split_seed": 42,
+    "split_engines": {
+      "val": [
+        3,
+        19,
+        22,
+        25,
+        26,
+        28,
+        34,
+        43,
+        51,
+        53,
+        57,
+        60,
+        72,
+        82,
+        93
+      ],
+      "holdout": [
+        5,
+        8,
+        27,
+        29,
+        38,
+        52,
+        58,
+        62,
+        77,
+        79,
+        80,
+        81,
+        95,
+        98,
+        100
+      ],
+      "train": [
+        1,
+        2,
+        4,
+        6,
+        7,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        20,
+        21,
+        23,
+        24,
+        30,
+        31,
+        32,
+        33,
+        35,
+        36,
+        37,
+        39,
+        40,
+        41,
+        42,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        54,
+        55,
+        56,
+        59,
+        61,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        73,
+        74,
+        75,
+        76,
+        78,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        94,
+        96,
+        97,
+        99
+      ]
+    }
+  },
+  "config": {
+    "subset": "FD001",
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "split_seed": 42,
+    "window": 60,
+    "max_rul": 125,
+    "alert_cycles": 30,
+    "hidden": 64,
+    "layers": 2,
+    "dropout": 0.2,
+    "epochs": 80,
+    "patience": 12,
+    "batch_size": 256,
+    "lr": 0.001,
+    "weight_decay": 1e-05,
+    "alpha": 0.1,
+    "alert_threshold": 0.5,
+    "ewma_alpha": null,
+    "baseline": true,
+    "device": "cuda"
+  },
+  "calibration": {
+    "interval": 0.9,
+    "conformal_margin": -0.02896258980035782,
+    "temperature": 1.0405733585357666,
+    "alert_threshold": 0.5
+  },
+  "test": {
+    "rmse": 12.891879238084599,
+    "mae": 9.240104084014893,
+    "nasa_score": 248.6790883014671,
+    "rmse_uncapped": 14.322308476899664,
+    "nasa_score_uncapped": 286.22870609355175,
+    "interval_coverage": 0.86,
+    "interval_width": 31.64529800415039,
+    "alert": {
+      "threshold": 0.5,
+      "n": 100,
+      "positives": 25,
+      "average_precision": 0.9848313731357211,
+      "precision": 0.9565217391304348,
+      "recall": 0.88,
+      "f1": 0.9166666666666666,
+      "brier": 0.028918243944644928,
+      "ece": 0.028374250261113062
+    }
+  },
+  "test_single_models": {
+    "rmse_mean": 13.440371619983926,
+    "rmse_std": 0.6184164672137075,
+    "nasa_score_mean": 285.84318882884634,
+    "nasa_score_std": 40.92159931119567
+  },
+  "baseline_lightgbm": {
+    "rmse": 12.515276132303793,
+    "mae": 9.163824784127847,
+    "nasa_score": 268.45629603867076,
+    "rmse_uncapped": 13.595526319033034,
+    "nasa_score_uncapped": 293.4338787279121
+  },
+  "holdout": {
+    "rmse_all_cycles": 11.914724742383244,
+    "interval_coverage": 0.8611976462443752,
+    "alert": {
+      "threshold": 0.5,
+      "n": 2889,
+      "positives": 465,
+      "average_precision": 0.9875109928452366,
+      "precision": 0.9490022172949002,
+      "recall": 0.9204301075268817,
+      "f1": 0.9344978165938864,
+      "brier": 0.01545426994562149,
+      "ece": 0.006760856917456142
+    },
+    "reliability": [
+      {
+        "bin_low": 0.0,
+        "bin_high": 0.1,
+        "mean_probability": 0.002048309426754713,
+        "observed_rate": 0.004661016949152543,
+        "count": 2360
+      },
+      {
+        "bin_low": 0.1,
+        "bin_high": 0.2,
+        "mean_probability": 0.14505606889724731,
+        "observed_rate": 0.26666666666666666,
+        "count": 30
+      },
+      {
+        "bin_low": 0.2,
+        "bin_high": 0.30000000000000004,
+        "mean_probability": 0.25154244899749756,
+        "observed_rate": 0.2608695652173913,
+        "count": 23
+      },
+      {
+        "bin_low": 0.30000000000000004,
+        "bin_high": 0.4,
+        "mean_probability": 0.3540363907814026,
+        "observed_rate": 0.3076923076923077,
+        "count": 13
+      },
+      {
+        "bin_low": 0.4,
+        "bin_high": 0.5,
+        "mean_probability": 0.44553932547569275,
+        "observed_rate": 0.6666666666666666,
+        "count": 12
+      },
+      {
+        "bin_low": 0.5,
+        "bin_high": 0.6000000000000001,
+        "mean_probability": 0.5438858866691589,
+        "observed_rate": 0.6,
+        "count": 10
+      },
+      {
+        "bin_low": 0.6000000000000001,
+        "bin_high": 0.7000000000000001,
+        "mean_probability": 0.6406356692314148,
+        "observed_rate": 0.75,
+        "count": 16
+      },
+      {
+        "bin_low": 0.7000000000000001,
+        "bin_high": 0.8,
+        "mean_probability": 0.7617915868759155,
+        "observed_rate": 0.6875,
+        "count": 16
+      },
+      {
+        "bin_low": 0.8,
+        "bin_high": 0.9,
+        "mean_probability": 0.8561524152755737,
+        "observed_rate": 0.7391304347826086,
+        "count": 23
+      },
+      {
+        "bin_low": 0.9,
+        "bin_high": 1.0,
+        "mean_probability": 0.9897827506065369,
+        "observed_rate": 0.9896373056994818,
+        "count": 386
+      }
+    ],
+    "lead_time": {
+      "threshold": 0.5,
+      "units": 15,
+      "missed": 0,
+      "early": 0,
+      "early_definition_cycles": 60,
+      "median": 27.0,
+      "p25": 25.5,
+      "p75": 33.0,
+      "per_unit": [
+        {
+          "unit": 5,
+          "lead_time": 34
+        },
+        {
+          "unit": 8,
+          "lead_time": 24
+        },
+        {
+          "unit": 27,
+          "lead_time": 24
+        },
+        {
+          "unit": 29,
+          "lead_time": 27
+        },
+        {
+          "unit": 38,
+          "lead_time": 33
+        },
+        {
+          "unit": 52,
+          "lead_time": 37
+        },
+        {
+          "unit": 58,
+          "lead_time": 25
+        },
+        {
+          "unit": 62,
+          "lead_time": 27
+        },
+        {
+          "unit": 77,
+          "lead_time": 24
+        },
+        {
+          "unit": 79,
+          "lead_time": 31
+        },
+        {
+          "unit": 80,
+          "lead_time": 30
+        },
+        {
+          "unit": 81,
+          "lead_time": 33
+        },
+        {
+          "unit": 95,
+          "lead_time": 26
+        },
+        {
+          "unit": 98,
+          "lead_time": 26
+        },
+        {
+          "unit": 100,
+          "lead_time": 35
+        }
+      ]
+    }
+  }
+}
