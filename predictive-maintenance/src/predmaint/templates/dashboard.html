@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Turbofan fleet health · predmaint {{ version }}</title>
+  <meta name="description" content="Live replay of NASA C-MAPSS turbofan engines with calibrated remaining-useful-life predictions and explanations.">
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+  <script src="{{ url_for('static', filename='theme.js') }}"></script>
+</head>
+<body>
+  <div class="viz-root">
+    <header class="topbar">
+      <div class="brand">
+        <h1>Turbofan fleet health</h1>
+        <p class="subtitle">Live replay of NASA C-MAPSS <span id="subset-name">{{ subset }}</span> engines the model never saw in training. The model runs on every new cycle.</p>
+      </div>
+      <div class="topbar-actions">
+        <span id="connection" class="connection" role="status" aria-live="polite">
+          <span class="connection-dot" aria-hidden="true"></span><span id="connection-text">Connecting…</span>
+        </span>
+        <button id="theme-toggle" class="button-ghost" type="button" aria-label="Switch between light and dark theme">
+          <span aria-hidden="true">◐</span> <span id="theme-label">Theme</span>
+        </button>
+      </div>
+    </header>
+
+    <section class="kpis" aria-label="Model performance">
+      <article class="tile">
+        <h2 class="tile-label">Test RMSE</h2>
+        <p class="tile-value"><span id="kpi-rmse">–</span><span class="tile-unit"> cycles</span></p>
+        <p class="tile-caption" id="kpi-rmse-caption">Official test set</p>
+      </article>
+      <article class="tile">
+        <h2 class="tile-label">PHM08 score</h2>
+        <p class="tile-value"><span id="kpi-score">–</span></p>
+        <p class="tile-caption" id="kpi-score-caption">Lower is better; late predictions cost more</p>
+      </article>
+      <article class="tile">
+        <h2 class="tile-label">Inside the 90% interval</h2>
+        <p class="tile-value"><span id="kpi-coverage">–</span></p>
+        <p class="tile-caption" id="kpi-coverage-caption">Share of test engines</p>
+      </article>
+      <article class="tile">
+        <h2 class="tile-label">Alert precision–recall AUC</h2>
+        <p class="tile-value"><span id="kpi-ap">–</span></p>
+        <p class="tile-caption" id="kpi-ap-caption">Failure within the horizon</p>
+      </article>
+      <article class="tile">
+        <h2 class="tile-label">Median alert lead time</h2>
+        <p class="tile-value"><span id="kpi-lead">–</span><span class="tile-unit"> cycles</span></p>
+        <p class="tile-caption" id="kpi-lead-caption">Holdout engines run to failure</p>
+      </article>
+    </section>
+
+    <main class="layout">
+      <section class="card fleet" aria-labelledby="fleet-title">
+        <div class="card-head">
+          <h2 id="fleet-title">Fleet</h2>
+          <p class="card-sub">Select an engine to inspect it.</p>
+        </div>
+        <div class="table-scroll">
+          <table class="fleet-table">
+            <caption class="visually-hidden">Current state of every replayed engine</caption>
+            <thead>
+              <tr>
+                <th scope="col">Engine</th>
+                <th scope="col">Status</th>
+                <th scope="col" class="num">Cycle</th>
+                <th scope="col">Predicted RUL</th>
+                <th scope="col" class="num" title="Probability of failure within the alert horizon">P(fail ≤ <span class="horizon">30</span>)</th>
+              </tr>
+            </thead>
+            <tbody id="fleet-body"></tbody>
+          </table>
+        </div>
+        <ul class="status-legend" aria-label="Status meanings">
+          <li><span class="chip chip-healthy"><span class="chip-icon" aria-hidden="true">✓</span>Healthy</span> failure within the horizon is outside the 90% interval</li>
+          <li><span class="chip chip-watch"><span class="chip-icon" aria-hidden="true">!</span>Watch</span> failure within the horizon is inside the 90% interval</li>
+          <li><span class="chip chip-alert"><span class="chip-icon" aria-hidden="true">▲</span>Alert</span> failure within the horizon is more likely than not</li>
+          <li><span class="chip chip-failed"><span class="chip-icon" aria-hidden="true">✕</span>Failed</span> the recorded run ended; the replay restarts it</li>
+        </ul>
+        <p class="range-key"><span class="range-key-bar" aria-hidden="true"><span class="range-key-band"></span><span class="range-key-dot"></span><span class="range-key-true"></span></span><span>Bar: 90% interval, dot: prediction, grey tick: true RUL, on a 0–<span class="max-rul">125</span> cycle scale</span></p>
+      </section>
+
+      <section class="card detail" aria-labelledby="detail-title">
+        <div class="detail-head">
+          <h2 id="detail-title">Engine –</h2>
+          <span id="detail-status"></span>
+          <p class="detail-meta" id="detail-meta"></p>
+        </div>
+
+        <figure class="chart-block">
+          <figcaption>
+            <span class="fig-title">Remaining useful life</span>
+            <span class="fig-sub">Prediction and its calibrated 90% interval against the true RUL, capped at <span class="max-rul">125</span> cycles like the training target.</span>
+          </figcaption>
+          <div class="legend" aria-hidden="true">
+            <span class="legend-item"><span class="key-line key-series"></span>Predicted RUL</span>
+            <span class="legend-item"><span class="key-area"></span>90% interval</span>
+            <span class="legend-item"><span class="key-line key-truth"></span>True RUL</span>
+          </div>
+          <div id="chart-rul" class="chart chart-tall" role="img" aria-label="Predicted and true remaining useful life by cycle"></div>
+          <p class="fig-title fig-title-small">Probability of failure within <span class="horizon">30</span> cycles</p>
+          <div id="chart-prob" class="chart chart-short" role="img" aria-label="Probability of failure within the horizon by cycle"></div>
+          <details class="table-view">
+            <summary>Show the last 30 cycles as a table</summary>
+            <div class="table-scroll"><table id="table-rul" class="data-table"></table></div>
+          </details>
+        </figure>
+
+        <div class="two-col">
+          <figure class="chart-block">
+            <figcaption>
+              <span class="fig-title">What drives the current prediction</span>
+              <span class="fig-sub">Integrated-gradients contribution of each reading in the model's window, in cycles of RUL, compared with an average engine in the same operating regime.</span>
+            </figcaption>
+            <div id="chart-heat" class="chart chart-heat" role="img" aria-label="Contribution of each sensor and cycle to the prediction"></div>
+          </figure>
+          <figure class="chart-block">
+            <figcaption>
+              <span class="fig-title">Net effect by sensor</span>
+              <span class="fig-sub" id="drivers-sub">Red pulls the prediction towards failure; blue pushes it away.</span>
+            </figcaption>
+            <div id="chart-drivers" class="chart chart-drivers" role="img" aria-label="Net contribution of each sensor, in cycles"></div>
+            <details class="table-view">
+              <summary>Show as a table</summary>
+              <div class="table-scroll"><table id="table-drivers" class="data-table"></table></div>
+            </details>
+          </figure>
+        </div>
+
+        <figure class="chart-block">
+          <figcaption>
+            <span class="fig-title">Top drivers, raw readings</span>
+            <span class="fig-sub">The three sensors with the largest net effect, over this engine's life so far.</span>
+          </figcaption>
+          <div class="multiples">
+            <div class="multiple"><p class="multiple-title" id="trace-title-0"></p><div id="trace-0" class="chart chart-mini"></div></div>
+            <div class="multiple"><p class="multiple-title" id="trace-title-1"></p><div id="trace-1" class="chart chart-mini"></div></div>
+            <div class="multiple"><p class="multiple-title" id="trace-title-2"></p><div id="trace-2" class="chart chart-mini"></div></div>
+          </div>
+        </figure>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p id="model-card">Loading model details…</p>
+      <p>Data: A. Saxena, K. Goebel, D. Simon and N. Eklund, “Damage Propagation Modeling for Aircraft Engine Run-to-Failure Simulation”, PHM08, 2008 (NASA Prognostics Center of Excellence). Simulated engines, not field data.
+        API: <a href="/api/model-info">/api/model-info</a> · <a href="/api/fleet">/api/fleet</a> · <a href="/api/health">/api/health</a> · predmaint {{ version }}</p>
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js" integrity="sha384-C2iskrW/uPW46KzOjrvJIQo4YkV8lkD+QS0CrDN18IIPIpT/g2USu8bTP3nvmIAD" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.8.4/dist/socket.io.min.js" integrity="sha384-fBrXvbDtHoeKWJ/hcA6M+YGueiDW+h45I7V6F2kD1S8bOkrF9rZYPLVkCR6BLR/1" crossorigin="anonymous"></script>
+  <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+</body>
+</html>
