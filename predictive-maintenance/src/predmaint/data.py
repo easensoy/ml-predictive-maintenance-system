@@ -14,6 +14,7 @@ Usage::
 import argparse
 import hashlib
 import io
+import itertools
 import sys
 import urllib.request
 import zipfile
@@ -154,21 +155,97 @@ def load_train(data_dir: Path, subset: str) -> pd.DataFrame:
     return df
 
 
-def load_test(data_dir: Path, subset: str) -> pd.DataFrame:
-    """Test trajectories truncated before failure. Adds ``rul`` from the official RUL file."""
+def load_test_inputs(data_dir: Path, subset: str) -> pd.DataFrame:
+    """Test trajectories truncated before failure, without labels.
+
+    Training uses only this: the test labels are read by ``load_test_labels``, which only the
+    evaluation step calls.
+    """
+    return _read_table(data_dir / f"test_{_check_subset(subset)}.txt")
+
+
+def load_test_labels(data_dir: Path, subset: str) -> pd.Series:
+    """True RUL at the last recorded cycle of each test engine, indexed by unit."""
     subset = _check_subset(subset)
-    df = _read_table(data_dir / f"test_{subset}.txt")
     rul_path = data_dir / f"RUL_{subset}.txt"
     if not rul_path.is_file():
         raise DataError(f"{rul_path} not found. Run `python -m predmaint.data download` first.")
     final_rul = np.loadtxt(rul_path, dtype=np.int64, ndmin=1)
-    units = np.sort(df["unit"].unique())
+    units = np.sort(load_test_inputs(data_dir, subset)["unit"].unique())
     if len(final_rul) != len(units):
         raise DataError(f"RUL_{subset}.txt has {len(final_rul)} rows for {len(units)} test units")
-    rul_at_last = pd.Series(final_rul, index=units)
+    return pd.Series(final_rul, index=units, name="rul")
+
+
+def load_test(data_dir: Path, subset: str) -> pd.DataFrame:
+    """Test trajectories with ``rul`` at every cycle, from the official RUL file."""
+    df = load_test_inputs(data_dir, subset)
+    rul_at_last = load_test_labels(data_dir, subset)
     last = df.groupby("unit")["cycle"].transform("max")
     df["rul"] = (last - df["cycle"] + df["unit"].map(rul_at_last)).astype("int64")
     return df
+
+
+def file_digests(data_dir: Path, names: list[str]) -> dict[str, str]:
+    """SHA-256 of raw dataset files, recorded with every trained model and evaluation."""
+    return {name: _sha256((data_dir / name).read_bytes()) for name in names}
+
+
+def _by_life(units: np.ndarray, lives: np.ndarray) -> np.ndarray:
+    """Units sorted by life length (ties by unit id), for stratifying splits by life."""
+    return np.asarray(units)[np.lexsort((np.asarray(units), np.asarray(lives)))]
+
+
+def assign_folds(units: np.ndarray, lives: np.ndarray, n_folds: int, seed: int) -> dict[int, int]:
+    """Assign engines to ``n_folds`` folds, stratified by life length: engines are sorted by
+    life and each consecutive block of ``n_folds`` is dealt out in random order."""
+    if len(units) < 2 * n_folds:
+        raise DataError(f"{len(units)} engines are too few for {n_folds} folds")
+    rng = np.random.default_rng(seed)
+    ordered = _by_life(units, lives)
+    folds: dict[int, int] = {}
+    for start in range(0, len(ordered), n_folds):
+        block = ordered[start : start + n_folds]
+        for unit, fold in zip(block, rng.permutation(n_folds)[: len(block)], strict=True):
+            folds[int(unit)] = int(fold)
+    return folds
+
+
+def stratified_subset(
+    units: np.ndarray, lives: np.ndarray, fraction: float, seed: int
+) -> tuple[np.ndarray, np.ndarray]:
+    """Split engines into (rest, subset) with ``subset`` about ``fraction`` of them, spread
+    across life lengths. Used for the inner validation split and the replay holdout."""
+    units, lives = np.asarray(units), np.asarray(lives)
+    n_pick = max(1, round(len(units) * fraction))
+    if n_pick >= len(units):
+        raise DataError(f"Cannot take {n_pick} of {len(units)} engines")
+    rng = np.random.default_rng(seed)
+    ordered = _by_life(units, lives)
+    # One pick per stratum of equal size, at a random position inside it.
+    edges = np.linspace(0, len(ordered), n_pick + 1).round().astype(int)
+    picked = np.array([ordered[rng.integers(lo, hi)] for lo, hi in itertools.pairwise(edges)])
+    rest = np.setdiff1d(units, picked)
+    return np.sort(rest), np.sort(picked)
+
+
+def test_like_truncations(
+    lives: dict[int, int], test_lengths: np.ndarray, draws: int, rng: np.random.Generator
+) -> list[tuple[int, int]]:
+    """(unit, cycle) truncation points that look like the official test set.
+
+    For each training engine, draw a trajectory length from the test engines' observed lengths
+    (their sensor readings, never their labels), among those shorter than this engine's life, so
+    at least one cycle remains, as in the test set.
+    """
+    lengths = np.sort(np.asarray(test_lengths))
+    points = []
+    for unit, life in lives.items():
+        eligible = lengths[lengths < life]
+        if len(eligible) == 0:
+            raise DataError(f"Engine {unit} (life {life}) is shorter than every test trajectory")
+        points += [(int(unit), int(c)) for c in rng.choice(eligible, size=draws, replace=True)]
+    return points
 
 
 def split_units(
