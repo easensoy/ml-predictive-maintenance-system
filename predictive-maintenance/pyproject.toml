@@ -22,8 +22,11 @@ analysis = [
 ]
 dev = [
     { include-group = "analysis" },
+    "mypy>=1.18",
+    "pandas-stubs>=3.1.0.261029",
     "pytest>=8.4",
     "ruff>=0.14",
+    "types-flask-socketio>=5.7.0.20261103",
 ]
 
 [tool.uv]
@@ -55,3 +58,15 @@ allowed-confusables = ["–", "−", "·"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.mypy]
+python_version = "3.15"
+files = ["src"]
+check_untyped_defs = true
+strict_equality = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = ["sklearn.*"]
+ignore_missing_imports = true
