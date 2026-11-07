@@ -23,6 +23,17 @@ def interval_coverage(lower: np.ndarray, upper: np.ndarray, target: np.ndarray) 
     return float(np.mean((target >= lower) & (target <= upper)))
 
 
+def wilson_interval(successes: int, n: int, z: float = 1.959964) -> tuple[float, float]:
+    """95% Wilson score interval for a proportion (better than the normal approximation near 0
+    or 1 and for small n). Treats the n trials as independent: use one sample per engine."""
+    if n <= 0:
+        raise ValueError("n must be positive")
+    p = successes / n
+    centre = (p + z * z / (2 * n)) / (1 + z * z / n)
+    half = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / (1 + z * z / n)
+    return float(max(0.0, centre - half)), float(min(1.0, centre + half))
+
+
 def expected_calibration_error(probability: np.ndarray, label: np.ndarray, bins: int = 10) -> float:
     edges = np.linspace(0.0, 1.0, bins + 1)
     index = np.clip(np.digitize(probability, edges[1:-1]), 0, bins - 1)
@@ -85,10 +96,10 @@ def lead_times(frame: pd.DataFrame, threshold: float, early_cycles: int) -> dict
     ``probability``. Lead time is the true number of cycles left when the alert first fires.
     """
     per_unit = []
-    for unit, group in frame.sort_values(["unit", "cycle"]).groupby("unit"):
+    for _, group in frame.sort_values(["unit", "cycle"]).groupby("unit"):
         fired = group[group["probability"] >= threshold]
-        lead = int(fired["rul_true"].iloc[0]) if len(fired) else None
-        per_unit.append({"unit": int(unit), "lead_time": lead})
+        lead = int(fired["rul_true"].to_numpy()[0]) if len(fired) else None
+        per_unit.append({"unit": int(group["unit"].to_numpy()[0]), "lead_time": lead})
     leads = np.array([u["lead_time"] for u in per_unit if u["lead_time"] is not None])
     return {
         "threshold": threshold,
