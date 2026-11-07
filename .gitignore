@@ -11,8 +11,9 @@ dist/
 # Local data (re-created by `python -m predmaint.data download`)
 predictive-maintenance/data/cmapss/
 
-# Training outputs: keep every subset's small result files so the README table and figures can be
-# rebuilt from the repo, and the full FD001 run that the dashboard and Docker image serve.
+# Training outputs: keep every subset's result files and predictions, so the README tables can be
+# audited and the figures rebuilt from a fresh clone, and the full FD001 run that the dashboard
+# and Docker image serve.
 predictive-maintenance/artifacts/*/*
 !predictive-maintenance/artifacts/*/metrics.json
 !predictive-maintenance/artifacts/*/history.json
@@ -21,6 +22,7 @@ predictive-maintenance/artifacts/*/*
 !predictive-maintenance/artifacts/*/predictions/
 predictive-maintenance/artifacts/*/predictions/*
 !predictive-maintenance/artifacts/*/predictions/test.csv
+!predictive-maintenance/artifacts/*/predictions/holdout.csv
 !predictive-maintenance/artifacts/FD001/**
 
 # Misc
