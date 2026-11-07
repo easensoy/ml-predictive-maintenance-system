@@ -31,7 +31,7 @@ def test_health_runs_a_smoke_inference(client):
     assert response.status_code == 200
     body = response.get_json()
     assert body["status"] == "ok"
-    assert body["ensemble_size"] == 2
+    assert body["ensemble_size"] == 3  # one network per fold
 
 
 def test_health_reports_unavailable_without_artifacts(tmp_path, cmapss_dir):
@@ -45,7 +45,10 @@ def test_health_reports_unavailable_without_artifacts(tmp_path, cmapss_dir):
 def test_model_info_comes_from_metrics_json(client, artifacts_dir):
     info = client.get("/api/model-info").get_json()
     metrics = json.loads((artifacts_dir / "FD001" / "metrics.json").read_text())
-    assert info["test"]["rmse"] == metrics["test"]["rmse"]
+    served = metrics["test"]["models"]["lstm"]["per_repeat"]["0"]
+    assert info["kpis"]["rmse"] == served["rmse"]
+    assert info["kpis"]["coverage"] == served["coverage"]
+    assert len(info["windows"]) == info["ensemble_size"]
     assert len(info["sensors"]) == 14
 
 
@@ -186,9 +189,10 @@ def test_dashboard_has_no_hardcoded_metrics(client):
     assert "94%" not in html
 
 
-def test_fleet_and_engine_detail(client, app):
+def test_fleet_and_engine_detail(client, app, settings):
     fleet = client.get("/api/fleet").get_json()
-    assert len(fleet["engines"]) == 3
+    replayable = len(app.extensions["predmaint"]["replay"].frames)
+    assert len(fleet["engines"]) == min(settings.replay_engines, replayable) == replayable
     unit = fleet["engines"][0]["unit"]
     detail = client.get(f"/api/engines/{unit}").get_json()
     assert detail["unit"] == unit
