@@ -8,14 +8,13 @@ import numpy as np
 import pandas as pd
 import torch
 
-from predmaint.calibration import calibrated_outputs
+from predmaint.calibration import cv_plus_interval, finalize_interval, probability
 from predmaint.data import SENSOR_INFO
 from predmaint.features import ContractError, FeatureContract
-from predmaint.model import Ensemble, RULNet, integrated_gradients, predict_raw
+from predmaint.model import CHECKPOINT_FORMAT, Ensemble, RULNet, integrated_gradients, predict_raw
 
 ARTIFACT_FILES = ("model.pt", "contract.json", "calibration.json", "metrics.json")
-# Bump when the layout of model.pt changes; loading another format fails loudly.
-CHECKPOINT_FORMAT = 1
+CALIBRATION_FORMAT = 2
 RETRAIN_HINT = (
     "Retrain with `python -m predmaint.train`, or check out the git commit recorded in the "
     "run's metrics.json"
@@ -38,33 +37,38 @@ class NonFinitePrediction(ValueError):
         self.report = report
 
 
-def _load_members(path: Path, n_features: int) -> list[RULNet]:
+def _load_members(path: Path, contract: FeatureContract) -> list[RULNet]:
     try:
         bundle = torch.load(path, map_location="cpu", weights_only=True)
     except Exception as exc:
         raise ArtifactsIncompatible(f"{path} cannot be read as a checkpoint: {exc}") from exc
-    if not isinstance(bundle, dict) or not {"format", "config", "members"} <= bundle.keys():
+    if not isinstance(bundle, dict) or not {"format", "members"} <= bundle.keys():
         raise ArtifactsIncompatible(f"{path} is not a predmaint checkpoint. {RETRAIN_HINT}")
     if bundle["format"] != CHECKPOINT_FORMAT:
         raise ArtifactsIncompatible(
             f"{path} has checkpoint format {bundle['format']}, but this version of predmaint "
             f"reads format {CHECKPOINT_FORMAT}. {RETRAIN_HINT}"
         )
-    config = bundle["config"]
-    if not isinstance(config, dict) or config.get("n_features") != n_features:
-        raise ArtifactsIncompatible(
-            f"{path} was trained on {config.get('n_features') if isinstance(config, dict) else '?'}"
-            f" features, but contract.json defines {n_features}: the two files come from "
-            f"different runs. {RETRAIN_HINT}"
-        )
     if not bundle["members"]:
         raise ArtifactsIncompatible(f"{path} holds no networks. {RETRAIN_HINT}")
     members = []
-    for i, state in enumerate(bundle["members"]):
+    for i, entry in enumerate(bundle["members"]):
+        config = entry.get("config") if isinstance(entry, dict) else None
+        if not isinstance(config, dict) or config.get("n_features") != contract.n_features:
+            raise ArtifactsIncompatible(
+                f"{path}: network {i} does not take the {contract.n_features} features that "
+                f"contract.json defines, so the two files come from different runs. {RETRAIN_HINT}"
+            )
+        window = config.get("window")
+        if not isinstance(window, int) or not 1 <= window <= contract.window:
+            raise ArtifactsIncompatible(
+                f"{path}: network {i} needs a {window}-cycle window, but contract.json provides "
+                f"{contract.window} cycles. {RETRAIN_HINT}"
+            )
         try:
             member = RULNet(**config)
-            member.load_state_dict(state)
-        except (TypeError, RuntimeError) as exc:
+            member.load_state_dict(entry["state"])
+        except (TypeError, KeyError, RuntimeError) as exc:
             raise ArtifactsIncompatible(
                 f"{path}: network {i} does not match its configuration: {exc}. {RETRAIN_HINT}"
             ) from exc
@@ -72,17 +76,36 @@ def _load_members(path: Path, n_features: int) -> list[RULNet]:
     return members
 
 
-def _check_calibration(path: Path, calibration: object) -> dict:
-    expected = ("interval", "conformal_margin", "temperature", "alert_threshold")
+def _check_calibration(path: Path, calibration: object, n_members: int) -> dict:
+    expected = ("format", "interval", "alpha", "scores", "score_member", "temperature")
     if not isinstance(calibration, dict) or not all(key in calibration for key in expected):
         raise ArtifactsIncompatible(f"{path} must define {list(expected)}. {RETRAIN_HINT}")
-    values = [calibration[key] for key in expected]
-    if not all(isinstance(v, int | float) and math.isfinite(v) for v in values):
-        raise ArtifactsIncompatible(f"{path}: every value must be a finite number")
-    interval, _, temperature, threshold = values
-    if not (0 < interval < 1 and temperature > 0 and 0 < threshold < 1):
+    if calibration["format"] != CALIBRATION_FORMAT:
         raise ArtifactsIncompatible(
-            f"{path}: need 0 < interval < 1, temperature > 0 and 0 < alert_threshold < 1"
+            f"{path} has calibration format {calibration['format']}, but this version of "
+            f"predmaint reads format {CALIBRATION_FORMAT}. {RETRAIN_HINT}"
+        )
+    scalars = [calibration[k] for k in ("interval", "alpha", "temperature", "alert_threshold")]
+    if not all(isinstance(v, int | float) and math.isfinite(v) for v in scalars):
+        raise ArtifactsIncompatible(f"{path}: every value must be a finite number")
+    interval, alpha, temperature, threshold = scalars
+    if not (0 < interval < 1 and 0 < alpha < 1 and temperature > 0 and 0 < threshold < 1):
+        raise ArtifactsIncompatible(
+            f"{path}: need 0 < interval < 1, 0 < alpha < 1, temperature > 0 and "
+            "0 < alert_threshold < 1"
+        )
+    scores, member = calibration["scores"], calibration["score_member"]
+    if (
+        not isinstance(scores, list)
+        or not scores
+        or not isinstance(member, list)
+        or len(member) != len(scores)
+        or not all(isinstance(s, int | float) and math.isfinite(s) for s in scores)
+        or not all(isinstance(m, int) and 0 <= m < n_members for m in member)
+    ):
+        raise ArtifactsIncompatible(
+            f"{path}: scores must be finite numbers, each with the index of one of the "
+            f"{n_members} networks. {RETRAIN_HINT}"
         )
     return calibration
 
@@ -99,38 +122,50 @@ class Predictor:
             self.contract = FeatureContract.load(model_dir / "contract.json")
         except ContractError as exc:
             raise ArtifactsIncompatible(str(exc)) from exc
+        self.metrics = json.loads((model_dir / "metrics.json").read_text())
+        members = _load_members(model_dir / "model.pt", self.contract)
+        self.model = Ensemble(members).eval()
         calibration_path = model_dir / "calibration.json"
         self.calibration = _check_calibration(
-            calibration_path, json.loads(calibration_path.read_text())
+            calibration_path, json.loads(calibration_path.read_text()), len(members)
         )
-        self.metrics = json.loads((model_dir / "metrics.json").read_text())
-        members = _load_members(model_dir / "model.pt", self.contract.n_features)
-        self.model = Ensemble(members).eval()
+        self._scores = np.asarray(self.calibration["scores"], np.float64)
+        self._score_member = np.asarray(self.calibration["score_member"], np.int64)
 
     @property
     def alert_threshold(self) -> float:
         return float(self.calibration["alert_threshold"])
 
     def predict_windows(self, windows: np.ndarray) -> dict[str, np.ndarray]:
+        """Calibrated outputs for (N, window, F) inputs: point, lower, upper, open_ended (the
+        upper end reached the cap, so the interval means "at least lower") and probability."""
         raw = predict_raw(self.model, windows)
-        out = calibrated_outputs(
-            raw["quantiles"],
-            raw["alert_logit"],
-            self.calibration["conformal_margin"],
-            self.calibration["temperature"],
-            self.contract.max_rul,
+        q = raw["quantiles"].astype(np.float64) * self.contract.max_rul  # (members, N, 3)
+        lower, upper = cv_plus_interval(
+            q[:, :, 0], q[:, :, 2], self._scores, self._score_member, self.calibration["alpha"]
         )
-        out["attention"] = raw["attention"]
-        return out
+        lower, upper, open_ended = finalize_interval(lower, upper, self.contract.max_rul)
+        return {
+            "point": np.clip(q[:, :, 1].mean(axis=0), 0, self.contract.max_rul),
+            "lower": lower,
+            "upper": upper,
+            "open_ended": open_ended,
+            "probability": probability(raw["alert_logit"], self.calibration["temperature"]),
+        }
 
-    def explain(self, window: np.ndarray) -> np.ndarray:
-        """Integrated-gradients attribution of the point RUL, in cycles: shape (window, F)."""
-        attributions = integrated_gradients(self.model, torch.from_numpy(window.astype(np.float32)))
+    def explain(self, window: np.ndarray, baseline: np.ndarray | None = None) -> np.ndarray:
+        """Integrated-gradients attribution of the ensemble's point RUL, in cycles: shape
+        (window, F). Networks with a shorter window attribute nothing to the earlier rows."""
+        attributions = integrated_gradients(
+            self.model.point,
+            torch.from_numpy(window.astype(np.float32)),
+            None if baseline is None else torch.from_numpy(baseline.astype(np.float32)),
+        )
         return attributions.detach().numpy() * self.contract.max_rul
 
     def status(self, probability: float, lower: float) -> str:
         """alert: failure within the horizon is more likely than not.
-        watch: failure within the horizon is inside the 90% interval.
+        watch: failure within the horizon is inside the interval.
         healthy: otherwise."""
         if probability >= self.alert_threshold:
             return "alert"
@@ -183,6 +218,7 @@ class Predictor:
                 return result
             result["explanation"] = {
                 "method": "integrated gradients vs. an average engine in the same operating regime",
+                "reading": "what the model's output depends on, not a physical diagnosis",
                 "baseline_rul_cycles": round(self._baseline_point(), 1),
                 "sensors": self.sensor_contributions(attributions),
             }
@@ -191,13 +227,20 @@ class Predictor:
     def format_prediction(self, row: dict) -> dict:
         probability = float(row["probability"])
         lower = float(row["lower"])
+        open_ended = bool(row["open_ended"])
+        upper = None if open_ended else round(float(row["upper"]), 1)
+        cap = self.contract.max_rul
         return {
             "rul": {
                 "point": round(float(row["point"]), 1),
                 "lower": round(lower, 1),
-                "upper": round(float(row["upper"]), 1),
+                "upper": upper,
+                "open_ended": open_ended,
+                "summary": f"at least {lower:.0f} cycles"
+                if open_ended
+                else f"{lower:.0f} to {upper:.0f} cycles",
                 "interval": self.calibration["interval"],
-                "capped_at": self.contract.max_rul,
+                "capped_at": cap,
             },
             "failure_within_horizon": {
                 "horizon_cycles": self.contract.alert_cycles,
@@ -212,13 +255,30 @@ class Predictor:
         return float(self.predict_windows(zeros)["point"][0])
 
     def info(self) -> dict:
+        """What the dashboard and /api/model-info show: the served model's own numbers."""
         m = self.metrics
+        served = m.get("served", {})
+        repeat = str(served.get("repeat", 0))
+        test = (m.get("test") or {}).get("models", {})
+        lstm = test.get("lstm", {}).get("per_repeat", {}).get(repeat)
+        lgbm = test.get("lightgbm", {}).get("per_repeat", {}).get(repeat)
+        oof = m.get("out_of_fold", {}).get("lstm", {}).get("per_repeat", {}).get(repeat, {})
+        alert = oof.get("alert", {})
+        provenance = m.get("provenance", {})
         return {
             "subset": m["subset"],
             "created_at": m["created_at"],
-            "code": m["code"],
-            "data": {k: v for k, v in m["data"].items() if k != "split_engines"},
+            "code": {
+                "source_sha256": provenance.get("source_sha256"),
+                "git_commit": (provenance.get("git") or {}).get("commit"),
+            },
+            "data": {
+                "test_engines": m["data"]["test_engines"],
+                "crossfit_engines": m["data"].get("crossfit_engines"),
+                "replay_engines": len(m["data"].get("replay_engines", [])),
+            },
             "ensemble_size": len(self.model.members),
+            "windows": [int(member.window) for member in self.model.members],  # type: ignore[arg-type]
             "window": self.contract.window,
             "max_rul": self.contract.max_rul,
             "alert_cycles": self.contract.alert_cycles,
@@ -228,11 +288,20 @@ class Predictor:
                 {"sensor": s, "symbol": SENSOR_INFO[s][0], "description": SENSOR_INFO[s][1]}
                 for s in self.contract.sensors
             ],
-            "test": m["test"],
-            "test_single_models": m["test_single_models"],
-            "baseline_lightgbm": m["baseline_lightgbm"],
-            "holdout": {k: v for k, v in m["holdout"].items() if k != "reliability"}
-            | {
-                "lead_time": {k: v for k, v in m["holdout"]["lead_time"].items() if k != "per_unit"}
+            "kpis": {
+                "test_evaluated": lstm is not None,
+                "rmse": lstm and lstm["rmse"],
+                "rmse_uncapped": lstm and lstm["rmse_uncapped"],
+                "nasa_score": lstm and lstm["nasa_score"],
+                "coverage": lstm and lstm["coverage"],
+                "open_ended_share": lstm and lstm["open_ended_share"],
+                "closed_width": lstm and lstm["closed_width"],
+                "alert_ap": lstm and lstm["alert_ap"],
+                "alert_positives": lstm and lstm["alert_positives"],
+                "lightgbm_rmse": lgbm and lgbm["rmse"],
+                "lead_median": alert.get("lead_median"),
+                "lead_engines": alert.get("units"),
+                "missed": alert.get("missed"),
+                "early": alert.get("early"),
             },
         }
