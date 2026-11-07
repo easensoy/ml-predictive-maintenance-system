@@ -29,6 +29,8 @@
     int: (v) => (Number.isFinite(v) ? Math.round(v).toLocaleString("en-GB") : "–"),
     pct: (v, d = 0) => (Number.isFinite(v) ? `${(v * 100).toFixed(d)}%` : "–"),
     signed: (v, d = 1) => (Number.isFinite(v) ? `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toFixed(d)}` : "–"),
+    // An interval whose upper end reached the RUL cap is open-ended: "at least lower cycles".
+    range: (r, d = 0) => (r.open_ended ? `≥ ${fmt.num(r.lower, d)}` : `${fmt.num(r.lower, d)}–${fmt.num(r.upper, d)}`),
   };
   const escapeHtml = (s) =>
     String(s).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
@@ -91,33 +93,32 @@
   // ---------- KPI row and model card ----------
   function renderInfo(info) {
     state.info = info;
-    const t = info.test;
-    const b = info.baseline_lightgbm;
-    const lt = info.holdout.lead_time;
+    const k = info.kpis;
     setText("subset-name", info.subset);
-    setText("kpi-rmse", fmt.num(t.rmse, 1));
+    setText("kpi-rmse", fmt.num(k.rmse, 1));
     setText(
       "kpi-rmse-caption",
-      `${info.data.test_engines} test engines${b ? ` · LightGBM baseline ${fmt.num(b.rmse, 1)}` : ""}`,
+      `${info.data.test_engines} test engines${Number.isFinite(k.lightgbm_rmse) ? ` · LightGBM ${fmt.num(k.lightgbm_rmse, 1)}` : ""}`,
     );
-    setText("kpi-score", fmt.int(t.nasa_score));
-    setText("kpi-coverage", fmt.pct(t.interval_coverage));
-    setText("kpi-coverage-caption", `Test engines · mean width ${fmt.num(t.interval_width, 0)} cycles`);
-    setText("kpi-ap", fmt.num(t.alert.average_precision, 2));
+    setText("kpi-score", fmt.int(k.nasa_score));
+    setText("kpi-coverage", fmt.pct(k.coverage));
+    setText("kpi-coverage-caption", `Test engines · nominal ${fmt.pct(info.interval)} · ${fmt.pct(k.open_ended_share)} open-ended`);
+    setText("kpi-ap", fmt.num(k.alert_ap, 2));
     setText(
       "kpi-ap-caption",
-      `Failure within ${info.alert_cycles} cycles · ${t.alert.positives} of ${t.alert.n} test engines positive`,
+      `Failure within ${info.alert_cycles} cycles · ${k.alert_positives ?? "–"} of ${info.data.test_engines} test engines positive`,
     );
-    setText("kpi-lead", fmt.num(lt.median, 0));
-    setText("kpi-lead-caption", `${lt.units} holdout engines · ${lt.missed} missed · horizon ${info.alert_cycles}`);
+    setText("kpi-lead", fmt.num(k.lead_median, 0));
+    setText("kpi-lead-caption", `${k.lead_engines ?? "–"} engines, out of fold · ${k.missed ?? "–"} missed · ${k.early ?? "–"} early`);
     document.querySelectorAll(".max-rul").forEach((n) => (n.textContent = info.max_rul));
     document.querySelectorAll(".horizon").forEach((n) => (n.textContent = info.alert_cycles));
     const commit = info.code.source_sha256 ? ` · source ${info.code.source_sha256}` : "";
     setText(
       "model-card",
-      `Model: ensemble of ${info.ensemble_size} LSTM + attention networks, ${info.window}-cycle window, ` +
+      `Model: ${info.ensemble_size} cross-fitted LSTM + attention networks (windows ${info.windows.join(", ")} cycles), ` +
         `${info.sensors.length} sensors, trained ${info.created_at.slice(0, 10)}${commit}. ` +
-        `RMSE and score use ground truth capped at ${info.max_rul} cycles; uncapped RMSE ${fmt.num(t.rmse_uncapped, 1)}.`,
+        `RMSE and score use ground truth capped at ${info.max_rul} cycles; uncapped RMSE ${fmt.num(k.rmse_uncapped, 1)}. ` +
+        `An interval that reaches ${info.max_rul} is open-ended: at least the lower bound.`,
     );
   }
 
@@ -128,7 +129,8 @@
     const track = el("span", { className: "range-track" });
     const band = el("span", { className: "range-band" });
     band.style.left = `${pos(e.lower)}%`;
-    band.style.width = `${Math.max(1, pos(e.upper) - pos(e.lower))}%`;
+    band.style.width = `${Math.max(1, pos(e.open_ended ? maxRul : e.upper) - pos(e.lower))}%`;
+    if (e.open_ended) band.classList.add("open");
     const truth = el("span", { className: "range-true" });
     truth.style.left = `${pos(Math.min(e.rul_true, maxRul))}%`;
     const dot = el("span", { className: "range-dot" });
@@ -165,7 +167,7 @@
           "div",
           { className: "rul-text" },
           el("strong", { text: fmt.num(e.point, 0) }),
-          el("span", { className: "muted", text: ` (${fmt.num(e.lower, 0)}–${fmt.num(e.upper, 0)})` }),
+          el("span", { className: "muted", text: ` (${fmt.range(e)})` }),
         ),
         rangeBar(e, maxRul),
       );
@@ -195,7 +197,7 @@
       const i = r.cycle - 1;
       if (i < 0 || i >= total) continue;
       s.lower[i] = r.lower;
-      s.span[i] = Math.max(0, r.upper - r.lower);
+      s.span[i] = Math.max(0, (r.open_ended ? maxRul : r.upper) - r.lower);
       s.point[i] = r.point;
       s.truth[i] = Math.min(r.rul_true, maxRul);
       s.prob[i] = r.probability;
@@ -213,7 +215,7 @@
       return (
         `<div style="font-weight:600;margin-bottom:2px">Cycle ${r.cycle}</div>` +
         row(c.series, fmt.num(r.point, 0), "Predicted RUL") +
-        row(null, `${fmt.num(r.lower, 0)}–${fmt.num(r.upper, 0)}`, "90% interval") +
+        row(null, fmt.range(r), `Nominal ${fmt.pct(state.info.interval)} interval`) +
         row(c.truth, String(Math.min(r.rul_true, state.info.max_rul)), `True RUL${r.rul_true > state.info.max_rul ? ` (uncapped ${r.rul_true})` : ""}`) +
         row(null, fmt.pct(r.probability), `P(failure within ${state.info.alert_cycles} cycles)`)
       );
@@ -319,7 +321,7 @@
     $("chart-rul").setAttribute(
       "aria-label",
       `Engine ${d.unit} at cycle ${last.cycle}: predicted RUL ${fmt.num(last.point, 0)} cycles ` +
-        `(90% interval ${fmt.num(last.lower, 0)} to ${fmt.num(last.upper, 0)}), true RUL ${last.rul_true}.`,
+        `(nominal 90% interval ${fmt.range(last)}), true RUL ${last.rul_true}.`,
     );
   }
 
@@ -494,14 +496,14 @@
 
   function renderTables(d) {
     const rows = d.history.slice(-30).reverse();
-    const head = el("tr", {}, ...["Cycle", "Predicted RUL", "90% interval", "True RUL", "P(fail)"].map((h) => el("th", { text: h, attrs: { scope: "col" } })));
+    const head = el("tr", {}, ...["Cycle", "Predicted RUL", "Nominal 90% interval", "True RUL", "P(fail)"].map((h) => el("th", { text: h, attrs: { scope: "col" } })));
     const body = rows.map((r) =>
       el(
         "tr",
         {},
         el("td", { text: String(r.cycle) }),
         el("td", { text: fmt.num(r.point, 1) }),
-        el("td", { text: `${fmt.num(r.lower, 1)}–${fmt.num(r.upper, 1)}` }),
+        el("td", { text: fmt.range(r, 1) }),
         el("td", { text: String(r.rul_true) }),
         el("td", { text: fmt.pct(r.probability, 1) }),
       ),
@@ -523,7 +525,7 @@
     $("detail-status").replaceChildren(chip(fleetEntry ? fleetEntry.status : last.status));
     setText(
       "detail-meta",
-      `Cycle ${last.cycle} of ${d.total_cycles} · predicted RUL ${fmt.num(last.point, 0)} (${fmt.num(last.lower, 0)}–${fmt.num(last.upper, 0)}) · true RUL ${last.rul_true}${d.lap > 1 ? ` · run ${d.lap}` : ""}`,
+      `Cycle ${last.cycle} of ${d.total_cycles} · predicted RUL ${fmt.num(last.point, 0)} (${fmt.range(last)}) · true RUL ${last.rul_true}${d.lap > 1 ? ` · run ${d.lap}` : ""}`,
     );
     renderLife(d);
     renderHeat(d);
