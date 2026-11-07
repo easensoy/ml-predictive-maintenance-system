@@ -7,13 +7,14 @@ import threading
 import numpy as np
 import pandas as pd
 from flask import Flask, jsonify, render_template, request
+from flask.json.provider import DefaultJSONProvider
 from flask_socketio import SocketIO, join_room, leave_room
 from werkzeug.exceptions import HTTPException
 
 from predmaint import __version__
 from predmaint.config import Settings
 from predmaint.data import SETTINGS
-from predmaint.inference import ArtifactsMissing, Predictor
+from predmaint.inference import ArtifactsMissing, NonFinitePrediction, Predictor
 from predmaint.replay import FleetReplay
 
 log = logging.getLogger(__name__)
@@ -27,6 +28,26 @@ CSP = (
 
 class BadRequest(ValueError):
     pass
+
+
+def _sid() -> str:
+    """The Socket.IO session id, which Flask-SocketIO attaches to the request in handlers."""
+    return request.sid  # type: ignore[attr-defined]
+
+
+def _finite_float(value: object) -> float | None:
+    """The value as a float if it is a finite JSON number, else None.
+
+    ``bool`` is excluded because it is an ``int`` subclass. ``float()`` is guarded because JSON
+    integers have no size limit and ``float(10**400)`` raises OverflowError.
+    """
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    try:
+        number = float(value)
+    except OverflowError:
+        return None
+    return number if math.isfinite(number) else None
 
 
 def parse_readings(body: object, required: list[str]) -> pd.DataFrame:
@@ -44,14 +65,10 @@ def parse_readings(body: object, required: list[str]) -> pd.DataFrame:
             raise BadRequest(f"readings[{i}] is missing {missing}")
         row = {}
         for key in required:
-            value = reading[key]
-            if (
-                isinstance(value, bool)
-                or not isinstance(value, int | float)
-                or not math.isfinite(value)
-            ):
+            number = _finite_float(reading[key])
+            if number is None:
                 raise BadRequest(f"readings[{i}].{key} must be a finite number")
-            row[key] = float(value)
+            row[key] = number
         rows.append(row)
     return pd.DataFrame(rows)
 
@@ -60,7 +77,8 @@ def create_app(settings: Settings | None = None, predictor: Predictor | None = N
     settings = settings or Settings.from_env()
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = 1_000_000
-    app.json.sort_keys = False
+    if isinstance(app.json, DefaultJSONProvider):
+        app.json.sort_keys = False  # keep response fields in a readable order
 
     if predictor is None:
         try:
@@ -72,9 +90,13 @@ def create_app(settings: Settings | None = None, predictor: Predictor | None = N
     if predictor is not None and replay_csv.is_file():
         replay = FleetReplay(predictor, pd.read_csv(replay_csv), settings.replay_engines)
 
-    socketio = SocketIO(
-        app, async_mode="threading", cors_allowed_origins=list(settings.cors_origins) or None
-    )
+    # Without cors_allowed_origins, Flask-SocketIO accepts same-origin connections only.
+    if settings.cors_origins:
+        socketio = SocketIO(
+            app, async_mode="threading", cors_allowed_origins=list(settings.cors_origins)
+        )
+    else:
+        socketio = SocketIO(app, async_mode="threading")
     watching: dict[str, int] = {}
     watching_lock = threading.Lock()
     app.extensions["predmaint"] = {
@@ -148,7 +170,12 @@ def create_app(settings: Settings | None = None, predictor: Predictor | None = N
         except BadRequest as exc:
             return jsonify(error="Bad Request", detail=str(exc)), 400
         explain = request.args.get("explain", "true").lower() != "false"
-        return jsonify(predictor.predict_readings(frame, explain=explain))
+        try:
+            return jsonify(predictor.predict_readings(frame, explain=explain))
+        except NonFinitePrediction as exc:
+            return jsonify(
+                error="Unprocessable Content", detail=str(exc), out_of_distribution=exc.report
+            ), 422
 
     @app.get("/api/fleet")
     def fleet():
@@ -177,8 +204,8 @@ def create_app(settings: Settings | None = None, predictor: Predictor | None = N
         if unit not in replay.units:
             return {"ok": False}
         with watching_lock:
-            previous = watching.get(request.sid)
-            watching[request.sid] = unit
+            previous = watching.get(_sid())
+            watching[_sid()] = unit
         if previous is not None:
             leave_room(f"engine:{previous}")
         join_room(f"engine:{unit}")
@@ -187,21 +214,22 @@ def create_app(settings: Settings | None = None, predictor: Predictor | None = N
     @socketio.on("disconnect")
     def disconnect(*_args):
         with watching_lock:
-            watching.pop(request.sid, None)
+            watching.pop(_sid(), None)
 
-    def replay_loop():
+    def replay_loop(fleet: FleetReplay) -> None:
         while True:
-            socketio.sleep(settings.replay_interval_s)
+            # The stub says int, but Flask-SocketIO sleeps for any number of seconds.
+            socketio.sleep(settings.replay_interval_s)  # type: ignore[arg-type]
             try:
-                socketio.emit("fleet_update", replay.step())
+                socketio.emit("fleet_update", fleet.step())
                 with watching_lock:
                     watched = set(watching.values())
                 for unit in watched:
-                    socketio.emit("engine_update", replay.detail(unit), to=f"engine:{unit}")
+                    socketio.emit("engine_update", fleet.detail(unit), to=f"engine:{unit}")
             except Exception:
                 log.exception("Replay tick failed")
 
     if replay is not None and settings.replay_autostart:
-        socketio.start_background_task(replay_loop)
+        socketio.start_background_task(replay_loop, replay)
 
     return app
