@@ -166,6 +166,7 @@ def train_member(
         elif epoch - best_epoch >= cfg.patience:
             break
     model = model.cpu()
+    assert best_state is not None, "the first epoch always sets best_state"
     model.load_state_dict(best_state)
     model.eval()
     print(f"  seed {seed}: best val RMSE {best_rmse:.2f} at epoch {best_epoch}/{len(history)}")
@@ -326,9 +327,13 @@ def run(cfg: TrainConfig, settings: Settings, out_dir: Path) -> dict:
         }
     )
     hold_report = {
-        "rmse_all_cycles": rmse(hold_frame["point"], hold_frame["rul_capped"]),
+        "rmse_all_cycles": rmse(
+            hold_frame["point"].to_numpy(), hold_frame["rul_capped"].to_numpy()
+        ),
         "interval_coverage": interval_coverage(
-            hold_frame["lower"], hold_frame["upper"], hold_frame["rul_capped"]
+            hold_frame["lower"].to_numpy(),
+            hold_frame["upper"].to_numpy(),
+            hold_frame["rul_capped"].to_numpy(),
         ),
         "alert": alert_metrics(
             hold_frame["probability"].to_numpy(),
