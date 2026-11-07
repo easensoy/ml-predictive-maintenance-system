@@ -1,4 +1,5 @@
 import json
+import shutil
 
 import numpy as np
 import pandas as pd
@@ -6,7 +7,8 @@ import pytest
 import torch
 
 from predmaint import data as cmapss
-from predmaint.inference import ArtifactsMissing, Predictor
+from predmaint.features import ContractError, FeatureContract
+from predmaint.inference import ArtifactsIncompatible, ArtifactsMissing, Predictor
 from predmaint.replay import FAILED_HOLD_TICKS, FleetReplay
 
 
@@ -63,6 +65,62 @@ def test_predict_readings_returns_calibrated_explained_output(artifacts_dir, cma
 def test_missing_artifacts_raise_a_clear_error(tmp_path):
     with pytest.raises(ArtifactsMissing, match="Train first"):
         Predictor(tmp_path)
+
+
+@pytest.fixture
+def run_copy(artifacts_dir, tmp_path):
+    """A writable copy of the trained run, for tampering with."""
+    return shutil.copytree(artifacts_dir / "FD001", tmp_path / "FD001")
+
+
+def _edit_json(path, **changes):
+    content = json.loads(path.read_text())
+    content.update(changes)
+    path.write_text(json.dumps(content))
+
+
+@pytest.mark.parametrize(
+    ("changes", "message"),
+    [
+        ({"format": 1}, "format 1 is not supported"),
+        ({"window": 0}, "window must be a positive integer"),
+        ({"sensor_mean": [[0.0]]}, "sensor_mean must be"),
+        ({"feature_min": [0.0] * 3}, "feature_min must hold 14"),
+        ({"sensors": ["sensor_99"] * 14}, "without duplicates"),
+        ({"surprise": 1}, "unknown keys"),
+    ],
+)
+def test_incompatible_contract_fails_at_startup_with_a_clear_error(run_copy, changes, message):
+    _edit_json(run_copy / "contract.json", **changes)
+    with pytest.raises(ArtifactsIncompatible, match=message):
+        Predictor(run_copy)
+
+
+def test_contract_without_training_range_is_rejected(run_copy):
+    content = json.loads((run_copy / "contract.json").read_text())
+    del content["feature_max"]
+    with pytest.raises(ContractError, match="missing keys"):
+        FeatureContract.from_dict(content)
+
+
+def test_checkpoint_format_and_shape_are_checked(run_copy):
+    path = run_copy / "model.pt"
+    bundle = torch.load(path, weights_only=True)
+    torch.save({**bundle, "format": 99}, path)
+    with pytest.raises(ArtifactsIncompatible, match="checkpoint format 99"):
+        Predictor(run_copy)
+    torch.save({**bundle, "config": {**bundle["config"], "n_features": 13}}, path)
+    with pytest.raises(ArtifactsIncompatible, match="different runs"):
+        Predictor(run_copy)
+    torch.save({**bundle, "config": {**bundle["config"], "hidden": 32}}, path)
+    with pytest.raises(ArtifactsIncompatible, match="does not match its configuration"):
+        Predictor(run_copy)
+
+
+def test_calibration_values_are_checked(run_copy):
+    _edit_json(run_copy / "calibration.json", temperature=-1.0)
+    with pytest.raises(ArtifactsIncompatible, match="temperature > 0"):
+        Predictor(run_copy)
 
 
 def test_replay_streams_cycles_and_restarts_failed_engines(artifacts_dir):
