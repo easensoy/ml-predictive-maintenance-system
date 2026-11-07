@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: ["**"]
   pull_request:
 
 permissions:
@@ -23,9 +23,18 @@ jobs:
           enable-cache: true
           cache-dependency-glob: predictive-maintenance/uv.lock
       - run: uv sync --locked
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
-      - run: uv run pytest
+      - name: Lint
+        run: uv run ruff check .
+      - name: Format
+        run: uv run ruff format --check .
+      - name: Type check
+        run: uv run mypy
+      - name: Tests (synthetic data)
+        run: uv run pytest
+      - name: Audit the published numbers against the committed predictions
+        run: uv run python -m predmaint.audit
+      - name: Rebuild the figures from the committed artifacts
+        run: uv run python -m predmaint.figures --out "$RUNNER_TEMP/figures"
 
   docker:
     runs-on: ubuntu-latest
