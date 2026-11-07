@@ -8,6 +8,7 @@ import pytest
 
 from predmaint.config import Settings
 from predmaint.data import SENSORS
+from predmaint.evaluate import evaluate_run
 from predmaint.train import TrainConfig, run
 
 FD002_REGIMES = [
@@ -63,21 +64,27 @@ def cmapss_dir(tmp_path_factory) -> Path:
 
 
 TINY = {
-    "seeds": [0, 1],
+    "repeats": [0, 1],
+    "folds": 3,
+    "windows": [6, 10],
     "epochs": 3,
     "patience": 3,
-    "window": 10,
     "hidden": 16,
     "layers": 1,
     "batch_size": 64,
+    "temperature_draws": 3,
+    "lgbm_estimators": 40,
 }
 
 
 @pytest.fixture(scope="session")
 def artifacts_dir(tmp_path_factory, cmapss_dir) -> Path:
+    """Train, then score the test set, exactly as the real pipeline does (never touching the
+    repository's experiment ledger)."""
     artifacts = tmp_path_factory.mktemp("artifacts")
     settings = Settings(data_dir=cmapss_dir, artifacts_dir=artifacts)
-    run(TrainConfig(subset="FD001", **TINY), settings, artifacts / "FD001")
+    run(TrainConfig(subset="FD001", **TINY), settings, artifacts / "FD001", ledger=None)
+    evaluate_run(artifacts / "FD001", settings, ledger=None)
     return artifacts
 
 
