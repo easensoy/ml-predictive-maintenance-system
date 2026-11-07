@@ -1,8 +1,9 @@
 """Replay held-out C-MAPSS engines as a live fleet.
 
 Each tick advances every engine by one recorded cycle and runs the model on the new window,
-exactly as a streaming deployment would. The engines are holdout engines: the model never
-trained or calibrated on them, and because they run to failure the true RUL is known and shown.
+exactly as a streaming deployment would. The engines were set aside before training: no network,
+scaler or calibration step saw them, and because they run to failure the true RUL is known and
+shown.
 """
 
 import threading
@@ -52,7 +53,7 @@ class FleetReplay:
 
     def _entry(self, unit: int, position: int, out: dict, i: int) -> dict:
         frame = self.frames[unit]
-        row = {key: out[key][i] for key in ("point", "lower", "upper", "probability")}
+        row = {key: out[key][i] for key in ("point", "lower", "upper", "open_ended", "probability")}
         formatted = self.predictor.format_prediction(row)
         return {
             "cycle": int(frame["cycle"].to_numpy()[position]),
@@ -60,6 +61,7 @@ class FleetReplay:
             "point": formatted["rul"]["point"],
             "lower": formatted["rul"]["lower"],
             "upper": formatted["rul"]["upper"],
+            "open_ended": formatted["rul"]["open_ended"],
             "probability": formatted["failure_within_horizon"]["probability"],
             "status": formatted["status"],
         }
