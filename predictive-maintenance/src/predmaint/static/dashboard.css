@@ -366,6 +366,11 @@ a {
   background: var(--series-1-wash);
   border-radius: 4px;
 }
+/* Open-ended interval (upper end at the RUL cap): fade out to the right instead of ending. */
+.range-band.open {
+  border-radius: 4px 0 0 4px;
+  background: linear-gradient(90deg, var(--series-1-wash) 60%, transparent);
+}
 
 .range-dot {
   position: absolute;
