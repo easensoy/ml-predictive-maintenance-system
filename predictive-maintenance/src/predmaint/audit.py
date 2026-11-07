@@ -1,124 +1,205 @@
-"""Recompute the README results from the committed predictions, and check that they agree.
+"""Recompute the published results from the committed predictions, and check that they agree.
 
     python -m predmaint.audit          # exit code 1 and a list of problems on any mismatch
 
-Three things must agree: the per-engine predictions committed under
-``artifacts/<subset>/predictions/``, the summary numbers in ``artifacts/<subset>/metrics.json``,
-and the results table in the README. The test suite runs the same check, so CI fails if any of
-the three drifts from the others.
+For every run in ``artifacts/``:
+
+1. **Split rules.** No engine is scored by a network that trained on it, and no fold's inner
+   validation engines (which chose its window and stopped its training) come from that fold.
+2. **Intervals.** The CV+ intervals and alert probabilities in ``predictions/test.csv`` are
+   rebuilt from each network's raw test outputs (``test-members.csv``) and the stored
+   conformity scores (``calibration-points.csv``), and the scores are rebuilt from their raw
+   bounds.
+3. **Metrics.** Every test and out-of-fold metric in ``metrics.json`` is recomputed from the
+   prediction files.
+4. **Documents.** The results block in README.md and MODEL_CARD.md equals the block generated
+   from the artifacts.
+
+The test suite runs the same audit, so CI fails if any of these drifts.
 """
 
 import argparse
 import json
+import math
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
 
+from predmaint.calibration import cqr_scores, cv_plus_interval, finalize_interval, probability
 from predmaint.config import PROJECT_ROOT, Settings
-from predmaint.metrics import alert_metrics, interval_coverage, lead_times, nasa_score, rmse
+from predmaint.evaluate import paired_differences, repeat_metrics
+from predmaint.train import TrainConfig, whole_life_metrics
 
 SUBSETS = ("FD001", "FD002", "FD003", "FD004")
 DOCUMENTS = (PROJECT_ROOT.parent / "README.md", PROJECT_ROOT.parent / "MODEL_CARD.md")
-
-# (name in recompute(), path in metrics.json, absolute tolerance). Predictions are stored with
-# four decimals and metrics.json was computed before rounding, hence the small tolerances.
-CHECKS = [
-    ("rmse", ("test", "rmse"), 1e-3),
-    ("nasa_score", ("test", "nasa_score"), 0.05),
-    ("rmse_uncapped", ("test", "rmse_uncapped"), 1e-3),
-    ("interval_coverage", ("test", "interval_coverage"), 1e-9),
-    ("interval_width", ("test", "interval_width"), 1e-3),
-    ("alert_ap", ("test", "alert", "average_precision"), 1e-3),
-    ("lead_median", ("holdout", "lead_time", "median"), 1e-9),
-    ("lead_missed", ("holdout", "lead_time", "missed"), 0),
-    ("lead_units", ("holdout", "lead_time", "units"), 0),
-]
+# Values are stored rounded (cycles to 0.01, probabilities to 0.0001).
+CYCLE_TOLERANCE, PROBABILITY_TOLERANCE = 0.0051, 0.00006
 
 
-def recompute(run_dir: Path) -> dict:
-    """Every number in the README table that can be derived from the stored predictions."""
-    metrics = json.loads((run_dir / "metrics.json").read_text())
-    cfg = metrics["config"]
-    threshold = metrics["calibration"]["alert_threshold"]
-    test = pd.read_csv(run_dir / "predictions" / "test.csv")
-    true = test["rul_true"].to_numpy(float)
-    capped = np.minimum(true, cfg["max_rul"])
-    point, lower, upper = (test[c].to_numpy(float) for c in ("point", "lower", "upper"))
-    inside_capped = (capped >= lower) & (capped <= upper)
-    inside_actual = (true >= lower) & (true <= upper)
-    probability = test["probability"].to_numpy(float)
-    alert = alert_metrics(probability, true <= cfg["alert_cycles"], threshold)
-    holdout = pd.read_csv(run_dir / "predictions" / "holdout.csv")
-    lead = lead_times(holdout, threshold, early_cycles=2 * cfg["alert_cycles"])
-    caught = [u["lead_time"] for u in lead["per_unit"] if u["lead_time"] is not None]
+def load_run(run_dir: Path) -> dict[str, Any]:
+    predictions = run_dir / "predictions"
     return {
-        "test_engines": len(test),
-        "rmse": rmse(point, capped),
-        "nasa_score": nasa_score(point, capped),
-        "rmse_uncapped": rmse(point, true),
-        "interval_coverage": interval_coverage(lower, upper, capped),
-        "inside_capped": int(inside_capped.sum()),
-        "inside_actual": int(inside_actual.sum()),
-        "interval_width": float(np.mean(upper - lower)),
-        "alert_ap": alert["average_precision"],
-        "lead_median": lead["median"],
-        "lead_min": min(caught) if caught else None,
-        "lead_max": max(caught) if caught else None,
-        "lead_missed": lead["missed"],
-        "lead_units": lead["units"],
-        "lead_per_unit": lead["per_unit"],
+        "metrics": json.loads((run_dir / "metrics.json").read_text()),
+        "test": pd.read_csv(predictions / "test.csv"),
+        "members": pd.read_csv(predictions / "test-members.csv"),
+        "calibration": pd.read_csv(predictions / "calibration-points.csv"),
+        "oof": pd.read_csv(predictions / "oof.csv.gz"),
     }
 
 
-def _lookup(metrics: dict, path: tuple[str, ...]) -> object:
-    value: object = metrics
-    for key in path:
-        value = value[key]  # type: ignore[index]
-    return value
+def _compare(found: Any, stored: Any, where: str, tolerance: float = 1e-9) -> list[str]:
+    """Recursively compare numbers (within tolerance), lists and dicts."""
+    if isinstance(stored, dict) and isinstance(found, dict):
+        return [
+            p for k in stored for p in _compare(found.get(k), stored[k], f"{where}.{k}", tolerance)
+        ]
+    if isinstance(stored, list) and isinstance(found, list):
+        if len(stored) != len(found):
+            return [f"{where}: {len(found)} items recomputed, {len(stored)} stored"]
+        return [
+            p
+            for i, (f, s) in enumerate(zip(found, stored, strict=True))
+            for p in _compare(f, s, f"{where}[{i}]", tolerance)
+        ]
+    if isinstance(stored, bool) or stored is None or isinstance(stored, str):
+        return [] if found == stored else [f"{where}: recomputed {found!r}, stored {stored!r}"]
+    if isinstance(stored, int | float):
+        if not isinstance(found, int | float) or isinstance(found, bool):
+            return [f"{where}: recomputed {found!r}, stored {stored!r}"]
+        if (math.isinf(stored) and found == stored) or (math.isnan(stored) and math.isnan(found)):
+            return []
+        if abs(found - stored) <= tolerance:
+            return []
+        return [f"{where}: recomputed {found:.6g}, stored {stored:.6g}"]
+    return []
 
 
-def check_run(run_dir: Path) -> list[str]:
-    """Problems found when comparing one run's predictions with its metrics.json."""
-    metrics = json.loads((run_dir / "metrics.json").read_text())
-    found = recompute(run_dir)
+def check_split_rules(run: dict) -> list[str]:
+    m = run["metrics"]
     problems = []
-    for name, path, tolerance in CHECKS:
-        stored, value = _lookup(metrics, path), found[name]
-        if stored is None or value is None:
-            if stored is not value:
-                problems.append(f"{run_dir.name} {name}: stored {stored}, recomputed {value}")
-        elif abs(float(stored) - float(value)) > tolerance:  # type: ignore[arg-type]
-            problems.append(f"{run_dir.name} {name}: stored {stored}, recomputed {value:.6g}")
-    if found["lead_per_unit"] != metrics["holdout"]["lead_time"]["per_unit"]:
-        problems.append(f"{run_dir.name}: per-engine alert lead times differ from metrics.json")
-    if found["test_engines"] != metrics["data"]["test_engines"]:
-        problems.append(f"{run_dir.name}: test.csv has {found['test_engines']} engines")
+    replay = set(m["data"]["replay_engines"])
+    for repeat, folds in m["data"]["folds"].items():
+        fold_of = {int(u): f for u, f in folds.items()}
+        if replay & set(fold_of):
+            problems.append(f"repeat {repeat}: replay engines were cross-fitted")
+        for k, units in m["data"]["inner_validation"][repeat].items():
+            own = [u for u in units if fold_of[u] == int(k)]
+            if own:
+                problems.append(
+                    f"repeat {repeat} fold {k}: inner validation used its own fold's engines {own}"
+                )
+        cal = run["calibration"][run["calibration"]["repeat"] == int(repeat)]
+        wrong = cal[cal["member"] != cal["unit"].map(fold_of)]
+        if len(wrong):
+            problems.append(
+                f"repeat {repeat}: {len(wrong)} calibration scores come from a network that "
+                "trained on that engine"
+            )
+        oof = run["oof"][run["oof"]["repeat"] == int(repeat)]
+        if (oof["fold"] != oof["unit"].map(fold_of)).any():
+            problems.append(f"repeat {repeat}: out-of-fold predictions came from the wrong network")
     return problems
 
 
-def readme_block(readme: Path) -> str:
+def check_intervals(run: dict) -> list[str]:
+    """Rebuild scores, CV+ intervals and probabilities from the networks' raw outputs."""
+    m, cfg = run["metrics"], run["metrics"]["config"]
+    problems = []
+    cal = run["calibration"]
+    capped = np.minimum(cal["rul"].to_numpy(), cfg["max_rul"])
+    rebuilt = cqr_scores(cal["lower_raw"].to_numpy(), cal["upper_raw"].to_numpy(), capped)
+    if np.abs(rebuilt - cal["score"].to_numpy()).max() > 2 * CYCLE_TOLERANCE:
+        problems.append("conformity scores do not match their raw bounds")
+    for (repeat, model), members in run["members"].groupby(["repeat", "model"]):
+        members = members.sort_values(["member", "unit"])
+        shape = (members["member"].nunique(), -1)
+        lo, hi, pt, logit = (
+            members[c].to_numpy().reshape(shape)
+            for c in ("lower_raw", "upper_raw", "point_raw", "logit")
+        )
+        scores = cal[(cal["repeat"] == repeat) & (cal["model"] == model)]
+        lower, upper = cv_plus_interval(
+            lo, hi, scores["score"].to_numpy(), scores["member"].to_numpy(), cfg["alpha"]
+        )
+        lower, upper, open_ended = finalize_interval(lower, upper, cfg["max_rul"])
+        temperature = m["calibration"][str(repeat)][model]["temperature"]
+        test = run["test"]
+        stored = test[(test["repeat"] == repeat) & (test["model"] == model)].sort_values("unit")
+        where = f"repeat {repeat} {model}"
+        for name, value, tolerance in (
+            ("point", np.clip(pt.mean(axis=0), 0, cfg["max_rul"]), 2 * CYCLE_TOLERANCE),
+            ("lower", lower, 2 * CYCLE_TOLERANCE),
+            ("upper", upper, 2 * CYCLE_TOLERANCE),
+            ("probability", probability(logit, temperature), 2 * PROBABILITY_TOLERANCE),
+        ):
+            gap = float(np.abs(value - stored[name].to_numpy()).max())
+            if gap > tolerance:
+                problems.append(f"{where}: test {name} differs from the rebuilt value by {gap:.4g}")
+        if (open_ended != stored["open_ended"].to_numpy()).any():
+            problems.append(f"{where}: open-ended flags differ from the rebuilt intervals")
+    return problems
+
+
+def check_metrics(run: dict) -> list[str]:
+    m = run["metrics"]
+    cfg = m["config"]
+    if m.get("test") is None:
+        return ["the test set has not been scored: run `python -m predmaint.evaluate`"]
+    problems = []
+    test = run["test"]
+    for model, block in m["test"]["models"].items():
+        for repeat, stored in block["per_repeat"].items():
+            rows = test[(test["model"] == model) & (test["repeat"] == int(repeat))]
+            found = repeat_metrics(
+                rows.sort_values("unit"), cfg["max_rul"], cfg["alert_cycles"], seed=int(repeat)
+            )
+            problems += _compare(found, stored, f"test.{model}.{repeat}")
+    if "lstm_minus_lightgbm" in m["test"]:
+        problems += _compare(
+            paired_differences(test, cfg["max_rul"]),
+            m["test"]["lstm_minus_lightgbm"],
+            "test.lstm_minus_lightgbm",
+        )
+    train_cfg = TrainConfig(
+        **{k: v for k, v in cfg.items() if k in TrainConfig.__dataclass_fields__}
+    )
+    oof = run["oof"]
+    for model, block in m["out_of_fold"].items():
+        for repeat, stored in block["per_repeat"].items():
+            rows = oof[(oof["model"] == model) & (oof["repeat"] == int(repeat))]
+            found = whole_life_metrics(rows, train_cfg, seed=int(repeat))
+            problems += _compare(found, stored, f"out_of_fold.{model}.{repeat}")
+    return problems
+
+
+def readme_block(document: Path) -> str:
     from predmaint.report import END, START
 
-    text = readme.read_text(encoding="utf-8")
+    text = document.read_text(encoding="utf-8")
     if START not in text or END not in text:
-        raise ValueError(f"{readme} has no {START} ... {END} block")
+        raise ValueError(f"{document} has no {START} ... {END} block")
     return text.split(START, 1)[1].split(END, 1)[0].strip("\n")
 
 
 def audit(artifacts: Path, *documents: Path) -> list[str]:
     """Problems found in the runs under ``artifacts`` and in each document's results block."""
-    from predmaint.report import results_table
+    from predmaint.report import results_block
 
     runs = [artifacts / s for s in SUBSETS if (artifacts / s / "metrics.json").is_file()]
     if not runs:
         return [f"no trained runs in {artifacts}"]
-    problems = [problem for run in runs for problem in check_run(run)]
-    expected = results_table(artifacts)
+    problems = []
+    for run_dir in runs:
+        run = load_run(run_dir)
+        for check in (check_split_rules, check_intervals, check_metrics):
+            problems += [f"{run_dir.name}: {p}" for p in check(run)]
+    expected = results_block(artifacts)
     for document in documents:
         if readme_block(document) != expected:
             problems.append(
-                f"the results table in {document.name} differs from the table generated from "
+                f"the results block in {document.name} differs from the one generated from "
                 "the artifacts; rerun `python -m predmaint.report`"
             )
     return problems
@@ -143,12 +224,10 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     for subset in SUBSETS:
         if (artifacts / subset / "metrics.json").is_file():
-            found = recompute(artifacts / subset)
-            ap = "n/a" if found["alert_ap"] is None else f"{found['alert_ap']:.3f}"
+            run = load_run(artifacts / subset)
             print(
-                f"{subset}: RMSE {found['rmse']:.2f}, PHM08 {found['nasa_score']:.0f}, "
-                f"{found['inside_capped']}/{found['test_engines']} inside the interval, "
-                f"alert AP {ap}: predictions, metrics.json and documents agree"
+                f"{subset}: {len(run['test'])} test predictions, {len(run['oof'])} out-of-fold "
+                f"predictions and {len(run['calibration'])} conformity scores check out"
             )
     return 0
 
