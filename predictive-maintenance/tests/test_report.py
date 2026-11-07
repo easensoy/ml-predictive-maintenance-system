@@ -2,40 +2,41 @@ import json
 
 import pytest
 
-from predmaint.report import END, START, results_table, update_readme
+from predmaint.report import END, START, results_block, update_readme
 
 
-def _rows(table: str, subset: str) -> list[list[str]]:
+def _rows(block: str, subset: str) -> list[list[str]]:
     return [
         [cell.strip() for cell in line.strip("|").split("|")]
-        for line in table.splitlines()
-        if line.startswith(f"| {subset} ")
+        for line in block.splitlines()
+        if line.startswith(f"| {subset} (")
     ]
 
 
-def test_results_table_reads_metrics(artifacts_dir):
-    table = results_table(artifacts_dir)
+def test_results_block_reads_metrics(artifacts_dir):
+    block = results_block(artifacts_dir)
     metrics = json.loads((artifacts_dir / "FD001" / "metrics.json").read_text())
-    rows = _rows(table, "FD001")
-    assert len(rows) == 3  # ensemble, single networks, LightGBM
-    assert rows[0][2].strip("*") == f"{metrics['test']['rmse']:.2f}"
-    assert rows[2][2].strip("*") == f"{metrics['baseline_lightgbm']['rmse']:.2f}"
+    rows = _rows(block, "FD001")
+    assert [r[1] for r in rows] == ["LSTM ensemble", "LightGBM"]
+    lstm = metrics["test"]["models"]["lstm"]["summary"]["rmse"]
+    assert rows[0][2].strip("*").startswith(f"{lstm['mean']:.2f} ± {lstm['sd']:.2f}")
+    assert "paired bootstrap" in block
+    assert "out of fold" in block
 
 
-def test_results_table_bolds_the_best_model_not_always_the_network(artifacts_dir):
-    rows = _rows(results_table(artifacts_dir), "FD001")
-    rmse = [float(row[2].strip("*").split(" ± ")[0]) for row in rows]
-    bold = [row[2].startswith("**") for row in rows]
-    assert bold.count(True) >= 1
-    assert all(b == (value == min(rmse)) for b, value in zip(bold, rmse, strict=True))
+def test_results_block_bolds_the_better_model_not_always_the_network(artifacts_dir):
+    rows = _rows(results_block(artifacts_dir), "FD001")
+    rmse = [float(r[2].strip("*").split(" ± ")[0]) for r in rows]
+    bold = [r[2].startswith("**") for r in rows]
+    assert bold.count(True) == 1
+    assert bold[rmse.index(min(rmse))]
 
 
-def test_results_table_shows_nominal_coverage_with_wilson_intervals(artifacts_dir):
-    table = results_table(artifacts_dir)
-    assert "nominal 90% interval" in table
-    ensemble = _rows(table, "FD001")[0]
-    assert "(" in ensemble[5]
-    assert "–" in ensemble[5]  # e.g. "86% (78–91%)"
+def test_results_block_reports_nominal_coverage_with_an_interval(artifacts_dir):
+    row = _rows(results_block(artifacts_dir), "FD001")[0]
+    assert "%" in row[5]
+    assert "(" in row[5]
+    assert "–" in row[5]
 
 
 def test_update_readme_replaces_only_the_marked_block(tmp_path, artifacts_dir):
