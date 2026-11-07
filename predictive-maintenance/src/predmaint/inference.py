@@ -1,6 +1,7 @@
 """Load trained artifacts and turn engine readings into calibrated, explained predictions."""
 
 import json
+import math
 from pathlib import Path
 
 import numpy as np
@@ -9,14 +10,81 @@ import torch
 
 from predmaint.calibration import calibrated_outputs
 from predmaint.data import SENSOR_INFO
-from predmaint.features import FeatureContract
+from predmaint.features import ContractError, FeatureContract
 from predmaint.model import Ensemble, RULNet, integrated_gradients, predict_raw
 
 ARTIFACT_FILES = ("model.pt", "contract.json", "calibration.json", "metrics.json")
+# Bump when the layout of model.pt changes; loading another format fails loudly.
+CHECKPOINT_FORMAT = 1
+RETRAIN_HINT = (
+    "Retrain with `python -m predmaint.train`, or check out the git commit recorded in the "
+    "run's metrics.json"
+)
 
 
 class ArtifactsMissing(FileNotFoundError):
     pass
+
+
+class ArtifactsIncompatible(RuntimeError):
+    """The artifacts exist but cannot be served safely: wrong format, shape or values."""
+
+
+class NonFinitePrediction(ValueError):
+    """The model produced NaN or infinity, which only happens for absurd inputs."""
+
+    def __init__(self, message: str, report: dict):
+        super().__init__(message)
+        self.report = report
+
+
+def _load_members(path: Path, n_features: int) -> list[RULNet]:
+    try:
+        bundle = torch.load(path, map_location="cpu", weights_only=True)
+    except Exception as exc:
+        raise ArtifactsIncompatible(f"{path} cannot be read as a checkpoint: {exc}") from exc
+    if not isinstance(bundle, dict) or not {"format", "config", "members"} <= bundle.keys():
+        raise ArtifactsIncompatible(f"{path} is not a predmaint checkpoint. {RETRAIN_HINT}")
+    if bundle["format"] != CHECKPOINT_FORMAT:
+        raise ArtifactsIncompatible(
+            f"{path} has checkpoint format {bundle['format']}, but this version of predmaint "
+            f"reads format {CHECKPOINT_FORMAT}. {RETRAIN_HINT}"
+        )
+    config = bundle["config"]
+    if not isinstance(config, dict) or config.get("n_features") != n_features:
+        raise ArtifactsIncompatible(
+            f"{path} was trained on {config.get('n_features') if isinstance(config, dict) else '?'}"
+            f" features, but contract.json defines {n_features}: the two files come from "
+            f"different runs. {RETRAIN_HINT}"
+        )
+    if not bundle["members"]:
+        raise ArtifactsIncompatible(f"{path} holds no networks. {RETRAIN_HINT}")
+    members = []
+    for i, state in enumerate(bundle["members"]):
+        try:
+            member = RULNet(**config)
+            member.load_state_dict(state)
+        except (TypeError, RuntimeError) as exc:
+            raise ArtifactsIncompatible(
+                f"{path}: network {i} does not match its configuration: {exc}. {RETRAIN_HINT}"
+            ) from exc
+        members.append(member.eval())
+    return members
+
+
+def _check_calibration(path: Path, calibration: object) -> dict:
+    expected = ("interval", "conformal_margin", "temperature", "alert_threshold")
+    if not isinstance(calibration, dict) or not all(key in calibration for key in expected):
+        raise ArtifactsIncompatible(f"{path} must define {list(expected)}. {RETRAIN_HINT}")
+    values = [calibration[key] for key in expected]
+    if not all(isinstance(v, int | float) and math.isfinite(v) for v in values):
+        raise ArtifactsIncompatible(f"{path}: every value must be a finite number")
+    interval, _, temperature, threshold = values
+    if not (0 < interval < 1 and temperature > 0 and 0 < threshold < 1):
+        raise ArtifactsIncompatible(
+            f"{path}: need 0 < interval < 1, temperature > 0 and 0 < alert_threshold < 1"
+        )
+    return calibration
 
 
 class Predictor:
@@ -27,15 +95,16 @@ class Predictor:
                 f"Missing {missing} in {model_dir}. Train first: python -m predmaint.train"
             )
         self.model_dir = model_dir
-        self.contract = FeatureContract.load(model_dir / "contract.json")
-        self.calibration = json.loads((model_dir / "calibration.json").read_text())
+        try:
+            self.contract = FeatureContract.load(model_dir / "contract.json")
+        except ContractError as exc:
+            raise ArtifactsIncompatible(str(exc)) from exc
+        calibration_path = model_dir / "calibration.json"
+        self.calibration = _check_calibration(
+            calibration_path, json.loads(calibration_path.read_text())
+        )
         self.metrics = json.loads((model_dir / "metrics.json").read_text())
-        bundle = torch.load(model_dir / "model.pt", map_location="cpu", weights_only=True)
-        members = []
-        for state in bundle["members"]:
-            member = RULNet(**bundle["config"])
-            member.load_state_dict(state)
-            members.append(member.eval())
+        members = _load_members(model_dir / "model.pt", self.contract.n_features)
         self.model = Ensemble(members).eval()
 
     @property
@@ -88,14 +157,30 @@ class Predictor:
         return rows
 
     def predict_readings(self, readings: pd.DataFrame, explain: bool = True) -> dict:
-        """Predict for one engine from its readings, oldest cycle first."""
-        window = self.contract.window_from_readings(readings)
-        out = self.predict_windows(window[None])
+        """Predict for one engine from its readings, oldest cycle first.
+
+        The response always says whether the readings in the model's window lie outside the
+        training range; such predictions are extrapolations. Raises ``NonFinitePrediction``
+        (with that report attached) when the inputs are so far out that the network overflows.
+        """
+        ood = self.contract.out_of_distribution(readings.iloc[-self.contract.window :])
+        with np.errstate(over="ignore", invalid="ignore"):
+            window = self.contract.window_from_readings(readings)
+            out = self.predict_windows(window[None])
+        if not all(np.isfinite(out[key][0]) for key in ("lower", "point", "upper", "probability")):
+            raise NonFinitePrediction(
+                "The readings are too far outside the training range for a finite prediction", ood
+            )
         result = self.format_prediction({key: value[0] for key, value in out.items()})
         result["cycles_received"] = len(readings)
         result["window_padded"] = len(readings) < self.contract.window
+        result["out_of_distribution"] = ood
         if explain:
-            attributions = self.explain(window)
+            with np.errstate(over="ignore", invalid="ignore"):
+                attributions = self.explain(window)
+            if not np.isfinite(attributions).all():
+                result["explanation"] = None
+                return result
             result["explanation"] = {
                 "method": "integrated gradients vs. an average engine in the same operating regime",
                 "baseline_rul_cycles": round(self._baseline_point(), 1),
