@@ -55,8 +55,8 @@ class FleetReplay:
         row = {key: out[key][i] for key in ("point", "lower", "upper", "probability")}
         formatted = self.predictor.format_prediction(row)
         return {
-            "cycle": int(frame.at[position, "cycle"]),
-            "rul_true": int(frame.at[position, "rul"]),
+            "cycle": int(frame["cycle"].to_numpy()[position]),
+            "rul_true": int(frame["rul"].to_numpy()[position]),
             "point": formatted["rul"]["point"],
             "lower": formatted["rul"]["lower"],
             "upper": formatted["rul"]["upper"],
