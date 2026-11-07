@@ -1,5 +1,6 @@
 import json
 
+import numpy as np
 import pytest
 
 from predmaint import data as cmapss
@@ -89,6 +90,71 @@ def test_predict_rejects_non_finite_and_boolean_values(client, cmapss_dir):
     response = client.post("/api/predict", data=raw, content_type="application/json")
     assert response.status_code == 400
     assert "finite" in response.get_json()["detail"]
+
+
+def test_predict_rejects_integers_too_large_for_a_float(client, cmapss_dir):
+    """Regression: a 401-digit JSON integer made math.isfinite raise OverflowError (HTTP 500)."""
+    reading = _readings(cmapss_dir, cycles=1)[0]
+    raw = json.dumps({"readings": [{**reading, "sensor_02": 0}]}).replace(
+        '"sensor_02": 0', '"sensor_02": 1' + "0" * 400
+    )
+    response = client.post("/api/predict", data=raw, content_type="application/json")
+    assert response.status_code == 400
+    assert "finite" in response.get_json()["detail"]
+
+
+def test_predict_flags_in_distribution_readings_as_such(client, cmapss_dir):
+    body = client.post(
+        "/api/predict?explain=false", json={"readings": _readings(cmapss_dir)}
+    ).get_json()
+    assert body["out_of_distribution"]["flag"] is False
+    assert body["out_of_distribution"]["sensors_outside_training_range"] == []
+
+
+def test_predict_flags_readings_outside_the_training_range(client, cmapss_dir):
+    readings = _readings(cmapss_dir)
+    readings[-1] = {**readings[-1], "sensor_11": readings[-1]["sensor_11"] + 1000.0}
+    response = client.post("/api/predict?explain=false", json={"readings": readings})
+    assert response.status_code == 200
+    ood = response.get_json()["out_of_distribution"]
+    assert ood["flag"] is True
+    assert [s["sensor"] for s in ood["sensors_outside_training_range"]] == ["sensor_11"]
+    assert ood["sensors_outside_training_range"][0]["rows"] == 1
+
+
+def test_predict_flags_unseen_operating_settings(client, cmapss_dir):
+    readings = _readings(cmapss_dir)
+    readings[-1] = {**readings[-1], "setting_3": 60.0}
+    ood = client.post("/api/predict?explain=false", json={"readings": readings}).get_json()[
+        "out_of_distribution"
+    ]
+    assert ood["flag"] is True
+    assert ood["rows_with_unseen_operating_settings"] == 1
+
+
+def test_absurd_finite_readings_are_flagged_and_never_produce_nan(client, cmapss_dir):
+    """Regression: 1e300 used to return an ordinary-looking prediction with no warning."""
+    readings = _readings(cmapss_dir)
+    readings[-1] = {**readings[-1], "sensor_11": 1e300}
+    response = client.post("/api/predict", json={"readings": readings})
+    text = response.get_data(as_text=True)
+    assert "NaN" not in text
+    assert "Infinity" not in text
+    assert response.get_json()["out_of_distribution"]["flag"] is True
+
+
+def test_non_finite_model_output_is_refused_with_the_ood_report(app, client, cmapss_dir):
+    predictor = app.extensions["predmaint"]["predictor"]
+
+    def broken(windows):
+        nan = np.full(len(windows), np.nan)
+        return {"lower": nan, "point": nan, "upper": nan, "probability": nan}
+
+    predictor.predict_windows = broken
+    response = client.post("/api/predict", json={"readings": _readings(cmapss_dir)})
+    assert response.status_code == 422
+    assert "out_of_distribution" in response.get_json()
+    assert "NaN" not in response.get_data(as_text=True)
 
 
 def test_predict_limits_history_length(client, cmapss_dir):
