@@ -4,9 +4,11 @@ Every setting has a safe default (loopback host, debug off, same-origin Socket.I
 value fails loudly at start-up instead of being silently replaced.
 """
 
+import math
 import os
 from dataclasses import dataclass, fields
 from pathlib import Path
+from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SUBSETS = ("FD001", "FD002", "FD003", "FD004")
@@ -39,8 +41,12 @@ class Settings:
             raise ValueError(f"PM_SUBSET must be one of {SUBSETS}, got {self.subset!r}")
         if not 0 < self.port < 65536:
             raise ValueError(f"PM_PORT out of range: {self.port}")
-        if self.replay_interval_s <= 0:
-            raise ValueError("PM_REPLAY_INTERVAL_S must be positive")
+        # NaN compares False with everything, so `<= 0` alone would let nan and inf through.
+        if not (math.isfinite(self.replay_interval_s) and self.replay_interval_s > 0):
+            raise ValueError(
+                "PM_REPLAY_INTERVAL_S must be a finite positive number, "
+                f"got {self.replay_interval_s}"
+            )
         if self.replay_engines < 1:
             raise ValueError("PM_REPLAY_ENGINES must be at least 1")
 
@@ -51,7 +57,7 @@ class Settings:
     @classmethod
     def from_env(cls, environ: dict[str, str] | None = None) -> Settings:
         env = os.environ if environ is None else environ
-        values = {}
+        values: dict[str, Any] = {}
         for field in fields(cls):
             raw = env.get(f"PM_{field.name.upper()}")
             if raw is None:
