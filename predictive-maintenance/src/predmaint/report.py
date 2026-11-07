@@ -1,139 +1,170 @@
-"""Write the README results table from ``artifacts/<subset>/``.
+"""Write the results tables in README.md and MODEL_CARD.md from ``artifacts/<subset>/``.
 
-    python -m predmaint.report          # rewrites the results block in README.md and MODEL_CARD.md
+    python -m predmaint.report          # rewrites the results block in both documents
 
-The README never contains a hand-typed metric: rerun this after training. Summary metrics come
-from each run's ``metrics.json``; the few derived numbers (coverage of the actual remaining life,
-Wilson intervals, the range of alert lead times) are recomputed from the committed predictions.
-``python -m predmaint.audit`` checks that all three agree.
+The documents never contain a hand-typed metric: rerun this after training and evaluation.
+``python -m predmaint.audit`` recomputes every number from the committed predictions and checks
+that the block matches.
 """
 
 import argparse
 import json
 from pathlib import Path
+from typing import Any
 
-from predmaint.audit import DOCUMENTS, recompute
+from predmaint.audit import DOCUMENTS, SUBSETS
 from predmaint.config import Settings
-from predmaint.metrics import wilson_interval
 
 START, END = "<!-- results:start -->", "<!-- results:end -->"
-SUBSETS = ("FD001", "FD002", "FD003", "FD004")
-HEADER = [
-    "Subset",
-    "Model",
-    "RMSE",
-    "PHM08 score",
-    "RMSE vs actual RUL",
-    "Inside nominal 90% interval, capped truth (95% CI)",
-    "Inside, actual RUL (95% CI)",
-    "Mean interval width",
-    "Alert AP",
-    "First alert, cycles before failure: median (range)",
-]
-# Columns where the best model in each subset is bolded; lower is better in all of them.
-BOLD_COLUMNS = ("rmse", "nasa", "rmse_uncapped")
 DASH = "–"
+NAMES = {"lstm": "LSTM ensemble", "lightgbm": "LightGBM"}
 
 
-def _coverage(inside: int, n: int) -> str:
-    low, high = wilson_interval(inside, n)
-    return f"{inside / n:.0%} ({100 * low:.0f}–{100 * high:.0f}%)"
+def _ms(stat: dict | None, spec: str, scale: float = 1.0, unit: str = "") -> str:
+    """'mean ± sd' (sd omitted for one repeat)."""
+    if not stat or stat.get("mean") is None:
+        return DASH
+    mean = format(stat["mean"] * scale, spec)
+    sd = "" if stat.get("sd") is None else f" ± {format(stat['sd'] * scale, spec)}"
+    return f"{mean}{sd}{unit}"
 
 
-def _rows(run_dir: Path) -> list[dict]:
-    """One dict per model: display strings plus the raw values used for bolding."""
-    m = json.loads((run_dir / "metrics.json").read_text())
-    found = recompute(run_dir)
-    t, n = m["test"], found["test_engines"]
-    members = len(m["config"]["seeds"])
-    lead = m["holdout"]["lead_time"]
-    ap = t["alert"]["average_precision"]
-    lead_text = (
-        f"{lead['median']:.0f} ({found['lead_min']}–{found['lead_max']}); "
-        f"{lead['missed']}/{lead['units']} holdout engines missed"
-        if lead["median"] is not None
-        else f"{lead['missed']}/{lead['units']} missed"
+def _ci(diff: dict, spec: str, scale: float = 1.0) -> str:
+    signed = "+" + spec
+    return (
+        f"{format(diff['difference'] * scale, signed)} "
+        f"({format(diff['ci_low'] * scale, signed)} to "
+        f"{format(diff['ci_high'] * scale, signed)})"
     )
-    rows = [
-        {
-            "model": f"LSTM ensemble ({members} networks)",
-            "rmse": t["rmse"],
-            "nasa": t["nasa_score"],
-            "rmse_uncapped": t["rmse_uncapped"],
-            "cells": [
-                _coverage(found["inside_capped"], n),
-                _coverage(found["inside_actual"], n),
-                f"{t['interval_width']:.0f} cycles",
-                DASH if ap is None else f"{ap:.3f}",
-                lead_text,
-            ],
-        }
-    ]
-    single = m["test_single_models"]
-    rows.append(
-        {
-            "model": f"One LSTM network (mean ± sd over the {members} networks of this ensemble)",
-            "rmse": single["rmse_mean"],
-            "nasa": single["nasa_score_mean"],
-            "rmse_uncapped": None,
-            "text": {
-                "rmse": f"{single['rmse_mean']:.2f} ± {single['rmse_std']:.2f}",
-                "nasa": f"{single['nasa_score_mean']:.0f} ± {single['nasa_score_std']:.0f}",
-            },
-            "cells": [DASH] * 5,
-        }
-    )
-    if base := m.get("baseline_lightgbm"):
-        rows.append(
-            {
-                "model": "LightGBM on window statistics (one seed)",
-                "rmse": base["rmse"],
-                "nasa": base["nasa_score"],
-                "rmse_uncapped": base["rmse_uncapped"],
-                "cells": [DASH] * 5,
-            }
-        )
-    return rows
 
 
-def results_table(artifacts: Path) -> str:
-    lines = [
-        "| " + " | ".join(HEADER) + " |",
-        "|---|---|" + "---:|" * (len(HEADER) - 2),
-    ]
+def _bold_best(
+    cells: dict[str, str], values: dict[str, float | None], lower_is_better: bool
+) -> dict[str, str]:
+    present = {m: v for m, v in values.items() if v is not None}
+    if len(present) < 2:
+        return cells
+    best = min(present.values()) if lower_is_better else max(present.values())
+    return {m: f"**{c}**" if values.get(m) == best else c for m, c in cells.items()}
+
+
+def _runs(artifacts: Path) -> dict[str, dict[str, Any]]:
+    runs = {}
     for subset in SUBSETS:
-        run_dir = artifacts / subset
-        if not (run_dir / "metrics.json").is_file():
-            continue
-        rows = _rows(run_dir)
-        best = {
-            column: min(r[column] for r in rows if r[column] is not None) for column in BOLD_COLUMNS
-        }
-        engines = json.loads((run_dir / "metrics.json").read_text())["data"]["test_engines"]
-        for row in rows:
-            cells = []
-            for column, spec in (("rmse", ".2f"), ("nasa", ".0f"), ("rmse_uncapped", ".2f")):
-                value = row[column]
-                text = row.get("text", {}).get(column) or (
-                    DASH if value is None else format(value, spec)
-                )
-                bold = value is not None and value == best[column] and len(rows) > 1
-                cells.append(f"**{text}**" if bold else text)
+        path = artifacts / subset / "metrics.json"
+        if path.is_file():
+            metrics = json.loads(path.read_text())
+            if metrics.get("test"):
+                runs[subset] = metrics
+    return runs
+
+
+def test_table(runs: dict[str, dict]) -> str:
+    header = (
+        "| Subset | Model | RMSE | PHM08 score | RMSE vs actual RUL "
+        "| Inside the nominal 90% interval (95% CI) | Open-ended intervals "
+        "| Width of closed intervals | Alert AP | Alert ECE |"
+    )
+    lines = [header, "|---|---|" + "---:|" * 8]
+    spec = {
+        "rmse": (".2f", True),
+        "nasa_score": (".0f", True),
+        "rmse_uncapped": (".2f", True),
+        "alert_ap": (".3f", False),
+    }
+    for subset, m in runs.items():
+        models = m["test"]["models"]
+        n = m["data"]["test_engines"]
+        columns: dict[str, dict[str, str]] = {}
+        for key, (fmt, lower_better) in spec.items():
+            cells = {name: _ms(block["summary"][key], fmt) for name, block in models.items()}
+            means = {name: block["summary"][key]["mean"] for name, block in models.items()}
+            columns[key] = _bold_best(cells, means, lower_better)
+        for name, block in models.items():
+            s = block["summary"]
+            low, high = s["coverage_wilson_at_mean"]
+            coverage = f"{_ms(s['coverage'], '.1f', 100)}% ({100 * low:.0f}–{100 * high:.0f}%)"
             lines.append(
-                f"| {subset} ({engines} engines) | {row['model']} | "
-                + " | ".join(cells + row["cells"])
-                + " |"
+                f"| {subset} ({n} engines) | {NAMES[name]} | {columns['rmse'][name]} "
+                f"| {columns['nasa_score'][name]} | {columns['rmse_uncapped'][name]} "
+                f"| {coverage} | {_ms(s['open_ended_share'], '.0f', 100)}% "
+                f"| {_ms(s['closed_width'], '.0f')} cycles | {columns['alert_ap'][name]} "
+                f"| {_ms(s['alert_ece'], '.3f')} |"
             )
     return "\n".join(lines)
 
 
-def update_readme(readme: Path, artifacts: Path) -> None:
-    text = readme.read_text(encoding="utf-8")
+def difference_table(runs: dict[str, dict]) -> str:
+    lines = [
+        "| Subset | RMSE, LSTM minus LightGBM | PHM08 score, LSTM minus LightGBM "
+        "| Coverage, LSTM minus LightGBM (points) |",
+        "|---|---:|---:|---:|",
+    ]
+    for subset, m in runs.items():
+        d = m["test"].get("lstm_minus_lightgbm")
+        if d:
+            lines.append(
+                f"| {subset} | {_ci(d['rmse'], '.2f')} | {_ci(d['nasa_score'], '.0f')} "
+                f"| {_ci(d['coverage'], '.1f', 100)} |"
+            )
+    return "\n".join(lines)
+
+
+def alert_table(runs: dict[str, dict]) -> str:
+    lines = [
+        "| Subset | Model | Engines | First alert, median cycles before failure | Missed "
+        "| First alert more than 30 cycles early | False-alert episodes per engine "
+        "| Flaps per engine | ECE over all cycles (95% CI) |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|",
+    ]
+    for subset, m in runs.items():
+        for name, block in m["out_of_fold"].items():
+            s = block["summary"]
+            repeats = list(block["per_repeat"].values())
+            low = sum(r["calibration"]["ci_low"] for r in repeats) / len(repeats)
+            high = sum(r["calibration"]["ci_high"] for r in repeats) / len(repeats)
+            lines.append(
+                f"| {subset} | {NAMES[name]} | {repeats[0]['engines']} "
+                f"| {_ms(s['alert.lead_median'], '.0f')} | {_ms(s['alert.missed'], '.1f')} "
+                f"| {_ms(s['alert.early'], '.1f')} "
+                f"| {_ms(s['alert.false_alerts_per_engine'], '.2f')} "
+                f"| {_ms(s['alert.flaps_per_engine'], '.2f')} "
+                f"| {_ms(s['calibration.ece'], '.3f')} ({low:.3f}–{high:.3f}) |"
+            )
+    return "\n".join(lines)
+
+
+def results_block(artifacts: Path) -> str:
+    runs = _runs(artifacts)
+    if not runs:
+        return "_No evaluated runs yet: run `predmaint.train`, then `predmaint.evaluate`._"
+    repeats = len(next(iter(runs.values()))["config"]["repeats"])
+    return "\n\n".join(
+        [
+            f"**Official test sets.** Mean ± sd over {repeats} repeats of the whole pipeline; "
+            "bold marks the better model in each subset. The coverage interval is a 95% Wilson "
+            "interval over test engines at the mean rate.",
+            test_table(runs),
+            "**LSTM minus LightGBM on the same test engines.** Repeat-averaged difference, with a "
+            "95% interval from a paired bootstrap over test engines (2,000 draws). An interval "
+            "that excludes 0 means the difference is larger than engine-to-engine noise.",
+            difference_table(runs),
+            "**The alert over whole lives, out of fold.** Every cycle of every cross-fitted "
+            "training engine, each predicted by a model that never saw it. Mean ± sd over "
+            "repeats; the ECE interval is the repeat-averaged 95% bootstrap interval over "
+            "engines.",
+            alert_table(runs),
+        ]
+    )
+
+
+def update_readme(document: Path, artifacts: Path) -> None:
+    text = document.read_text(encoding="utf-8")
     if START not in text or END not in text:
-        raise SystemExit(f"{readme} has no {START} ... {END} block")
+        raise SystemExit(f"{document} has no {START} ... {END} block")
     head, rest = text.split(START, 1)
     _, tail = rest.split(END, 1)
-    readme.write_text(f"{head}{START}\n{results_table(artifacts)}\n{END}{tail}", encoding="utf-8")
+    document.write_text(f"{head}{START}\n{results_block(artifacts)}\n{END}{tail}", encoding="utf-8")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -141,9 +172,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--docs", type=Path, nargs="*", default=list(DOCUMENTS))
     parser.add_argument("--artifacts", type=Path, default=None)
     args = parser.parse_args(argv)
+    artifacts = args.artifacts or Settings.from_env().artifacts_dir
     for document in args.docs:
-        update_readme(document, args.artifacts or Settings.from_env().artifacts_dir)
-        print(f"Updated results table in {document}")
+        update_readme(document, artifacts)
+        print(f"Updated results block in {document}")
     return 0
 
 
