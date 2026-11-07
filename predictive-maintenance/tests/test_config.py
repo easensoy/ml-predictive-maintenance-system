@@ -34,7 +34,18 @@ def test_environment_overrides_are_typed():
 
 @pytest.mark.parametrize(
     "environ",
-    [{"PM_SUBSET": "FD009"}, {"PM_PORT": "abc"}, {"PM_PORT": "70000"}, {"PM_DEBUG": "maybe"}],
+    [
+        {"PM_SUBSET": "FD009"},
+        {"PM_PORT": "abc"},
+        {"PM_PORT": "70000"},
+        {"PM_DEBUG": "maybe"},
+        {"PM_REPLAY_INTERVAL_S": "0"},
+        {"PM_REPLAY_ENGINES": "0"},
+        # float() accepts these spellings, and NaN slips past a plain `<= 0` check.
+        {"PM_REPLAY_INTERVAL_S": "nan"},
+        {"PM_REPLAY_INTERVAL_S": "inf"},
+        {"PM_REPLAY_INTERVAL_S": "-inf"},
+    ],
 )
 def test_bad_values_fail_loudly(environ):
     with pytest.raises(ValueError, match="PM_"):
