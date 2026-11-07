@@ -134,7 +134,9 @@ def fig_test_sets(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
     fig, axes = plt.subplots(rows, cols, figsize=(10, 3.1 * rows + 0.9), squeeze=False)
     for ax, subset in zip(axes.flat, subsets, strict=False):
         run = runs[subset]
-        test = run["test"].sort_values(["rul_capped", "point"]).reset_index(drop=True)
+        # Ties (every engine with true RUL >= 125 sits on the cap) keep engine order, not
+        # prediction order, so the plateau shows the predictions' real scatter.
+        test = run["test"].sort_values(["rul_capped", "unit"]).reset_index(drop=True)
         x = np.arange(len(test))
         m = run["metrics"]["test"]
         ax.vlines(x, test["lower"], test["upper"], color=t["series"][0], alpha=0.28, linewidth=1.6)
@@ -150,24 +152,28 @@ def fig_test_sets(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
             zorder=3,
             label="Predicted RUL",
         )
-        coverage = f"{m['interval_coverage']:.0%} inside the 90% interval"
+        coverage = f"{m['interval_coverage']:.0%} inside the nominal 90% interval"
         ax.set_title(f"{subset}  ·  RMSE {m['rmse']:.1f}  ·  {coverage}", pad=6)
         ax.set_xlim(-2, len(test) + 1)
         ax.set_ylim(0, 140)
-        ax.set_xlabel(f"{len(test)} test engines, sorted by true RUL")
+        above = int((test["rul_true"] > test["rul_capped"]).sum())
+        ax.set_xlabel(
+            f"{len(test)} test engines, sorted by capped true RUL ({above} have more than 125 left)"
+        )
         ax.set_ylabel("Cycles")
         ax.grid(axis="x", visible=False)
     for ax in list(axes.flat)[len(subsets) :]:
         ax.set_visible(False)
     handles, labels = axes.flat[0].get_legend_handles_labels()
     handles.append(plt.Line2D([], [], color=t["series"][0], alpha=0.35, linewidth=4))
-    labels.append("90% interval")
+    labels.append("Nominal 90% interval")
     fig.legend(handles, labels, loc="upper right", ncols=3, bbox_to_anchor=(0.99, 0.995))
     _title(
         fig,
         t,
         "Official test sets: predicted vs true remaining useful life",
-        "One point per engine at its last recorded cycle. Ground truth from NASA's RUL files.",
+        "One point per engine at its last recorded cycle. Ground truth from NASA's RUL files, "
+        "capped at 125 like the training target.",
     )
     fig.tight_layout(rect=(0, 0, 1, 0.9))
     return _save(fig, out_dir, "test-sets", theme)
@@ -288,7 +294,9 @@ def fig_attribution(run: dict, t: dict, out_dir: Path, theme: str) -> Path:
     ax_heat.set_yticks(np.arange(-0.5, len(symbols), 1), minor=True)
     ax_heat.grid(which="minor", color=t["surface"], linewidth=1.2)
     ax_heat.tick_params(which="minor", length=0)
-    ax_heat.set_title("Contribution of each reading in the model's 30-cycle window", pad=6)
+    ax_heat.set_title(
+        f"Contribution of each reading in the model's {contract.window}-cycle window", pad=6
+    )
     bar = fig.colorbar(
         image, ax=ax_heat, orientation="horizontal", fraction=0.05, pad=0.2, aspect=40
     )
@@ -326,9 +334,9 @@ def fig_attribution(run: dict, t: dict, out_dir: Path, theme: str) -> Path:
         fig,
         t,
         f"Why the model predicts {rul['point']:.0f} cycles for engine {unit} at cycle {cycles[-1]}",
-        "Integrated gradients against an average engine in the same operating regime. "
-        f"True RUL {int(history['rul'].iloc[-1])}; "
-        f"90% interval {rul['lower']:.0f}–{rul['upper']:.0f}.",
+        "Integrated gradients against an average engine in the same operating regime: what the "
+        f"model's output depends on, not physical cause. True RUL {int(history['rul'].iloc[-1])}; "
+        f"nominal 90% interval {rul['lower']:.0f}–{rul['upper']:.0f}.",
     )
     fig.subplots_adjust(left=0.07, right=0.98, top=0.8, bottom=0.12)
     return _save(fig, out_dir, "attribution", theme)
@@ -340,6 +348,16 @@ def fig_calibration(runs: dict, focus: dict, t: dict, out_dir: Path, theme: str)
     )
     ax_rel.plot([0, 1], [0, 1], color=t["axis"], linewidth=1)
     curve = pd.DataFrame(focus["metrics"]["holdout"]["reliability"])
+    for _, b in curve.iterrows():
+        low_corner = b["observed_rate"] < 0.08  # keep the label clear of the x-axis ticks
+        ax_rel.annotate(
+            f"{int(b['count'])}",
+            (b["mean_probability"], b["observed_rate"]),
+            xytext=(6, 6) if low_corner else (5, -9),
+            textcoords="offset points",
+            fontsize=7,
+            color=t["muted"],
+        )
     ax_rel.plot(
         curve["mean_probability"],
         curve["observed_rate"],
@@ -355,11 +373,15 @@ def fig_calibration(runs: dict, focus: dict, t: dict, out_dir: Path, theme: str)
     horizon = focus["metrics"]["config"]["alert_cycles"]
     ax_rel.set_xlabel(f"Predicted probability of failure within {horizon} cycles")
     ax_rel.set_ylabel("Observed frequency")
-    ax_rel.set_title(f"Reliability on {focus['metrics']['subset']} holdout cycles", pad=6)
+    n_units = focus["metrics"]["holdout"]["lead_time"]["units"]
+    ax_rel.set_title(
+        f"Reliability on {focus['metrics']['subset']}: every cycle of {n_units} holdout engines",
+        pad=6,
+    )
     ax_rel.text(
         0.97,
         0.05,
-        "perfect calibration on the diagonal",
+        "diagonal: perfect calibration\nnumbers: cycles per bin",
         ha="right",
         fontsize=7.5,
         color=t["muted"],
@@ -389,51 +411,39 @@ def fig_calibration(runs: dict, focus: dict, t: dict, out_dir: Path, theme: str)
     ax_lead.set_yticks(range(len(runs)), labels)
     ax_lead.set_ylim(len(runs) - 0.5, -0.6)
     ax_lead.set_xlim(left=0)
-    ax_lead.set_xlabel(
-        f"Cycles left when the alert first fired (dots: engines, bar: median, "
-        f"orange line: {horizon}-cycle horizon)"
-    )
+    ax_lead.set_xlabel("Cycles left when the alert first fired")
     ax_lead.grid(axis="y", visible=False)
-    ax_lead.set_title("Alert lead time on holdout engines", pad=6)
+    ax_lead.set_title("First alert on holdout engines", pad=6)
+    ax_lead.legend(
+        [
+            plt.Line2D([], [], color=t["series"][0], marker="o", linestyle="", markersize=4),
+            plt.Line2D([], [], color=t["text"], linewidth=1.6),
+            plt.Line2D([], [], color=t["serious"], linewidth=1),
+        ],
+        ["one engine", "median", f"{horizon}-cycle horizon"],
+        loc="upper right",
+        fontsize=7.5,
+    )
     _title(
         fig,
         t,
-        "Are the alerts trustworthy?",
-        "Left: the calibrated probability matches how often failure really follows. "
-        "Right: how early the alert fires on engines that run to failure.",
+        "How the alert behaves",
+        "Left: calibration on cycles from only a few engines; neighbouring cycles are correlated, "
+        "so it is weaker evidence than the counts suggest. Right: when the alert first fires.",
     )
     fig.tight_layout(rect=(0, 0, 1, 0.86))
     return _save(fig, out_dir, "alerts", theme)
 
 
-# Range of the RMSEs that Table 4 of Chaoub et al. (2021, arXiv:2104.05049) lists for six
-# published methods (DA-CNN, DCGAN, MS-DCNN, HDNN, an LSTM and the authors' MLP-LSTM-MLP).
-# Literature context only: protocols differ between papers.
-PUBLISHED_RMSE_RANGE = {
-    "FD001": (10.71, 16.5),
-    "FD002": (12.49, 19.49),
-    "FD003": (11.48, 15.9),
-    "FD004": (13.97, 22.22),
-}
-
-
 def fig_results(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
+    """This project's models only: they share data, split, cap and test protocol. Published
+    results use different protocols, so they are compared in a table, not on this axis."""
     subsets = list(runs)
     fig, ax = plt.subplots(figsize=(10, 1.3 + 0.62 * len(subsets)))
     y = np.arange(len(subsets))
-    for i, subset in enumerate(subsets):
-        low, high = PUBLISHED_RMSE_RANGE[subset]
-        ax.plot(
-            [low, high],
-            [i, i],
-            color=t["grid"],
-            linewidth=9,
-            solid_capstyle="round",
-            zorder=1,
-            label="Published methods, range (Chaoub et al. 2021, Table 4)" if i == 0 else None,
-        )
     metrics = [runs[s]["metrics"] for s in subsets]
     single = [m["test_single_models"] for m in metrics]
+    n_members = len(metrics[0]["config"]["seeds"])
     ax.errorbar(
         [s["rmse_mean"] for s in single],
         y + 0.18,
@@ -445,7 +455,7 @@ def fig_results(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
         elinewidth=1.4,
         capsize=0,
         zorder=3,
-        label="Single LSTM, mean ± sd of 5 seeds",
+        label=f"One LSTM network, mean ± sd over the ensemble's {n_members} networks",
     )
     lgbm = [(m["baseline_lightgbm"] or {}).get("rmse", np.nan) for m in metrics]
     ax.plot(
@@ -456,7 +466,7 @@ def fig_results(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
         markersize=6,
         markeredgecolor=t["surface"],
         zorder=3,
-        label="LightGBM on window statistics",
+        label="LightGBM on window statistics (one seed)",
     )
     ensemble = [m["test"]["rmse"] for m in metrics]
     ax.plot(
@@ -468,7 +478,7 @@ def fig_results(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
         markeredgecolor=t["surface"],
         markeredgewidth=1.5,
         zorder=4,
-        label="LSTM + attention, 5-model ensemble",
+        label=f"LSTM + attention, {n_members}-network ensemble",
     )
     for yi, v in zip(y, ensemble, strict=True):
         ax.annotate(
@@ -480,29 +490,31 @@ def fig_results(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
             fontsize=8,
             color=t["text"],
         )
+    values = [*ensemble, *lgbm, *(s["rmse_mean"] + s["rmse_std"] for s in single)]
     ax.set_yticks(y, subsets)
     ax.set_ylim(len(subsets) - 0.5, -0.6)
-    ax.set_xlim(9, 23)
-    ax.set_xlabel(
-        "Test RMSE in cycles (lower is better; this project scores against truth capped at 125)"
-    )
+    ax.set_xlim(np.floor(np.nanmin(values)) - 1, np.ceil(np.nanmax(values)) + 1)
+    ax.set_xlabel("Test RMSE in cycles against truth capped at 125 (lower is better)")
     ax.grid(axis="y", visible=False)
     handles, labels = ax.get_legend_handles_labels()
-    order = [3, 1, 2, 0]
+    by_label = dict(zip(labels, handles, strict=True))
+    priority = ("LSTM +", "One LSTM", "LightGBM")
+    wanted = sorted(labels, key=lambda label: next(i for i, p in enumerate(priority) if p in label))
     fig.legend(
-        [handles[i] for i in order],
-        [labels[i] for i in order],
+        [by_label[label] for label in wanted],
+        wanted,
         loc="upper left",
-        ncols=2,
-        bbox_to_anchor=(0.06, 0.86),
+        ncols=3,
+        bbox_to_anchor=(0.06, 0.83),
+        fontsize=8,
     )
     _title(
         fig,
         t,
-        "Test error by subset, with published results for context",
-        "FD002 and FD004 mix six flight conditions; FD003 and FD004 have two fault modes.",
+        "Test error by subset: the network against a gradient-boosting baseline",
+        "Same engines, split, target cap and test protocol for every model shown.",
     )
-    fig.tight_layout(rect=(0, 0, 1, 0.68))
+    fig.tight_layout(rect=(0, 0, 1, 0.76))
     return _save(fig, out_dir, "results", theme)
 
 
