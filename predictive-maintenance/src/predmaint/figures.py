@@ -55,6 +55,8 @@ THEMES = {
     },
 }
 DPI = 200
+MODEL_LABEL = {"lstm": "LSTM ensemble", "lightgbm": "LightGBM"}
+MODEL_SLOT = {"lstm": 0, "lightgbm": 2}
 
 
 def _style(t: dict) -> None:
@@ -118,13 +120,34 @@ def _save(fig, out_dir: Path, name: str, theme: str) -> Path:
 
 def _load(artifacts: Path, subset: str) -> dict:
     model_dir = artifacts / subset
+    metrics = json.loads((model_dir / "metrics.json").read_text())
     return {
-        "metrics": json.loads((model_dir / "metrics.json").read_text()),
+        "metrics": metrics,
+        "served_repeat": metrics["served"]["repeat"],
         "test": pd.read_csv(model_dir / "predictions" / "test.csv"),
-        "holdout": pd.read_csv(model_dir / "predictions" / "holdout.csv"),
-        "history": json.loads((model_dir / "history.json").read_text()),
+        "oof": pd.read_csv(model_dir / "predictions" / "oof.csv.gz"),
         "dir": model_dir,
     }
+
+
+def _served(frame: pd.DataFrame, run: dict, model: str = "lstm") -> pd.DataFrame:
+    return frame[(frame["model"] == model) & (frame["repeat"] == run["served_repeat"])]
+
+
+def _intervals(ax, x, lower, upper, open_ended, top: float, t: dict, width: float = 1.6) -> None:
+    """Closed intervals as solid bars; open-ended ones ("at least lower") run off the top."""
+    closed = ~open_ended
+    ax.vlines(x[closed], lower[closed], upper[closed], color=t["series"][0], alpha=0.3, lw=width)
+    ax.vlines(x[open_ended], lower[open_ended], top, color=t["series"][0], alpha=0.13, lw=width)
+    ax.scatter(
+        x[open_ended],
+        np.full(open_ended.sum(), top - 1.5),
+        marker="^",
+        s=7,
+        linewidths=0,
+        color=t["series"][0],
+        alpha=0.5,
+    )
 
 
 def fig_test_sets(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
@@ -132,16 +155,26 @@ def fig_test_sets(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
     cols = 2 if len(subsets) > 1 else 1
     rows = int(np.ceil(len(subsets) / cols))
     fig, axes = plt.subplots(rows, cols, figsize=(10, 3.1 * rows + 0.9), squeeze=False)
+    top = 140.0
     for ax, subset in zip(axes.flat, subsets, strict=False):
         run = runs[subset]
-        # Ties (every engine with true RUL >= 125 sits on the cap) keep engine order, not
-        # prediction order, so the plateau shows the predictions' real scatter.
-        test = run["test"].sort_values(["rul_capped", "unit"]).reset_index(drop=True)
+        cap = run["metrics"]["config"]["max_rul"]
+        test = _served(run["test"], run).copy()
+        test["capped"] = np.minimum(test["rul_true"], cap)
+        # Ties at the cap keep engine order, so the plateau shows the predictions' real scatter.
+        test = test.sort_values(["capped", "unit"]).reset_index(drop=True)
         x = np.arange(len(test))
-        m = run["metrics"]["test"]
-        ax.vlines(x, test["lower"], test["upper"], color=t["series"][0], alpha=0.28, linewidth=1.6)
+        _intervals(
+            ax,
+            x,
+            test["lower"].to_numpy(),
+            test["upper"].to_numpy(),
+            test["open_ended"].to_numpy(bool),
+            top,
+            t,
+        )
         ax.plot(
-            x, test["rul_capped"], color=t["truth"], linewidth=1.6, label="True RUL (capped at 125)"
+            x, test["capped"], color=t["truth"], linewidth=1.6, label=f"True RUL (capped at {cap})"
         )
         ax.scatter(
             x,
@@ -152,66 +185,76 @@ def fig_test_sets(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
             zorder=3,
             label="Predicted RUL",
         )
-        coverage = f"{m['interval_coverage']:.0%} inside the nominal 90% interval"
-        ax.set_title(f"{subset}  ·  RMSE {m['rmse']:.1f}  ·  {coverage}", pad=6)
-        ax.set_xlim(-2, len(test) + 1)
-        ax.set_ylim(0, 140)
-        above = int((test["rul_true"] > test["rul_capped"]).sum())
-        ax.set_xlabel(
-            f"{len(test)} test engines, sorted by capped true RUL ({above} have more than 125 left)"
+        m = run["metrics"]["test"]["models"]["lstm"]["per_repeat"][str(run["served_repeat"])]
+        ax.set_title(
+            f"{subset}  ·  RMSE {m['rmse']:.1f}  ·  {m['coverage']:.0%} inside the nominal 90%",
+            pad=6,
         )
+        ax.set_xlim(-2, len(test) + 1)
+        ax.set_ylim(0, top)
+        above = int((test["rul_true"] > cap).sum())
+        ax.set_xlabel(f"{len(test)} test engines, sorted by capped true RUL ({above} above {cap})")
         ax.set_ylabel("Cycles")
         ax.grid(axis="x", visible=False)
     for ax in list(axes.flat)[len(subsets) :]:
         ax.set_visible(False)
     handles, labels = axes.flat[0].get_legend_handles_labels()
-    handles.append(plt.Line2D([], [], color=t["series"][0], alpha=0.35, linewidth=4))
-    labels.append("Nominal 90% interval")
-    fig.legend(handles, labels, loc="upper right", ncols=3, bbox_to_anchor=(0.99, 0.995))
+    handles += [
+        plt.Line2D([], [], color=t["series"][0], alpha=0.35, linewidth=4),
+        plt.Line2D([], [], color=t["series"][0], alpha=0.15, linewidth=4),
+    ]
+    labels += ["Nominal 90% interval", "Open-ended: at least the lower end"]
+    fig.legend(handles, labels, loc="upper right", ncols=2, bbox_to_anchor=(0.99, 1.0), fontsize=8)
     _title(
         fig,
         t,
         "Official test sets: predicted vs true remaining useful life",
-        "One point per engine at its last recorded cycle. Ground truth from NASA's RUL files, "
-        "capped at 125 like the training target.",
+        "One prediction per engine at its last recorded cycle, from the served networks (repeat "
+        f"{next(iter(runs.values()))['served_repeat']}).",
     )
-    fig.tight_layout(rect=(0, 0, 1, 0.9))
+    fig.tight_layout(rect=(0, 0, 1, 0.88))
     return _save(fig, out_dir, "test-sets", theme)
 
 
 def _first_alert(group: pd.DataFrame, threshold: float):
-    fired = group[group["probability"] >= threshold]
+    fired = group[(group["probability"] >= threshold) & (group["rul"] >= 1)]
     return fired.iloc[0] if len(fired) else None
 
 
-def fig_holdout_lives(run: dict, t: dict, out_dir: Path, theme: str, n: int = 4) -> Path:
-    hold = run["holdout"]
-    threshold = run["metrics"]["calibration"]["alert_threshold"]
-    horizon = run["metrics"]["config"]["alert_cycles"]
-    lengths = hold.groupby("unit")["cycle"].max().sort_values()
+def fig_lives(run: dict, t: dict, out_dir: Path, theme: str, n: int = 4) -> Path:
+    """Whole lives of a spread of training engines, each predicted out of fold."""
+    oof = _served(run["oof"], run)
+    cfg = run["metrics"]["config"]
+    threshold, horizon, cap = cfg["alert_threshold"], cfg["alert_cycles"], cfg["max_rul"]
+    lengths = oof.groupby("unit")["cycle"].max().sort_values()
     picks = lengths.index[np.linspace(0, len(lengths) - 1, n).round().astype(int)]
     fig, axes = plt.subplots(1, n, figsize=(11, 3.3), sharey=True)
     for ax, unit in zip(axes, picks, strict=True):
-        g = hold[hold["unit"] == unit]
+        g = oof[oof["unit"] == unit]
         ax.axhspan(0, horizon, color=t["zone"], alpha=0.09, linewidth=0)
+        upper = np.where(g["open_ended"], 130, g["upper"])
         ax.fill_between(
             g["cycle"],
             g["lower"],
-            g["upper"],
+            upper,
             color=t["series"][0],
             alpha=0.16,
-            linewidth=0,
-            label="90% interval",
+            lw=0,
+            label="Nominal 90% interval (open-ended at the cap)",
         )
         ax.plot(
-            g["cycle"], g["rul_capped"], color=t["truth"], linewidth=1.6, label="True RUL (capped)"
+            g["cycle"],
+            np.minimum(g["rul"], cap),
+            color=t["truth"],
+            lw=1.6,
+            label="True RUL (capped)",
         )
-        ax.plot(g["cycle"], g["point"], color=t["series"][0], linewidth=1.6, label="Predicted RUL")
+        ax.plot(g["cycle"], g["point"], color=t["series"][0], lw=1.6, label="Predicted RUL")
         alert = _first_alert(g, threshold)
         if alert is not None:
             ax.axvline(alert["cycle"], color=t["serious"], linewidth=1)
             ax.annotate(
-                f"alert: {int(alert['rul_true'])} cycles\nbefore failure",
+                f"alert: {int(alert['rul'])} cycles\nbefore failure",
                 (alert["cycle"], 4),
                 xytext=(-4, 0),
                 textcoords="offset points",
@@ -236,23 +279,21 @@ def fig_holdout_lives(run: dict, t: dict, out_dir: Path, theme: str, n: int = 4)
         va="bottom",
     )
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper right", ncols=3, bbox_to_anchor=(0.99, 0.995))
-    subset = run["metrics"]["subset"]
-    lt = run["metrics"]["holdout"]["lead_time"]
+    fig.legend(
+        handles, labels, loc="upper right", ncols=3, bbox_to_anchor=(0.99, 0.995), fontsize=8
+    )
+    lead = run["metrics"]["out_of_fold"]["lstm"]["per_repeat"][str(run["served_repeat"])]["alert"]
     _title(
         fig,
         t,
-        f"{subset} holdout engines, replayed cycle by cycle",
-        "Engines the model never trained or calibrated on. "
-        + (
-            f"Median alert lead time {lt['median']:.0f} cycles, "
-            if lt["median"] is not None
-            else ""
-        )
-        + f"{lt['missed']} of {lt['units']} missed.",
+        f"{run['metrics']['subset']}: whole lives, each predicted by a network that never saw "
+        "the engine",
+        f"Out-of-fold predictions for {lead['units']} engines: median first alert "
+        f"{lead['lead_median']:.0f} cycles before failure, {lead['missed']} missed, "
+        f"{lead['early']} first alerts more than {horizon} cycles early.",
     )
-    fig.tight_layout(rect=(0, 0, 1, 0.86))
-    return _save(fig, out_dir, "holdout-lives", theme)
+    fig.tight_layout(rect=(0, 0, 1, 0.84))
+    return _save(fig, out_dir, "lives", theme)
 
 
 def fig_attribution(run: dict, t: dict, out_dir: Path, theme: str) -> Path:
@@ -269,6 +310,8 @@ def fig_attribution(run: dict, t: dict, out_dir: Path, theme: str) -> Path:
     prediction = predictor.predict_readings(history, explain=False)
     symbols = [SENSOR_INFO[s][0] for s in contract.sensors]
     cycles = history["cycle"].to_numpy()[-contract.window :]
+    if len(cycles) < contract.window:  # padded window: label the padded rows with the first cycle
+        cycles = np.r_[np.full(contract.window - len(cycles), cycles[0]), cycles]
 
     fig = plt.figure(figsize=(11, 4.2))
     grid = fig.add_gridspec(1, 2, width_ratios=[2.1, 1], wspace=0.28)
@@ -294,8 +337,12 @@ def fig_attribution(run: dict, t: dict, out_dir: Path, theme: str) -> Path:
     ax_heat.set_yticks(np.arange(-0.5, len(symbols), 1), minor=True)
     ax_heat.grid(which="minor", color=t["surface"], linewidth=1.2)
     ax_heat.tick_params(which="minor", length=0)
+    windows = sorted({int(m.window) for m in predictor.model.members})  # type: ignore[arg-type]
     ax_heat.set_title(
-        f"Contribution of each reading in the model's {contract.window}-cycle window", pad=6
+        f"Contribution of each reading to the ensemble's prediction (networks read the last "
+        f"{', '.join(map(str, windows))} cycles)",
+        pad=6,
+        fontsize=9,
     )
     bar = fig.colorbar(
         image, ax=ax_heat, orientation="horizontal", fraction=0.05, pad=0.2, aspect=40
@@ -336,84 +383,96 @@ def fig_attribution(run: dict, t: dict, out_dir: Path, theme: str) -> Path:
         f"Why the model predicts {rul['point']:.0f} cycles for engine {unit} at cycle {cycles[-1]}",
         "Integrated gradients against an average engine in the same operating regime: what the "
         f"model's output depends on, not physical cause. True RUL {int(history['rul'].iloc[-1])}; "
-        f"nominal 90% interval {rul['lower']:.0f}–{rul['upper']:.0f}.",
+        f"nominal 90% interval {rul['summary']}. Engine {unit} was held out of all training.",
     )
     fig.subplots_adjust(left=0.07, right=0.98, top=0.8, bottom=0.12)
     return _save(fig, out_dir, "attribution", theme)
 
 
-def fig_calibration(runs: dict, focus: dict, t: dict, out_dir: Path, theme: str) -> Path:
+def fig_alerts(runs: dict, focus: dict, t: dict, out_dir: Path, theme: str) -> Path:
     fig, (ax_rel, ax_lead) = plt.subplots(
-        1, 2, figsize=(10, 3.6), gridspec_kw={"width_ratios": [1, 1.25]}
+        1, 2, figsize=(10, 3.8), gridspec_kw={"width_ratios": [1, 1.25]}
     )
     ax_rel.plot([0, 1], [0, 1], color=t["axis"], linewidth=1)
-    curve = pd.DataFrame(focus["metrics"]["holdout"]["reliability"])
-    for _, b in curve.iterrows():
-        low_corner = b["observed_rate"] < 0.08  # keep the label clear of the x-axis ticks
-        ax_rel.annotate(
-            f"{int(b['count'])}",
-            (b["mean_probability"], b["observed_rate"]),
-            xytext=(6, 6) if low_corner else (5, -9),
-            textcoords="offset points",
-            fontsize=7,
-            color=t["muted"],
+    repeat = str(focus["served_repeat"])
+    horizon = focus["metrics"]["config"]["alert_cycles"]
+    for model in ("lstm", "lightgbm"):
+        block = focus["metrics"]["out_of_fold"].get(model)
+        if not block:
+            continue
+        r = block["per_repeat"][repeat]
+        curve = pd.DataFrame(r["reliability"])
+        colour = t["series"][MODEL_SLOT[model]]
+        cal = r["calibration"]
+        ax_rel.plot(
+            curve["mean_probability"],
+            curve["observed_rate"],
+            color=colour,
+            linewidth=1.6,
+            marker="o",
+            markersize=4.5,
+            markeredgecolor=t["surface"],
+            markeredgewidth=1,
+            label=f"{MODEL_LABEL[model]}: ECE {cal['ece']:.3f} "
+            f"({cal['ci_low']:.3f}–{cal['ci_high']:.3f})",
         )
-    ax_rel.plot(
-        curve["mean_probability"],
-        curve["observed_rate"],
-        color=t["series"][0],
-        linewidth=1.6,
-        marker="o",
-        markersize=5,
-        markeredgecolor=t["surface"],
-        markeredgewidth=1.2,
-    )
+        if model == "lstm":
+            for _, b in curve.iterrows():
+                low_corner = b["observed_rate"] < 0.08
+                ax_rel.annotate(
+                    f"{int(b['count']):,}",
+                    (b["mean_probability"], b["observed_rate"]),
+                    xytext=(6, 6) if low_corner else (5, -9),
+                    textcoords="offset points",
+                    fontsize=6.5,
+                    color=t["muted"],
+                )
     ax_rel.set_xlim(0, 1)
     ax_rel.set_ylim(0, 1)
-    horizon = focus["metrics"]["config"]["alert_cycles"]
     ax_rel.set_xlabel(f"Predicted probability of failure within {horizon} cycles")
     ax_rel.set_ylabel("Observed frequency")
-    n_units = focus["metrics"]["holdout"]["lead_time"]["units"]
+    engines = focus["metrics"]["out_of_fold"]["lstm"]["per_repeat"][repeat]["engines"]
     ax_rel.set_title(
-        f"Reliability on {focus['metrics']['subset']}: every cycle of {n_units} holdout engines",
-        pad=6,
+        f"{focus['metrics']['subset']}: every cycle of {engines} engines, out of fold", pad=6
     )
+    ax_rel.legend(loc="upper left", fontsize=7.5)
     ax_rel.text(
         0.97,
-        0.05,
-        "diagonal: perfect calibration\nnumbers: cycles per bin",
+        0.04,
+        "numbers: cycles per bin (LSTM)",
         ha="right",
-        fontsize=7.5,
+        fontsize=7,
         color=t["muted"],
         transform=ax_rel.transAxes,
     )
 
     labels = []
     for i, (subset, run) in enumerate(runs.items()):
-        leads = [u["lead_time"] for u in run["metrics"]["holdout"]["lead_time"]["per_unit"]]
-        caught = np.array([v for v in leads if v is not None], dtype=float)
-        jitter = np.random.default_rng(i).uniform(-0.16, 0.16, len(caught))
+        alert = run["metrics"]["out_of_fold"]["lstm"]["per_repeat"][str(run["served_repeat"])]
+        per_unit = run["metrics"]["out_of_fold"]["lstm"]["per_repeat"][str(run["served_repeat"])][
+            "alert_per_unit"
+        ]
+        leads = np.array([u["lead_time"] for u in per_unit if u["lead_time"] is not None], float)
+        jitter = np.random.default_rng(i).uniform(-0.18, 0.18, len(leads))
         ax_lead.scatter(
-            caught,
-            np.full(len(caught), i) + jitter,
-            s=16,
+            leads,
+            np.full(len(leads), i) + jitter,
+            s=9,
             color=t["series"][0],
-            alpha=0.75,
+            alpha=0.6,
             linewidths=0,
         )
-        if len(caught):
-            ax_lead.plot(
-                [np.median(caught)] * 2, [i - 0.3, i + 0.3], color=t["text"], linewidth=1.6
-            )
-        missed = sum(v is None for v in leads)
-        labels.append(f"{subset}\n{len(leads)} engines" + (f", {missed} missed" if missed else ""))
+        if len(leads):
+            ax_lead.plot([np.median(leads)] * 2, [i - 0.3, i + 0.3], color=t["text"], linewidth=1.6)
+        a = alert["alert"]
+        labels.append(f"{subset}\n{a['units']} engines, {a['missed']} missed")
     ax_lead.axvline(horizon, color=t["serious"], linewidth=1)
     ax_lead.set_yticks(range(len(runs)), labels)
     ax_lead.set_ylim(len(runs) - 0.5, -0.6)
     ax_lead.set_xlim(left=0)
     ax_lead.set_xlabel("Cycles left when the alert first fired")
     ax_lead.grid(axis="y", visible=False)
-    ax_lead.set_title("First alert on holdout engines", pad=6)
+    ax_lead.set_title("First alert on every cross-fitted engine", pad=6)
     ax_lead.legend(
         [
             plt.Line2D([], [], color=t["series"][0], marker="o", linestyle="", markersize=4),
@@ -427,94 +486,76 @@ def fig_calibration(runs: dict, focus: dict, t: dict, out_dir: Path, theme: str)
     _title(
         fig,
         t,
-        "How the alert behaves",
-        "Left: calibration on cycles from only a few engines; neighbouring cycles are correlated, "
-        "so it is weaker evidence than the counts suggest. Right: when the alert first fires.",
+        "How the alert behaves, out of fold",
+        "Left: calibration, with 95% intervals from resampling whole engines. Right: when the "
+        "alert first fires; dots right of the line fired before failure entered the horizon.",
     )
-    fig.tight_layout(rect=(0, 0, 1, 0.86))
+    fig.tight_layout(rect=(0, 0, 1, 0.85))
     return _save(fig, out_dir, "alerts", theme)
 
 
 def fig_results(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
-    """This project's models only: they share data, split, cap and test protocol. Published
-    results use different protocols, so they are compared in a table, not on this axis."""
+    """This project's two models under one protocol. Published results use other protocols, so
+    they are compared in a table, not on this axis."""
     subsets = list(runs)
-    fig, ax = plt.subplots(figsize=(10, 1.3 + 0.62 * len(subsets)))
+    fig, (ax_err, ax_cov) = plt.subplots(
+        1, 2, figsize=(10.5, 1.5 + 0.6 * len(subsets)), sharey=True
+    )
     y = np.arange(len(subsets))
-    metrics = [runs[s]["metrics"] for s in subsets]
-    single = [m["test_single_models"] for m in metrics]
-    n_members = len(metrics[0]["config"]["seeds"])
-    ax.errorbar(
-        [s["rmse_mean"] for s in single],
-        y + 0.18,
-        xerr=[s["rmse_std"] for s in single],
-        fmt="o",
-        color=t["series"][1],
-        markersize=6,
-        markeredgecolor=t["surface"],
-        elinewidth=1.4,
-        capsize=0,
-        zorder=3,
-        label=f"One LSTM network, mean ± sd over the ensemble's {n_members} networks",
-    )
-    lgbm = [(m["baseline_lightgbm"] or {}).get("rmse", np.nan) for m in metrics]
-    ax.plot(
-        lgbm,
-        y - 0.18,
-        "D",
-        color=t["series"][2],
-        markersize=6,
-        markeredgecolor=t["surface"],
-        zorder=3,
-        label="LightGBM on window statistics (one seed)",
-    )
-    ensemble = [m["test"]["rmse"] for m in metrics]
-    ax.plot(
-        ensemble,
-        y,
-        "o",
-        color=t["series"][0],
-        markersize=8,
-        markeredgecolor=t["surface"],
-        markeredgewidth=1.5,
-        zorder=4,
-        label=f"LSTM + attention, {n_members}-network ensemble",
-    )
-    for yi, v in zip(y, ensemble, strict=True):
-        ax.annotate(
-            f"{v:.2f}",
-            (v, yi),
-            xytext=(0, 7),
-            textcoords="offset points",
-            ha="center",
-            fontsize=8,
-            color=t["text"],
+    for offset, model in ((-0.14, "lstm"), (0.14, "lightgbm")):
+        colour = t["series"][MODEL_SLOT[model]]
+        summaries = [
+            runs[s]["metrics"]["test"]["models"].get(model, {}).get("summary") for s in subsets
+        ]
+        if not all(summaries):
+            continue
+        ax_err.errorbar(
+            [s["rmse"]["mean"] for s in summaries],
+            y + offset,
+            xerr=[s["rmse"]["sd"] or 0 for s in summaries],
+            fmt="o",
+            color=colour,
+            markersize=6,
+            markeredgecolor=t["surface"],
+            elinewidth=1.4,
+            capsize=0,
+            label=MODEL_LABEL[model],
         )
-    values = [*ensemble, *lgbm, *(s["rmse_mean"] + s["rmse_std"] for s in single)]
-    ax.set_yticks(y, subsets)
-    ax.set_ylim(len(subsets) - 0.5, -0.6)
-    ax.set_xlim(np.floor(np.nanmin(values)) - 1, np.ceil(np.nanmax(values)) + 1)
-    ax.set_xlabel("Test RMSE in cycles against truth capped at 125 (lower is better)")
-    ax.grid(axis="y", visible=False)
-    handles, labels = ax.get_legend_handles_labels()
-    by_label = dict(zip(labels, handles, strict=True))
-    priority = ("LSTM +", "One LSTM", "LightGBM")
-    wanted = sorted(labels, key=lambda label: next(i for i, p in enumerate(priority) if p in label))
+        means = np.array([s["coverage"]["mean"] for s in summaries])
+        bounds = np.array([s["coverage_wilson_at_mean"] for s in summaries])
+        ax_cov.errorbar(
+            100 * means,
+            y + offset,
+            xerr=[100 * (means - bounds[:, 0]), 100 * (bounds[:, 1] - means)],
+            fmt="o",
+            color=colour,
+            markersize=6,
+            markeredgecolor=t["surface"],
+            elinewidth=1.4,
+            capsize=0,
+        )
+    ax_cov.axvline(90, color=t["muted"], linewidth=1, linestyle=(0, (3, 3)))
+    ax_cov.text(
+        90.4, len(subsets) - 0.55, "nominal 90%", fontsize=7.5, color=t["muted"], va="bottom"
+    )
+    ax_err.set_yticks(y, subsets)
+    ax_err.set_ylim(len(subsets) - 0.5, -0.6)
+    ax_err.set_xlabel("Test RMSE, cycles (capped truth; mean ± sd over repeats)")
+    ax_cov.set_xlabel("Test engines inside the interval, % (95% Wilson interval)")
+    for ax in (ax_err, ax_cov):
+        ax.grid(axis="y", visible=False)
+    ax_err.set_title("Point accuracy", pad=6)
+    ax_cov.set_title("Interval coverage", pad=6)
     fig.legend(
-        [by_label[label] for label in wanted],
-        wanted,
-        loc="upper left",
-        ncols=3,
-        bbox_to_anchor=(0.06, 0.83),
-        fontsize=8,
+        *ax_err.get_legend_handles_labels(), loc="upper right", ncols=2, bbox_to_anchor=(0.99, 0.99)
     )
     _title(
         fig,
         t,
-        "Test error by subset: the network against a gradient-boosting baseline",
-        "Same engines, split, target cap and test protocol for every model shown.",
+        "The network against a gradient-boosting baseline, under one protocol",
+        "Same cross-fitted folds, window choice, calibration and test engines for both models.",
     )
-    fig.tight_layout(rect=(0, 0, 1, 0.76))
+    fig.tight_layout(rect=(0, 0, 1, 0.8))
     return _save(fig, out_dir, "results", theme)
 
 
@@ -533,10 +574,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     artifacts = args.artifacts or Settings.from_env().artifacts_dir
     runs = {
-        s: _load(artifacts, s) for s in args.subsets if (artifacts / s / "metrics.json").is_file()
+        s: _load(artifacts, s)
+        for s in args.subsets
+        if (artifacts / s / "metrics.json").is_file()
+        and json.loads((artifacts / s / "metrics.json").read_text()).get("test")
     }
     if not runs:
-        parser.error(f"No trained subsets found in {artifacts}")
+        parser.error(f"No evaluated subsets found in {artifacts}")
     args.out.mkdir(parents=True, exist_ok=True)
     focus = runs.get(args.focus) or next(iter(runs.values()))
     written = []
@@ -544,11 +588,12 @@ def main(argv: list[str] | None = None) -> int:
         _style(t)
         written += [
             fig_test_sets(runs, t, args.out, theme),
-            fig_holdout_lives(focus, t, args.out, theme),
-            fig_attribution(focus, t, args.out, theme),
-            fig_calibration(runs, focus, t, args.out, theme),
+            fig_lives(focus, t, args.out, theme),
+            fig_alerts(runs, focus, t, args.out, theme),
             fig_results(runs, t, args.out, theme),
         ]
+        if (focus["dir"] / "model.pt").is_file():
+            written.append(fig_attribution(focus, t, args.out, theme))
     for path in written:
         print(path)
     return 0
