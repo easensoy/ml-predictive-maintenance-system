@@ -6,8 +6,11 @@ that never saw that engine: not in training, not in early stopping, not in choos
   are split into K folds and network k is trained without fold k. Each engine contributes one
   conformity score, computed by the network that did not see it at a test-like truncation point.
   A new engine's interval combines every network's bounds with the scores of the engines that
-  network did not see. For exchangeable engines, CV+ covers with probability at least
-  1 - 2*alpha in the worst case, and close to 1 - alpha in practice.
+  network did not see. If a new engine and truncation point are exchangeable with the
+  calibration ones (one score per engine, folds fixed independently of the data), K-fold CV+
+  covers with probability at least 1 - 2*alpha - min(2(1 - 1/K)/(n/K + 1), (1 - K/n)/(K + 1))
+  for n engines (Barber et al., Theorem 4; 1 - 2*alpha is the jackknife+ case, K = n), and
+  typically close to 1 - alpha in practice.
 * **The target cap**: the model predicts RUL capped at ``max_rul``. An interval whose upper end
   reaches the cap is reported as open-ended ("at least ``lower`` cycles"), which makes coverage of
   the capped target and coverage of the actual remaining life the same thing.
