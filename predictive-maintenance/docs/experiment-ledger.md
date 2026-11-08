@@ -106,12 +106,12 @@ Window choice in the published runs, over every repeat and fold: how often each 
 
 | Subset | Model | Times chosen (30 / 40 / 50 / 60) | Mean inner-validation RMSE (30 / 40 / 50 / 60) |
 |---|---|---|---|
-| FD001 | LSTM ensemble | 0 / 0 / 9 / 6 | 13.99 / 12.93 / 12.20 / 12.16 |
+| FD001 | LSTM | 0 / 0 / 9 / 6 | 13.99 / 12.93 / 12.20 / 12.16 |
 | FD001 | LightGBM | 0 / 2 / 5 / 8 | 13.53 / 12.36 / 11.80 / 11.80 |
-| FD002 | LSTM ensemble | 0 / 0 / 2 / 13 | 15.40 / 13.99 / 13.26 / 12.82 |
+| FD002 | LSTM | 0 / 0 / 2 / 13 | 15.40 / 13.99 / 13.26 / 12.82 |
 | FD002 | LightGBM | 0 / 0 / 1 / 14 | 15.41 / 13.77 / 12.92 / 12.53 |
-| FD003 | LSTM ensemble | 1 / 0 / 4 / 10 | 13.48 / 13.04 / 12.37 / 11.79 |
+| FD003 | LSTM | 1 / 0 / 4 / 10 | 13.48 / 13.04 / 12.37 / 11.79 |
 | FD003 | LightGBM | 0 / 3 / 5 / 7 | 12.89 / 11.71 / 11.15 / 11.12 |
-| FD004 | LSTM ensemble | 0 / 0 / 6 / 9 | 15.35 / 14.53 / 14.12 / 13.82 |
+| FD004 | LSTM | 0 / 0 / 6 / 9 | 15.35 / 14.53 / 14.12 / 13.82 |
 | FD004 | LightGBM | 0 / 0 / 5 / 10 | 15.03 / 14.18 / 13.61 / 13.39 |
 <!-- ledger:end -->
