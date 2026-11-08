@@ -1,10 +1,15 @@
-"""Write the results tables in README.md and MODEL_CARD.md from ``artifacts/<subset>/``.
+"""Write the generated parts of README.md and MODEL_CARD.md from ``artifacts/<subset>/``.
 
-    python -m predmaint.report          # rewrites the results block in both documents
+    python -m predmaint.report          # rewrites every generated block in both documents
 
-The documents never contain a hand-typed metric: rerun this after training and evaluation.
+It fills each block whose markers a document has: the headline, the findings, the results tables,
+the attribution checks, the latency table, the dashboard state and the API example. It first
+writes ``docs/example-response.json`` by posting ``docs/example-request.json`` to the real
+``/api/predict`` route. It also rewrites the generated section of the experiment ledger.
+
+The documents never contain a hand-typed result: rerun this after training and evaluation.
 ``python -m predmaint.audit`` recomputes every number from the committed predictions and checks
-that the block matches.
+that each block matches.
 """
 
 import argparse
@@ -12,19 +17,23 @@ import json
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from predmaint.audit import DOCUMENTS, SUBSETS
+from predmaint.calibration import covered
 from predmaint.config import PROJECT_ROOT, Settings
 from predmaint.evaluate import BOOT_SEED, N_BOOT, _by_engine
-from predmaint.metrics import bootstrap_indices, mean_sd, percentile_interval
+from predmaint.metrics import bootstrap_indices, mean_sd, percentile_interval, wilson_interval
 
 START, END = "<!-- results:start -->", "<!-- results:end -->"
 LEDGER_START, LEDGER_END = "<!-- ledger:start -->", "<!-- ledger:end -->"
 LEDGER_JSONL = PROJECT_ROOT / "docs" / "experiment-ledger.jsonl"
 LEDGER_MD = PROJECT_ROOT / "docs" / "experiment-ledger.md"
 DASH = "–"
-NAMES = {"lstm": "LSTM ensemble", "lightgbm": "LightGBM"}
+# Both are served as the average of their five cross-fitted fold models, so neither name says
+# "ensemble"; the tables say so once instead.
+NAMES = {"lstm": "LSTM", "lightgbm": "LightGBM"}
 
 
 def _ms(stat: dict | None, spec: str, scale: float = 1.0, unit: str = "") -> str:
@@ -173,7 +182,8 @@ def results_block(artifacts: Path) -> str:
     repeats = len(next(iter(runs.values()))["config"]["repeats"])
     return "\n\n".join(
         [
-            f"**Official test sets.** Mean ± sd over {repeats} repeats of the whole pipeline; "
+            f"**Official test sets.** Both models are served as the average of their five "
+            f"cross-fitted fold models. Mean ± sd over {repeats} repeats of the whole pipeline; "
             "bold marks the better model in each subset. The coverage interval is a 95% Wilson "
             "interval over test engines at the mean rate. Width counts an open-ended interval up "
             "to the 125-cycle cap, so both models are measured on the same engines.",
@@ -204,73 +214,270 @@ def _significant(diff: dict) -> bool:
     return diff["ci_low"] > 0 or diff["ci_high"] < 0
 
 
-def summary_block(artifacts: Path) -> str:
-    """The headline findings, computed from the same artifacts as the tables (so no number in
-    the README is typed by hand)."""
+def first_alert(group: pd.DataFrame, threshold: float) -> pd.Series | None:
+    """The first cycle of one engine's life at which the alert fires (at least one cycle left)."""
+    fired = group[(group["probability"] >= threshold) & (group["rul"] >= 1)]
+    return fired.iloc[0] if len(fired) else None
+
+
+def hero_engine(replay: pd.DataFrame, threshold: float, cap: int) -> int:
+    """The replay engine shown in the hero figure, the dashboard screenshots and the attribution
+    example, picked by a fixed rule: among engines whose interval misses the capped truth at
+    least once, the one with the median first-alert lead time. That favours a typical engine
+    with a visible failure over the best-looking one."""
+    rows = []
+    for _, g in replay.groupby("unit"):
+        truth = np.minimum(g["rul"].to_numpy(), cap)
+        inside = covered(
+            g["lower"].to_numpy(), g["upper"].to_numpy(), g["open_ended"].to_numpy(bool), truth
+        )
+        alert = first_alert(g, threshold)
+        lead = int(alert["rul"]) if alert is not None else -1
+        rows.append((int(g["unit"].to_numpy()[0]), int((~inside).sum()), lead))
+    table = pd.DataFrame(rows, columns=["unit", "misses", "lead"])
+    pool = table[table["misses"] > 0] if (table["misses"] > 0).any() else table
+    pool = pool.sort_values(["lead", "unit"]).reset_index(drop=True)
+    return int(pool["unit"].to_numpy()[len(pool) // 2])
+
+
+def served_replay(run_dir: Path) -> pd.DataFrame:
+    """The served networks' predictions for every cycle of the replay engines."""
+    metrics = json.loads((run_dir / "metrics.json").read_text())
+    replay = pd.read_csv(run_dir / "predictions" / "replay-holdout.csv.gz")
+    repeat = metrics["served"]["repeat"]
+    return replay[(replay["model"] == "lstm") & (replay["repeat"] == repeat)]
+
+
+def hero_state(run_dir: Path) -> dict[str, Any]:
+    """The engine and cycle the README shows in three views (hero, dashboard, attribution): the
+    hero engine at the cycle its alert first fires."""
+    metrics = json.loads((run_dir / "metrics.json").read_text())
+    cfg = metrics["config"]
+    replay = served_replay(run_dir)
+    unit = hero_engine(replay, cfg["alert_threshold"], cfg["max_rul"])
+    life = replay[replay["unit"] == unit].sort_values("cycle")
+    alert = first_alert(life, cfg["alert_threshold"])
+    row = alert if alert is not None else life.iloc[-1]
+    return {"unit": unit, "cycle": int(row["cycle"]), "row": row, "life": life}
+
+
+def single_models(run_dir: Path) -> dict[str, dict[str, list[float]]]:
+    """Test RMSE against the capped truth of every single fold model (one per fold and repeat)
+    and of each repeat's five-model average, which is what is served and tabulated."""
+    cap = json.loads((run_dir / "metrics.json").read_text())["config"]["max_rul"]
+    test = pd.read_csv(run_dir / "predictions" / "test.csv")
+    members = pd.read_csv(run_dir / "predictions" / "test-members.csv")
+    truth = test.drop_duplicates("unit").set_index("unit")["rul_true"].clip(upper=cap)
+    out = {}
+    for model, g in members.groupby("model", sort=False):
+        error = g["point_raw"].clip(0, cap) - g["unit"].map(truth)
+        singles = (error**2).groupby([g["repeat"], g["member"]]).mean() ** 0.5
+        t = test[test["model"] == model]
+        averages = ((t["point"] - t["unit"].map(truth)) ** 2).groupby(t["repeat"]).mean() ** 0.5
+        out[str(model)] = {"singles": singles.tolist(), "averages": averages.tolist()}
+    return out
+
+
+def coverage_by_rul(run_dirs: dict[str, Path]) -> pd.DataFrame:
+    """Test coverage by true-RUL range, all subsets pooled: for each model and range, the mean
+    over repeats, the number of test engines and a 95% Wilson interval at the mean rate."""
+    from predmaint.gallery import RUL_BINS, RUL_LABELS
+
+    frames = []
+    for run_dir in run_dirs.values():
+        cap = json.loads((run_dir / "metrics.json").read_text())["config"]["max_rul"]
+        t = pd.read_csv(run_dir / "predictions" / "test.csv")
+        t["inside"] = covered(
+            t["lower"].to_numpy(),
+            t["upper"].to_numpy(),
+            t["open_ended"].to_numpy(bool),
+            np.minimum(t["rul_true"].to_numpy(), cap),
+        )
+        frames.append(t)
+    test = pd.concat(frames, ignore_index=True)
+    test["bin"] = pd.cut(test["rul_true"], RUL_BINS, labels=RUL_LABELS).astype(str)
+    rows = []
+    for model in test["model"].unique():
+        for label in RUL_LABELS:
+            g = test[(test["model"] == model) & (test["bin"] == label)]
+            if not len(g):
+                continue
+            rate = float(g.groupby("repeat")["inside"].mean().mean())
+            engines = int(len(g) / g["repeat"].nunique())
+            low, high = wilson_interval(round(rate * engines), engines)
+            rows.append((model, label, engines, rate, low, high))
+    return pd.DataFrame(rows, columns=["model", "bin", "engines", "coverage", "low", "high"])
+
+
+def _findings(artifacts: Path) -> dict[str, Any] | None:
+    """Every number the headline and the findings quote, computed once."""
     runs = _runs(artifacts)
     complete = {s: m for s, m in runs.items() if "lstm_minus_lightgbm" in m["test"]}
     if not complete:
-        return "_No evaluated runs yet._"
-    n = len(complete)
+        return None
     models = {s: m["test"]["models"] for s, m in complete.items()}
-    rmse_diffs = [m["test"]["lstm_minus_lightgbm"]["rmse"] for m in complete.values()]
-    lgbm_better = sum(d["difference"] > 0 for d in rmse_diffs)
-    rmse_significant = sum(_significant(d) for d in rmse_diffs)
-    coverage = [
-        100 * models[s][name]["summary"]["coverage"]["mean"]
-        for s in complete
-        for name in ("lstm", "lightgbm")
-    ]
+    rmse = {s: m["test"]["lstm_minus_lightgbm"]["rmse"] for s, m in complete.items()}
     widths = {s: m["width"] for s, m in complete.items()}
-    narrower = [
-        100 * (1 - widths[s]["lstm"]["mean"] / widths[s]["lightgbm"]["mean"])
-        for s in complete
-        if widths[s]["lstm"]["mean"] < widths[s]["lightgbm"]["mean"]
-    ]
-    width_significant = sum(
-        _significant(widths[s]["difference"]) and widths[s]["difference"]["difference"] < 0
-        for s in complete
-    )
-    flaps = {
-        name: [
-            m["out_of_fold"][name]["summary"]["alert.flaps_per_engine"]["mean"]
+    singles = {s: single_models(artifacts / s) for s in complete}
+    by_rul = coverage_by_rul({s: artifacts / s for s in complete})
+    nominal = 100 * (1 - next(iter(complete.values()))["config"]["alpha"])
+    return {
+        "n": len(complete),
+        "lgbm_lower": [s for s, d in rmse.items() if d["difference"] > 0],
+        "significant": [s for s, d in rmse.items() if _significant(d)],
+        "rmse": rmse,
+        "gain": [
+            sum(v["singles"]) / len(v["singles"]) - sum(v["averages"]) / len(v["averages"])
+            for per in singles.values()
+            for v in per.values()
+        ],
+        "coverage": [
+            100 * models[s][name]["summary"]["coverage"]["mean"]
+            for s in complete
+            for name in ("lstm", "lightgbm")
+        ],
+        "nominal": nominal,
+        "worst_bin": {
+            name: g.iloc[int(np.argmin(g["coverage"].to_numpy()))]
+            for name, g in by_rul.groupby("model", sort=False)
+        },
+        "oof": {
+            (s, name): 100
+            * m["out_of_fold"][name]["summary"]["coverage_per_engine_weighted"]["mean"]
+            for s, m in complete.items()
+            for name in ("lstm", "lightgbm")
+        },
+        "narrower": [
+            100 * (1 - widths[s]["lstm"]["mean"] / widths[s]["lightgbm"]["mean"])
+            for s in complete
+            if widths[s]["lstm"]["mean"] < widths[s]["lightgbm"]["mean"]
+        ],
+        "width_significant": sum(
+            _significant(widths[s]["difference"]) and widths[s]["difference"]["difference"] < 0
+            for s in complete
+        ),
+        "flaps": {
+            name: [
+                m["out_of_fold"][name]["summary"]["alert.flaps_per_engine"]["mean"]
+                for m in complete.values()
+            ]
+            for name in ("lstm", "lightgbm")
+        },
+        "ap": [
+            models[s][name]["summary"]["alert_ap"]["mean"] for s in complete for name in models[s]
+        ],
+        "base_rate": [
+            100
+            * models[s]["lstm"]["per_repeat"]["0"]["alert_positives"]
+            / m["data"]["test_engines"]
+            for s, m in complete.items()
+        ],
+        "lead": [
+            m["out_of_fold"][name]["summary"]["alert.lead_median"]["mean"]
             for m in complete.values()
-        ]
-        for name in ("lstm", "lightgbm")
+            for name in ("lstm", "lightgbm")
+        ],
     }
-    ap = [models[s][name]["summary"]["alert_ap"]["mean"] for s in complete for name in models[s]]
-    lead = [
-        m["out_of_fold"][name]["summary"]["alert.lead_median"]["mean"]
-        for m in complete.values()
-        for name in ("lstm", "lightgbm")
-    ]
-    accuracy = (
-        f"LightGBM's test RMSE is lower on {lgbm_better} of {n} subsets, and the paired "
-        f"difference is significant on {rmse_significant} of {n}"
-        + (" (every 95% interval includes zero)" if rmse_significant == 0 else "")
-        + "."
+
+
+def _difference(diff: dict) -> str:
+    """'+1.06 cycles (95% CI +0.26 to +1.93)' for a paired LSTM-minus-LightGBM difference."""
+    return (
+        f"{diff['difference']:+.2f} cycles (95% CI {diff['ci_low']:+.2f} to {diff['ci_high']:+.2f})"
     )
-    intervals = (
-        f"Both models cover {_span(coverage, '.0f')}% of test engines with a nominal 90% "
-        "interval, so the intervals are conservative rather than short. "
+
+
+def _by_model(pairs: list[tuple[str, str]]) -> str:
+    """'LightGBM on FD001 and FD002 and the LSTM on FD003' from (subset, model) pairs."""
+    groups: dict[str, list[str]] = {}
+    for subset, model in pairs:
+        groups.setdefault(model, []).append(subset)
+    article = {"lstm": "the ", "lightgbm": ""}
+    return " and ".join(
+        f"{article[m]}{NAMES[m]} on {' and '.join(subsets)}" for m, subsets in groups.items()
+    )
+
+
+def headline_block(artifacts: Path) -> str:
+    """The two sentences at the top of the README."""
+    f = _findings(artifacts)
+    if f is None:
+        return "_No evaluated runs yet._"
+    significant = f["significant"]
+    where = (
+        "significantly only on "
+        + ", ".join(f"{s}, by {_difference(f['rmse'][s]).replace('+', '', 1)}" for s in significant)
+        if significant
+        else "but never significantly"
+    )
+    return (
+        f"Under one cross-fitted protocol on the four C-MAPSS subsets, a LightGBM model on four "
+        f"statistics per sensor is at least as accurate as a five-network LSTM: its test RMSE is "
+        f"lower on {len(f['lgbm_lower'])} of {f['n']} subsets, {where}. Accuracy alone does not "
+        f"separate them; the uncertainty and alert evaluations do. The LSTM's nominal "
+        f"{f['nominal']:.0f}% intervals are {_span(f['narrower'], '.0f')}% narrower at similar "
+        f"coverage, and its alert switches itself off again {_span(f['flaps']['lstm'], '.2f')} "
+        f"times per engine over a whole life, against {_span(f['flaps']['lightgbm'], '.2f')} for "
+        "LightGBM."
+    )
+
+
+def summary_block(artifacts: Path) -> str:
+    """The findings, computed from the same artifacts as the tables (so no number in the README
+    is typed by hand)."""
+    f = _findings(artifacts)
+    if f is None:
+        return "_No evaluated runs yet._"
+    n = f["n"]
+    significant = f["significant"]
+    accuracy = (
+        f"LightGBM's test RMSE is lower on {len(f['lgbm_lower'])} of {n} subsets; the paired "
         + (
-            f"The LSTM's intervals are narrower on {len(narrower)} of {n} subsets, by "
-            f"{_span(narrower, '.0f')}%, significantly on {width_significant}."
-            if narrower
+            "difference (LSTM minus LightGBM) is significant only on "
+            + ", ".join(f"{s}, {_difference(f['rmse'][s])}" for s in significant)
+            if significant
+            else "difference is not significant on any subset"
+        )
+        + f". Averaging five fold models lowers RMSE by {_span(f['gain'], '.1f')} cycles against "
+        "the mean single fold model, for both families."
+    )
+    worst = f["worst_bin"]
+    below = [(s, name) for (s, name), v in f["oof"].items() if v < f["nominal"]]
+    article = {"lstm": "the ", "lightgbm": ""}
+    uncertainty = (
+        f"Both models cover {_span(f['coverage'], '.0f')}% of test engines with a nominal "
+        f"{f['nominal']:.0f}% interval, so the intervals are conservative on the test sets. "
+        "Coverage is not uniform: by true remaining life it falls to "
+        + " and ".join(
+            f"{100 * row['coverage']:.0f}% for {article[name]}{NAMES[name]} "
+            f"({row['bin']} cycles left)"
+            for name, row in worst.items()
+        )
+        + ". Out of fold, over whole lives, it is "
+        + f"{_span(list(f['oof'].values()), '.0f')}%"
+        + (f", below nominal for {_by_model(below)}" if below else "")
+        + ". "
+        + (
+            f"The LSTM's intervals are narrower on {len(f['narrower'])} of {n} subsets, by "
+            f"{_span(f['narrower'], '.0f')}%, significantly on {f['width_significant']}."
+            if f["narrower"]
             else "The LSTM's intervals are not narrower than LightGBM's."
         )
     )
     alerts = (
-        f"The alert ranks engines equally well for both models (alert AP {_span(ap, '.3f')}) "
-        f"and first fires a median of {_span(lead, '.0f')} cycles before failure. The LSTM's "
-        f"alert switches off again {_span(flaps['lstm'], '.2f')} times per engine over a whole "
-        f"life; LightGBM's, {_span(flaps['lightgbm'], '.2f')} times."
+        f"Both alerts rank test engines by risk almost perfectly: average precision "
+        f"{_span(f['ap'], '.3f')}, where a random score would get the base rate of "
+        f"{_span(f['base_rate'], '.0f')}%. Ranking says nothing about calibration, which is "
+        f"measured separately. Over whole lives the first alert comes a median of "
+        f"{_span(f['lead'], '.0f')} cycles before failure; the LSTM's alert switches off again "
+        f"{_span(f['flaps']['lstm'], '.2f')} times per engine, LightGBM's "
+        f"{_span(f['flaps']['lightgbm'], '.2f')} times."
     )
     return "\n".join(
         f"- **{head}** {text}"
         for head, text in (
             ("Accuracy.", accuracy),
-            ("Uncertainty.", intervals),
+            ("Uncertainty.", uncertainty),
             ("Alerting.", alerts),
         )
     )
@@ -291,7 +498,7 @@ def attribution_block(artifacts: Path) -> str:
         [
             f"On {r['windows']} windows from {r['engines']} FD001 replay engines (at "
             f"{', '.join(map(str, r['stages_cycles_left']))} cycles before failure), with the "
-            "served five-network ensemble:",
+            "served five-network average:",
             "",
             f"- **Completeness holds.** The attributions add up to the change in prediction to "
             f"within {med('completeness_gap_cycles')} cycles (median), against a median change "
@@ -354,10 +561,143 @@ def latency_block(benchmark: Path) -> str:
     )
 
 
+def example_files(artifacts: Path) -> dict[str, Path]:
+    """The example request and response, and the recorded dashboard state, of the project
+    that holds ``artifacts`` (in this repository: ``docs/``)."""
+    docs = artifacts.resolve().parent / "docs"
+    return {
+        "request": docs / "example-request.json",
+        "response": docs / "example-response.json",
+        "dashboard": docs / "figures" / "dashboard-state.json",
+    }
+
+
+def example_response(model_dir: Path, request: Path) -> dict:
+    """The /api/predict response to the example request, through the real Flask route."""
+    from predmaint.api import create_app
+
+    settings = Settings(
+        artifacts_dir=model_dir.parent,
+        subset=model_dir.name,
+        replay_autostart=False,
+        replay_engines=1,
+    )
+    client = create_app(settings).test_client()
+    response = client.post("/api/predict", json=json.loads(request.read_text()))
+    if response.status_code != 200:
+        raise SystemExit(f"/api/predict answered {response.status_code}: {response.get_data()!r}")
+    return response.get_json()
+
+
+def matching_test_engine(response: dict, run_dir: Path) -> pd.Series | None:
+    """The served model's test prediction (LSTM, served repeat) that the response reproduces,
+    if exactly one test engine matches it to the response's rounding."""
+    metrics = json.loads((run_dir / "metrics.json").read_text())
+    test = pd.read_csv(run_dir / "predictions" / "test.csv")
+    test = test[(test["model"] == "lstm") & (test["repeat"] == metrics["served"]["repeat"])]
+    rul, alert = response["rul"], response["failure_within_horizon"]
+    match = test[
+        ((test["point"] - rul["point"]).abs() <= 0.051)
+        & ((test["lower"] - rul["lower"]).abs() <= 0.051)
+        & (test["open_ended"].astype(bool) == rul["open_ended"])
+        & ((test["probability"] - alert["probability"]).abs() <= 0.00011)
+    ]
+    return match.iloc[0] if len(match) == 1 else None
+
+
+def _compact_json(value: Any, indent: str = "  ") -> str:
+    """JSON with one top-level field per line and each value on one line."""
+    lines = [
+        f'{indent}"{key}": {json.dumps(item, separators=(", ", ": "), ensure_ascii=False)}'
+        for key, item in value.items()
+    ]
+    return "{\n" + ",\n".join(lines) + "\n}"
+
+
+def api_example_block(artifacts: Path) -> str:
+    """The stored example response, trimmed for the README, and the test engine it matches."""
+    path = example_files(artifacts)["response"]
+    if not path.is_file():
+        return "_No example response yet: run `python -m predmaint.report`._"
+    response = json.loads(path.read_text())
+    shown = dict(response)
+    explanation = response.get("explanation")
+    more = 0
+    if explanation:
+        sensors = explanation["sensors"]
+        more = len(sensors) - 3
+        shown["explanation"] = {
+            "method": explanation["method"],
+            "baseline_rul_cycles": explanation["baseline_rul_cycles"],
+            "sensors": [
+                {k: s[k] for k in ("symbol", "description", "contribution_cycles")}
+                for s in sensors[:3]
+            ],
+        }
+    lines = [
+        "```json",
+        _compact_json(shown),
+        "```",
+        "",
+    ]
+    rul = response["rul"]
+    match = matching_test_engine(response, artifacts / "FD001")
+    trimmed = (
+        f"The explanation is trimmed to its three largest sensor effects ({more} more in the "
+        "full response, [`docs/example-response.json`](predictive-maintenance/docs/"
+        "example-response.json))."
+        if explanation
+        else ""
+    )
+    if match is not None:
+        truth = int(match["rul_true"])
+        inside = rul["lower"] <= truth and (rul["open_ended"] or truth <= rul["upper"])
+        lines.append(
+            f"The request holds {response['cycles_received']} cycles of FD001 test engine "
+            f"{int(match['unit'])}, ending at the last of its {int(match['length'])} recorded "
+            "cycles, and the response matches, to its rounding, the prediction scored for that "
+            f"engine in the test table (LSTM, served repeat). NASA's true RUL for it is {truth} "
+            "cycles: "
+            + ("inside" if inside else "outside")
+            + f" the interval, {abs(truth - rul['point']):.0f} cycles "
+            + ("above" if truth > rul["point"] else "below")
+            + f" the point estimate. {trimmed}"
+        )
+    else:
+        lines.append(
+            "The response matches no single test-set prediction of the served model, so it is "
+            f"shown without a label. {trimmed}"
+        )
+    return "\n".join(lines).rstrip()
+
+
+def dashboard_block(artifacts: Path) -> str:
+    """What the dashboard screenshots show, from the state the screenshot script recorded."""
+    path = example_files(artifacts)["dashboard"]
+    if not path.is_file():
+        return "_No screenshot state yet: run `python -m predmaint.screenshots`._"
+    s = json.loads(path.read_text())
+    interval = (
+        f"at least {s['lower']:.0f}" if s["open_ended"] else f"{s['lower']:.0f} to {s['upper']:.0f}"
+    )
+    return (
+        f"Both captures show the same replay state: {s['subset']} replay engine {s['unit']} at "
+        f"cycle {s['cycle']} of {s['total_cycles']}, the cycle at which its alert first fires "
+        f"(the hero figure shows its whole life). The dashboard predicts {s['point']:.0f} cycles "
+        f"(nominal {100 * s['interval']:.0f}% interval {interval}) and a {s['probability']:.0%} "
+        f"probability of failure within {s['horizon_cycles']} cycles; the true RUL, known because "
+        f"the simulated engine ran to failure, is {s['rul_true']}. These are the numbers in that "
+        "engine's row of `replay-holdout.csv.gz`, which `predmaint.audit` checks."
+    )
+
+
 BLOCKS = {
+    "headline": lambda artifacts: headline_block(artifacts),
     "summary": lambda artifacts: summary_block(artifacts),
     "attribution": lambda artifacts: attribution_block(artifacts),
     "latency": lambda artifacts: latency_block(PROJECT_ROOT / "docs" / "benchmark.json"),
+    "api-example": lambda artifacts: api_example_block(artifacts),
+    "dashboard": lambda artifacts: dashboard_block(artifacts),
 }
 
 
@@ -466,6 +806,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--artifacts", type=Path, default=None)
     args = parser.parse_args(argv)
     artifacts = args.artifacts or Settings.from_env().artifacts_dir
+    files = example_files(artifacts)
+    if (artifacts / "FD001" / "model.pt").is_file() and files["request"].is_file():
+        response = example_response(artifacts / "FD001", files["request"])
+        text = json.dumps(response, indent=2, ensure_ascii=False) + "\n"
+        files["response"].write_text(text, encoding="utf-8")
+        print(f"Wrote {files['response']}")
     for document in args.docs:
         update_readme(document, artifacts)
         print(f"Updated results block in {document}")
