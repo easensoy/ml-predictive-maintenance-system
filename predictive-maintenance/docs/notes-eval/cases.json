@@ -1,0 +1,6232 @@
+[
+ {
+  "case_id": "000-normal",
+  "kind": "normal",
+  "engine": 48,
+  "subset": "FD001",
+  "cycle": 170,
+  "rul": {
+   "point": 56.3,
+   "lower": 28.7,
+   "upper": 83.5,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0131,
+   "threshold": 0.5
+  },
+  "status": "watch",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -28.7
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -17.18
+   },
+   {
+    "symbol": "W31",
+    "description": "HPT coolant bleed",
+    "contribution_cycles": -4.73
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "001-normal",
+  "kind": "normal",
+  "engine": 29,
+  "subset": "FD001",
+  "cycle": 95,
+  "rul": {
+   "point": 85.1,
+   "lower": 51.6,
+   "upper": 116.4,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0044,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -7.65
+   },
+   {
+    "symbol": "T50",
+    "description": "Total temperature at LPT outlet",
+    "contribution_cycles": -6.98
+   },
+   {
+    "symbol": "BPR",
+    "description": "Bypass ratio",
+    "contribution_cycles": -6.24
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "002-normal",
+  "kind": "normal",
+  "engine": 48,
+  "subset": "FD001",
+  "cycle": 93,
+  "rul": {
+   "point": 117.2,
+   "lower": 89.0,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0011,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -3.58
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -3.54
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": 3.13
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "003-normal",
+  "kind": "normal",
+  "engine": 71,
+  "subset": "FD001",
+  "cycle": 182,
+  "rul": {
+   "point": 22.4,
+   "lower": 16.8,
+   "upper": 31.4,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.9539,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -19.44
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -16.96
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -16.05
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "004-normal",
+  "kind": "normal",
+  "engine": 81,
+  "subset": "FD001",
+  "cycle": 74,
+  "rul": {
+   "point": 117.1,
+   "lower": 89.4,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0019,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "htBleed",
+    "description": "Bleed enthalpy",
+    "contribution_cycles": 2.28
+   },
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": 2.22
+   },
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -2.16
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "005-normal",
+  "kind": "normal",
+  "engine": 71,
+  "subset": "FD001",
+  "cycle": 91,
+  "rul": {
+   "point": 108.9,
+   "lower": 76.5,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.002,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": 7.54
+   },
+   {
+    "symbol": "T50",
+    "description": "Total temperature at LPT outlet",
+    "contribution_cycles": -4.05
+   },
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -2.51
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "006-normal",
+  "kind": "normal",
+  "engine": 17,
+  "subset": "FD001",
+  "cycle": 61,
+  "rul": {
+   "point": 116.6,
+   "lower": 87.9,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.001,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "Nf",
+    "description": "Physical fan speed",
+    "contribution_cycles": 4.34
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -3.05
+   },
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -2.4
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "007-normal",
+  "kind": "normal",
+  "engine": 81,
+  "subset": "FD001",
+  "cycle": 109,
+  "rul": {
+   "point": 104.4,
+   "lower": 67.5,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0025,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -3.66
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -3.57
+   },
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -3.5
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "008-normal",
+  "kind": "normal",
+  "engine": 48,
+  "subset": "FD001",
+  "cycle": 142,
+  "rul": {
+   "point": 101.5,
+   "lower": 64.7,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0022,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -15.2
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -9.07
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -5.37
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "009-normal",
+  "kind": "normal",
+  "engine": 15,
+  "subset": "FD001",
+  "cycle": 160,
+  "rul": {
+   "point": 47.8,
+   "lower": 28.7,
+   "upper": 80.3,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0275,
+   "threshold": 0.5
+  },
+  "status": "watch",
+  "top_attributions": [
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -10.74
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -9.59
+   },
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": -8.55
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "010-normal",
+  "kind": "normal",
+  "engine": 21,
+  "subset": "FD001",
+  "cycle": 8,
+  "rul": {
+   "point": 122.1,
+   "lower": 83.7,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0017,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -9.44
+   },
+   {
+    "symbol": "htBleed",
+    "description": "Bleed enthalpy",
+    "contribution_cycles": 5.27
+   },
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": 4.76
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "011-normal",
+  "kind": "normal",
+  "engine": 39,
+  "subset": "FD001",
+  "cycle": 88,
+  "rul": {
+   "point": 52.5,
+   "lower": 32.4,
+   "upper": 77.5,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0282,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": -11.68
+   },
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": 11.45
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -9.39
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "012-normal",
+  "kind": "normal",
+  "engine": 15,
+  "subset": "FD001",
+  "cycle": 69,
+  "rul": {
+   "point": 120.2,
+   "lower": 96.2,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0009,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": -5.58
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -5.23
+   },
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -4.65
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "013-normal",
+  "kind": "normal",
+  "engine": 15,
+  "subset": "FD001",
+  "cycle": 104,
+  "rul": {
+   "point": 112.9,
+   "lower": 76.4,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0011,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -5.13
+   },
+   {
+    "symbol": "W31",
+    "description": "HPT coolant bleed",
+    "contribution_cycles": 4.41
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -3.91
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "014-normal",
+  "kind": "normal",
+  "engine": 3,
+  "subset": "FD001",
+  "cycle": 139,
+  "rul": {
+   "point": 45.6,
+   "lower": 23.6,
+   "upper": 71.2,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0311,
+   "threshold": 0.5
+  },
+  "status": "watch",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -21.9
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -15.33
+   },
+   {
+    "symbol": "BPR",
+    "description": "Bypass ratio",
+    "contribution_cycles": -7.19
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "015-normal",
+  "kind": "normal",
+  "engine": 71,
+  "subset": "FD001",
+  "cycle": 7,
+  "rul": {
+   "point": 116.8,
+   "lower": 73.6,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0015,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -3.96
+   },
+   {
+    "symbol": "W31",
+    "description": "HPT coolant bleed",
+    "contribution_cycles": -3.31
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": 3.27
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "016-normal",
+  "kind": "normal",
+  "engine": 39,
+  "subset": "FD001",
+  "cycle": 123,
+  "rul": {
+   "point": 9.5,
+   "lower": 3.0,
+   "upper": 15.9,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.9798,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -17.81
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -15.63
+   },
+   {
+    "symbol": "Nf",
+    "description": "Physical fan speed",
+    "contribution_cycles": -14.82
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "017-normal",
+  "kind": "normal",
+  "engine": 81,
+  "subset": "FD001",
+  "cycle": 32,
+  "rul": {
+   "point": 113.0,
+   "lower": 80.6,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0018,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "BPR",
+    "description": "Bypass ratio",
+    "contribution_cycles": 4.66
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -3.75
+   },
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": -3.49
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "018-normal",
+  "kind": "normal",
+  "engine": 15,
+  "subset": "FD001",
+  "cycle": 90,
+  "rul": {
+   "point": 119.2,
+   "lower": 93.6,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0009,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -5.58
+   },
+   {
+    "symbol": "BPR",
+    "description": "Bypass ratio",
+    "contribution_cycles": 2.9
+   },
+   {
+    "symbol": "htBleed",
+    "description": "Bleed enthalpy",
+    "contribution_cycles": 2.78
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "019-normal",
+  "kind": "normal",
+  "engine": 81,
+  "subset": "FD001",
+  "cycle": 39,
+  "rul": {
+   "point": 110.8,
+   "lower": 74.6,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0019,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -5.09
+   },
+   {
+    "symbol": "BPR",
+    "description": "Bypass ratio",
+    "contribution_cycles": 4.44
+   },
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -3.7
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "020-normal",
+  "kind": "normal",
+  "engine": 17,
+  "subset": "FD001",
+  "cycle": 152,
+  "rul": {
+   "point": 101.0,
+   "lower": 65.1,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.002,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -5.98
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -5.75
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -4.47
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "021-normal",
+  "kind": "normal",
+  "engine": 17,
+  "subset": "FD001",
+  "cycle": 124,
+  "rul": {
+   "point": 109.3,
+   "lower": 78.6,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0014,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -6.47
+   },
+   {
+    "symbol": "Nf",
+    "description": "Physical fan speed",
+    "contribution_cycles": 4.59
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -4.46
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "022-normal",
+  "kind": "normal",
+  "engine": 39,
+  "subset": "FD001",
+  "cycle": 18,
+  "rul": {
+   "point": 125.0,
+   "lower": 100.4,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0013,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": 5.09
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": 4.24
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": 4.0
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "023-normal",
+  "kind": "normal",
+  "engine": 40,
+  "subset": "FD001",
+  "cycle": 141,
+  "rul": {
+   "point": 50.6,
+   "lower": 27.0,
+   "upper": 79.2,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0367,
+   "threshold": 0.5
+  },
+  "status": "watch",
+  "top_attributions": [
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -10.7
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": -7.99
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -6.87
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "024-normal",
+  "kind": "normal",
+  "engine": 81,
+  "subset": "FD001",
+  "cycle": 53,
+  "rul": {
+   "point": 118.2,
+   "lower": 88.0,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0017,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -3.7
+   },
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": 2.68
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -2.54
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "025-normal",
+  "kind": "normal",
+  "engine": 21,
+  "subset": "FD001",
+  "cycle": 120,
+  "rul": {
+   "point": 88.6,
+   "lower": 54.1,
+   "upper": 120.2,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0039,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "T50",
+    "description": "Total temperature at LPT outlet",
+    "contribution_cycles": -5.79
+   },
+   {
+    "symbol": "BPR",
+    "description": "Bypass ratio",
+    "contribution_cycles": -5.73
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -5.1
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "026-normal",
+  "kind": "normal",
+  "engine": 81,
+  "subset": "FD001",
+  "cycle": 235,
+  "rul": {
+   "point": 5.6,
+   "lower": 0.0,
+   "upper": 15.5,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.984,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -16.96
+   },
+   {
+    "symbol": "Nf",
+    "description": "Physical fan speed",
+    "contribution_cycles": -14.86
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -14.41
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "027-normal",
+  "kind": "normal",
+  "engine": 17,
+  "subset": "FD001",
+  "cycle": 201,
+  "rul": {
+   "point": 66.8,
+   "lower": 38.3,
+   "upper": 95.1,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0088,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -20.09
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -12.15
+   },
+   {
+    "symbol": "W31",
+    "description": "HPT coolant bleed",
+    "contribution_cycles": -4.78
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "028-normal",
+  "kind": "normal",
+  "engine": 71,
+  "subset": "FD001",
+  "cycle": 126,
+  "rul": {
+   "point": 97.3,
+   "lower": 64.2,
+   "upper": 124.4,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0037,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "T50",
+    "description": "Total temperature at LPT outlet",
+    "contribution_cycles": -3.35
+   },
+   {
+    "symbol": "W31",
+    "description": "HPT coolant bleed",
+    "contribution_cycles": -2.84
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -2.59
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "029-normal",
+  "kind": "normal",
+  "engine": 81,
+  "subset": "FD001",
+  "cycle": 81,
+  "rul": {
+   "point": 113.9,
+   "lower": 83.6,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0021,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "T50",
+    "description": "Total temperature at LPT outlet",
+    "contribution_cycles": -2.54
+   },
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": 2.17
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -1.73
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "030-normal",
+  "kind": "normal",
+  "engine": 48,
+  "subset": "FD001",
+  "cycle": 205,
+  "rul": {
+   "point": 21.6,
+   "lower": 11.8,
+   "upper": 30.5,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.9632,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -38.05
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -30.31
+   },
+   {
+    "symbol": "T50",
+    "description": "Total temperature at LPT outlet",
+    "contribution_cycles": -4.59
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "031-normal",
+  "kind": "normal",
+  "engine": 39,
+  "subset": "FD001",
+  "cycle": 81,
+  "rul": {
+   "point": 70.1,
+   "lower": 46.0,
+   "upper": 96.2,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0086,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": 14.02
+   },
+   {
+    "symbol": "BPR",
+    "description": "Bypass ratio",
+    "contribution_cycles": -9.24
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": -9.09
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "032-normal",
+  "kind": "normal",
+  "engine": 48,
+  "subset": "FD001",
+  "cycle": 58,
+  "rul": {
+   "point": 120.1,
+   "lower": 94.7,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.001,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "Nf",
+    "description": "Physical fan speed",
+    "contribution_cycles": 4.13
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": 3.89
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": 3.11
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "033-normal",
+  "kind": "normal",
+  "engine": 3,
+  "subset": "FD001",
+  "cycle": 55,
+  "rul": {
+   "point": 120.1,
+   "lower": 92.3,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.001,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": 4.11
+   },
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -3.96
+   },
+   {
+    "symbol": "BPR",
+    "description": "Bypass ratio",
+    "contribution_cycles": 3.16
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "034-normal",
+  "kind": "normal",
+  "engine": 15,
+  "subset": "FD001",
+  "cycle": 125,
+  "rul": {
+   "point": 106.2,
+   "lower": 73.8,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0014,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -6.54
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -5.46
+   },
+   {
+    "symbol": "Nf",
+    "description": "Physical fan speed",
+    "contribution_cycles": 3.64
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "035-normal",
+  "kind": "normal",
+  "engine": 15,
+  "subset": "FD001",
+  "cycle": 146,
+  "rul": {
+   "point": 65.5,
+   "lower": 37.5,
+   "upper": 109.2,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.007,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -8.97
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -8.4
+   },
+   {
+    "symbol": "BPR",
+    "description": "Bypass ratio",
+    "contribution_cycles": -7.73
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "036-normal",
+  "kind": "normal",
+  "engine": 21,
+  "subset": "FD001",
+  "cycle": 22,
+  "rul": {
+   "point": 125.0,
+   "lower": 105.1,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0013,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "htBleed",
+    "description": "Bleed enthalpy",
+    "contribution_cycles": 7.72
+   },
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": 4.86
+   },
+   {
+    "symbol": "T50",
+    "description": "Total temperature at LPT outlet",
+    "contribution_cycles": 4.46
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "037-normal",
+  "kind": "normal",
+  "engine": 21,
+  "subset": "FD001",
+  "cycle": 99,
+  "rul": {
+   "point": 108.0,
+   "lower": 78.0,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0022,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -6.94
+   },
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -5.03
+   },
+   {
+    "symbol": "W31",
+    "description": "HPT coolant bleed",
+    "contribution_cycles": -5.0
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "038-normal",
+  "kind": "normal",
+  "engine": 21,
+  "subset": "FD001",
+  "cycle": 183,
+  "rul": {
+   "point": 12.1,
+   "lower": 6.9,
+   "upper": 20.0,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.9841,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -24.91
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -20.73
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -11.58
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "039-normal",
+  "kind": "normal",
+  "engine": 21,
+  "subset": "FD001",
+  "cycle": 15,
+  "rul": {
+   "point": 125.0,
+   "lower": 97.2,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0015,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "htBleed",
+    "description": "Bleed enthalpy",
+    "contribution_cycles": 8.54
+   },
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -6.62
+   },
+   {
+    "symbol": "T50",
+    "description": "Total temperature at LPT outlet",
+    "contribution_cycles": 6.08
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "040-normal",
+  "kind": "normal",
+  "engine": 81,
+  "subset": "FD001",
+  "cycle": 25,
+  "rul": {
+   "point": 116.2,
+   "lower": 88.6,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0016,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": -5.07
+   },
+   {
+    "symbol": "BPR",
+    "description": "Bypass ratio",
+    "contribution_cycles": 3.17
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": 2.91
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "041-normal",
+  "kind": "normal",
+  "engine": 3,
+  "subset": "FD001",
+  "cycle": 48,
+  "rul": {
+   "point": 118.0,
+   "lower": 87.5,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.001,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": 4.65
+   },
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -4.25
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -4.0
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "042-normal",
+  "kind": "normal",
+  "engine": 15,
+  "subset": "FD001",
+  "cycle": 83,
+  "rul": {
+   "point": 119.8,
+   "lower": 95.0,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0009,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -6.58
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": 3.04
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": 2.97
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "043-normal",
+  "kind": "normal",
+  "engine": 81,
+  "subset": "FD001",
+  "cycle": 88,
+  "rul": {
+   "point": 110.9,
+   "lower": 81.0,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0022,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -4.83
+   },
+   {
+    "symbol": "W32",
+    "description": "LPT coolant bleed",
+    "contribution_cycles": -2.09
+   },
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": 2.08
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "044-normal",
+  "kind": "normal",
+  "engine": 17,
+  "subset": "FD001",
+  "cycle": 208,
+  "rul": {
+   "point": 58.1,
+   "lower": 31.5,
+   "upper": 86.2,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0139,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -19.52
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -11.45
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -5.73
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "045-normal",
+  "kind": "normal",
+  "engine": 17,
+  "subset": "FD001",
+  "cycle": 131,
+  "rul": {
+   "point": 107.7,
+   "lower": 74.2,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0015,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -7.79
+   },
+   {
+    "symbol": "Nf",
+    "description": "Physical fan speed",
+    "contribution_cycles": 5.74
+   },
+   {
+    "symbol": "W31",
+    "description": "HPT coolant bleed",
+    "contribution_cycles": 5.06
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "046-normal",
+  "kind": "normal",
+  "engine": 15,
+  "subset": "FD001",
+  "cycle": 48,
+  "rul": {
+   "point": 122.8,
+   "lower": 97.6,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0008,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -5.57
+   },
+   {
+    "symbol": "BPR",
+    "description": "Bypass ratio",
+    "contribution_cycles": 2.87
+   },
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": -2.34
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "047-normal",
+  "kind": "normal",
+  "engine": 81,
+  "subset": "FD001",
+  "cycle": 207,
+  "rul": {
+   "point": 31.7,
+   "lower": 18.2,
+   "upper": 51.4,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.5137,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -13.87
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": -11.5
+   },
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": -10.59
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "048-normal",
+  "kind": "normal",
+  "engine": 17,
+  "subset": "FD001",
+  "cycle": 159,
+  "rul": {
+   "point": 100.4,
+   "lower": 66.1,
+   "upper": 124.7,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0021,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -6.16
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -5.76
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -4.57
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "049-normal",
+  "kind": "normal",
+  "engine": 3,
+  "subset": "FD001",
+  "cycle": 174,
+  "rul": {
+   "point": 7.2,
+   "lower": 1.5,
+   "upper": 13.7,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.9869,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -29.94
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -25.69
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -11.05
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "050-normal",
+  "kind": "normal",
+  "engine": 71,
+  "subset": "FD001",
+  "cycle": 196,
+  "rul": {
+   "point": 10.4,
+   "lower": 5.4,
+   "upper": 19.5,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.9839,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -26.19
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -19.88
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -12.95
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "051-normal",
+  "kind": "normal",
+  "engine": 17,
+  "subset": "FD001",
+  "cycle": 5,
+  "rul": {
+   "point": 122.9,
+   "lower": 96.5,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0009,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": -3.8
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": 2.97
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": 2.67
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "052-normal",
+  "kind": "normal",
+  "engine": 40,
+  "subset": "FD001",
+  "cycle": 183,
+  "rul": {
+   "point": 5.3,
+   "lower": 0.0,
+   "upper": 14.4,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.9858,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -21.89
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -15.0
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -13.96
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "053-normal",
+  "kind": "normal",
+  "engine": 39,
+  "subset": "FD001",
+  "cycle": 102,
+  "rul": {
+   "point": 39.6,
+   "lower": 23.7,
+   "upper": 62.2,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.2051,
+   "threshold": 0.5
+  },
+  "status": "watch",
+  "top_attributions": [
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -14.1
+   },
+   {
+    "symbol": "Nf",
+    "description": "Physical fan speed",
+    "contribution_cycles": -12.62
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": -11.84
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "054-normal",
+  "kind": "normal",
+  "engine": 39,
+  "subset": "FD001",
+  "cycle": 46,
+  "rul": {
+   "point": 99.6,
+   "lower": 50.3,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0036,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -7.04
+   },
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": 6.93
+   },
+   {
+    "symbol": "W31",
+    "description": "HPT coolant bleed",
+    "contribution_cycles": -5.53
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "055-normal",
+  "kind": "normal",
+  "engine": 71,
+  "subset": "FD001",
+  "cycle": 203,
+  "rul": {
+   "point": 6.1,
+   "lower": 0.0,
+   "upper": 15.1,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.9855,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -28.41
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -20.11
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -11.03
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "056-normal",
+  "kind": "normal",
+  "engine": 15,
+  "subset": "FD001",
+  "cycle": 202,
+  "rul": {
+   "point": 5.8,
+   "lower": 1.3,
+   "upper": 11.6,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.9865,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -16.88
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": -14.85
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -13.88
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "057-normal",
+  "kind": "normal",
+  "engine": 3,
+  "subset": "FD001",
+  "cycle": 118,
+  "rul": {
+   "point": 82.4,
+   "lower": 48.6,
+   "upper": 114.3,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0032,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -9.91
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -8.22
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -7.09
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "058-normal",
+  "kind": "normal",
+  "engine": 81,
+  "subset": "FD001",
+  "cycle": 144,
+  "rul": {
+   "point": 89.9,
+   "lower": 51.1,
+   "upper": 119.3,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0043,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": -8.95
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -3.89
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -3.88
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "059-normal",
+  "kind": "normal",
+  "engine": 48,
+  "subset": "FD001",
+  "cycle": 156,
+  "rul": {
+   "point": 79.8,
+   "lower": 46.8,
+   "upper": 113.6,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0048,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -23.88
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -16.05
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -7.46
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "060-normal",
+  "kind": "normal",
+  "engine": 29,
+  "subset": "FD001",
+  "cycle": 18,
+  "rul": {
+   "point": 120.3,
+   "lower": 91.0,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0016,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": 8.06
+   },
+   {
+    "symbol": "W31",
+    "description": "HPT coolant bleed",
+    "contribution_cycles": -4.85
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -2.8
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "061-normal",
+  "kind": "normal",
+  "engine": 21,
+  "subset": "FD001",
+  "cycle": 29,
+  "rul": {
+   "point": 125.0,
+   "lower": 98.9,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0015,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "htBleed",
+    "description": "Bleed enthalpy",
+    "contribution_cycles": 6.62
+   },
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": 5.82
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -2.44
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "062-normal",
+  "kind": "normal",
+  "engine": 40,
+  "subset": "FD001",
+  "cycle": 50,
+  "rul": {
+   "point": 108.1,
+   "lower": 73.1,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0028,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "BPR",
+    "description": "Bypass ratio",
+    "contribution_cycles": -3.36
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -2.92
+   },
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": 2.67
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "063-normal",
+  "kind": "normal",
+  "engine": 3,
+  "subset": "FD001",
+  "cycle": 104,
+  "rul": {
+   "point": 101.0,
+   "lower": 66.3,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0019,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -7.58
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -6.13
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -5.16
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "064-normal",
+  "kind": "normal",
+  "engine": 48,
+  "subset": "FD001",
+  "cycle": 2,
+  "rul": {
+   "point": 122.5,
+   "lower": 95.0,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0011,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -13.76
+   },
+   {
+    "symbol": "Nf",
+    "description": "Physical fan speed",
+    "contribution_cycles": 6.0
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": 5.0
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "065-normal",
+  "kind": "normal",
+  "engine": 17,
+  "subset": "FD001",
+  "cycle": 173,
+  "rul": {
+   "point": 105.0,
+   "lower": 75.5,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0023,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -8.75
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": 4.25
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -3.73
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "066-normal",
+  "kind": "normal",
+  "engine": 29,
+  "subset": "FD001",
+  "cycle": 109,
+  "rul": {
+   "point": 84.2,
+   "lower": 52.3,
+   "upper": 114.9,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0048,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -8.21
+   },
+   {
+    "symbol": "W32",
+    "description": "LPT coolant bleed",
+    "contribution_cycles": -5.34
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -5.16
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "067-normal",
+  "kind": "normal",
+  "engine": 39,
+  "subset": "FD001",
+  "cycle": 11,
+  "rul": {
+   "point": 125.0,
+   "lower": 99.7,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0012,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": 4.89
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": 3.92
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -2.96
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "068-normal",
+  "kind": "normal",
+  "engine": 17,
+  "subset": "FD001",
+  "cycle": 194,
+  "rul": {
+   "point": 67.9,
+   "lower": 37.5,
+   "upper": 100.4,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0081,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -21.72
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -14.1
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -5.32
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "069-normal",
+  "kind": "normal",
+  "engine": 81,
+  "subset": "FD001",
+  "cycle": 60,
+  "rul": {
+   "point": 117.6,
+   "lower": 87.4,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0019,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -3.05
+   },
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -2.76
+   },
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": 2.27
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "070-normal",
+  "kind": "normal",
+  "engine": 40,
+  "subset": "FD001",
+  "cycle": 127,
+  "rul": {
+   "point": 62.0,
+   "lower": 35.8,
+   "upper": 93.0,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0191,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": -8.0
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": -7.44
+   },
+   {
+    "symbol": "BPR",
+    "description": "Bypass ratio",
+    "contribution_cycles": -6.77
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "071-normal",
+  "kind": "normal",
+  "engine": 15,
+  "subset": "FD001",
+  "cycle": 76,
+  "rul": {
+   "point": 120.1,
+   "lower": 95.3,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0009,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -5.25
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": 5.09
+   },
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": -4.71
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "072-normal",
+  "kind": "normal",
+  "engine": 29,
+  "subset": "FD001",
+  "cycle": 158,
+  "rul": {
+   "point": 6.4,
+   "lower": 0.2,
+   "upper": 13.0,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.9848,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -19.12
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -16.64
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": -14.44
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "073-normal",
+  "kind": "normal",
+  "engine": 3,
+  "subset": "FD001",
+  "cycle": 132,
+  "rul": {
+   "point": 49.4,
+   "lower": 26.0,
+   "upper": 76.6,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0212,
+   "threshold": 0.5
+  },
+  "status": "watch",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -22.85
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -14.49
+   },
+   {
+    "symbol": "BPR",
+    "description": "Bypass ratio",
+    "contribution_cycles": -6.67
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "074-normal",
+  "kind": "normal",
+  "engine": 17,
+  "subset": "FD001",
+  "cycle": 271,
+  "rul": {
+   "point": 4.7,
+   "lower": 0.0,
+   "upper": 14.2,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.9863,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -28.03
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -20.95
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -13.07
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "075-normal",
+  "kind": "normal",
+  "engine": 17,
+  "subset": "FD001",
+  "cycle": 19,
+  "rul": {
+   "point": 123.5,
+   "lower": 97.8,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0008,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": -6.25
+   },
+   {
+    "symbol": "Nf",
+    "description": "Physical fan speed",
+    "contribution_cycles": 4.83
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -3.71
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "076-normal",
+  "kind": "normal",
+  "engine": 71,
+  "subset": "FD001",
+  "cycle": 147,
+  "rul": {
+   "point": 72.1,
+   "lower": 38.8,
+   "upper": 108.0,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0058,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -8.87
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": -8.21
+   },
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -7.37
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "077-normal",
+  "kind": "normal",
+  "engine": 17,
+  "subset": "FD001",
+  "cycle": 222,
+  "rul": {
+   "point": 48.2,
+   "lower": 26.1,
+   "upper": 73.8,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0435,
+   "threshold": 0.5
+  },
+  "status": "watch",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -21.86
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -15.15
+   },
+   {
+    "symbol": "BPR",
+    "description": "Bypass ratio",
+    "contribution_cycles": -5.43
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "078-normal",
+  "kind": "normal",
+  "engine": 81,
+  "subset": "FD001",
+  "cycle": 172,
+  "rul": {
+   "point": 70.1,
+   "lower": 42.4,
+   "upper": 97.7,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0112,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": -10.17
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": -7.85
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -5.3
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "079-normal",
+  "kind": "normal",
+  "engine": 29,
+  "subset": "FD001",
+  "cycle": 144,
+  "rul": {
+   "point": 18.9,
+   "lower": 12.0,
+   "upper": 26.7,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.9588,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -18.45
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -13.76
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": -12.89
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "080-normal",
+  "kind": "normal",
+  "engine": 48,
+  "subset": "FD001",
+  "cycle": 191,
+  "rul": {
+   "point": 41.2,
+   "lower": 17.8,
+   "upper": 66.0,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0749,
+   "threshold": 0.5
+  },
+  "status": "watch",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -33.31
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -23.2
+   },
+   {
+    "symbol": "T50",
+    "description": "Total temperature at LPT outlet",
+    "contribution_cycles": -3.99
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "081-normal",
+  "kind": "normal",
+  "engine": 17,
+  "subset": "FD001",
+  "cycle": 68,
+  "rul": {
+   "point": 115.1,
+   "lower": 85.2,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.001,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "Nf",
+    "description": "Physical fan speed",
+    "contribution_cycles": 5.74
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -4.56
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": 4.38
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "082-normal",
+  "kind": "normal",
+  "engine": 39,
+  "subset": "FD001",
+  "cycle": 95,
+  "rul": {
+   "point": 47.5,
+   "lower": 28.1,
+   "upper": 70.4,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0459,
+   "threshold": 0.5
+  },
+  "status": "watch",
+  "top_attributions": [
+   {
+    "symbol": "Nf",
+    "description": "Physical fan speed",
+    "contribution_cycles": -11.08
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -10.35
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": -9.87
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "083-normal",
+  "kind": "normal",
+  "engine": 81,
+  "subset": "FD001",
+  "cycle": 123,
+  "rul": {
+   "point": 89.7,
+   "lower": 55.4,
+   "upper": 117.3,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0041,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -6.7
+   },
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -4.98
+   },
+   {
+    "symbol": "BPR",
+    "description": "Bypass ratio",
+    "contribution_cycles": -4.93
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "084-normal",
+  "kind": "normal",
+  "engine": 3,
+  "subset": "FD001",
+  "cycle": 83,
+  "rul": {
+   "point": 110.6,
+   "lower": 77.4,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0013,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -4.3
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -3.67
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -3.48
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "085-normal",
+  "kind": "normal",
+  "engine": 48,
+  "subset": "FD001",
+  "cycle": 149,
+  "rul": {
+   "point": 94.3,
+   "lower": 57.3,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0027,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -19.29
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -12.49
+   },
+   {
+    "symbol": "BPR",
+    "description": "Bypass ratio",
+    "contribution_cycles": 5.64
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "086-normal",
+  "kind": "normal",
+  "engine": 48,
+  "subset": "FD001",
+  "cycle": 128,
+  "rul": {
+   "point": 112.7,
+   "lower": 78.5,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0016,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -8.43
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -4.06
+   },
+   {
+    "symbol": "htBleed",
+    "description": "Bleed enthalpy",
+    "contribution_cycles": 3.29
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "087-normal",
+  "kind": "normal",
+  "engine": 21,
+  "subset": "FD001",
+  "cycle": 190,
+  "rul": {
+   "point": 6.9,
+   "lower": 1.6,
+   "upper": 14.9,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.9861,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -26.78
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -22.07
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -13.01
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "088-normal",
+  "kind": "normal",
+  "engine": 71,
+  "subset": "FD001",
+  "cycle": 154,
+  "rul": {
+   "point": 63.5,
+   "lower": 35.9,
+   "upper": 98.5,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0096,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -11.03
+   },
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -10.45
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": -8.47
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "089-normal",
+  "kind": "normal",
+  "engine": 29,
+  "subset": "FD001",
+  "cycle": 123,
+  "rul": {
+   "point": 53.8,
+   "lower": 31.7,
+   "upper": 77.2,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0217,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": -11.63
+   },
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": -10.19
+   },
+   {
+    "symbol": "BPR",
+    "description": "Bypass ratio",
+    "contribution_cycles": -8.06
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "090-conflict-status",
+  "kind": "conflict-status",
+  "engine": 40,
+  "subset": "FD001",
+  "cycle": 148,
+  "rul": {
+   "point": 47.1,
+   "lower": 23.1,
+   "upper": 75.4,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.12,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -9.68
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -9.17
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": -8.58
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "091-conflict-status",
+  "kind": "conflict-status",
+  "engine": 15,
+  "subset": "FD001",
+  "cycle": 62,
+  "rul": {
+   "point": 122.0,
+   "lower": 96.7,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.81,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -3.71
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": 3.65
+   },
+   {
+    "symbol": "BPR",
+    "description": "Bypass ratio",
+    "contribution_cycles": 2.48
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "092-conflict-bounds",
+  "kind": "conflict-bounds",
+  "engine": 71,
+  "subset": "FD001",
+  "cycle": 28,
+  "rul": {
+   "point": 119.8,
+   "lower": 128.8,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0018,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "W32",
+    "description": "LPT coolant bleed",
+    "contribution_cycles": 5.48
+   },
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": 5.31
+   },
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -4.09
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "093-missing-point",
+  "kind": "missing-point",
+  "engine": 71,
+  "subset": "FD001",
+  "cycle": 35,
+  "rul": {
+   "point": null,
+   "lower": 90.4,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0018,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": 6.67
+   },
+   {
+    "symbol": "W32",
+    "description": "LPT coolant bleed",
+    "contribution_cycles": 3.75
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -3.33
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "094-missing-probability",
+  "kind": "missing-probability",
+  "engine": 48,
+  "subset": "FD001",
+  "cycle": 51,
+  "rul": {
+   "point": 121.1,
+   "lower": 93.7,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": null,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "Nf",
+    "description": "Physical fan speed",
+    "contribution_cycles": 5.32
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": 5.17
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -5.01
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "095-missing-attributions",
+  "kind": "missing-attributions",
+  "engine": 21,
+  "subset": "FD001",
+  "cycle": 162,
+  "rul": {
+   "point": 38.1,
+   "lower": 24.6,
+   "upper": 58.4,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.2182,
+   "threshold": 0.5
+  },
+  "status": "watch",
+  "top_attributions": [],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "096-out-of-distribution",
+  "kind": "out-of-distribution",
+  "engine": 17,
+  "subset": "FD001",
+  "cycle": 145,
+  "rul": {
+   "point": 100.1,
+   "lower": 65.2,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0019,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -5.77
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -5.34
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -3.66
+   }
+  ],
+  "out_of_distribution": {
+   "flag": true,
+   "sensors": [
+    "sensor_11"
+   ]
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "097-wide-interval",
+  "kind": "wide-interval",
+  "engine": 29,
+  "subset": "FD001",
+  "cycle": 137,
+  "rul": {
+   "point": 55.0,
+   "lower": 5.0,
+   "upper": 110.0,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.6232,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -15.14
+   },
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": -14.87
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -12.3
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "098-open-ended",
+  "kind": "open-ended",
+  "engine": 48,
+  "subset": "FD001",
+  "cycle": 135,
+  "rul": {
+   "point": 121.3,
+   "lower": 96.4,
+   "upper": 125.0,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -12.46
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -6.67
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -4.68
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "099-low-coverage",
+  "kind": "low-coverage",
+  "engine": 71,
+  "subset": "FD001",
+  "cycle": 105,
+  "rul": {
+   "point": 114.4,
+   "lower": 78.4,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0018,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": 3.01
+   },
+   {
+    "symbol": "W32",
+    "description": "LPT coolant bleed",
+    "contribution_cycles": -2.42
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -2.3
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.71
+ },
+ {
+  "case_id": "100-at-threshold",
+  "kind": "at-threshold",
+  "engine": 71,
+  "subset": "FD001",
+  "cycle": 161,
+  "rul": {
+   "point": 53.6,
+   "lower": 30.7,
+   "upper": 81.3,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.5,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -11.95
+   },
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -11.23
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -9.68
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "101-decimals",
+  "kind": "decimals",
+  "engine": 15,
+  "subset": "FD001",
+  "cycle": 118,
+  "rul": {
+   "point": 109.46,
+   "lower": 79.4,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0012,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -7.55
+   },
+   {
+    "symbol": "Nf",
+    "description": "Physical fan speed",
+    "contribution_cycles": 3.72
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -3.03
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "102-conflict-status",
+  "kind": "conflict-status",
+  "engine": 15,
+  "subset": "FD001",
+  "cycle": 181,
+  "rul": {
+   "point": 22.8,
+   "lower": 15.1,
+   "upper": 33.6,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.12,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -16.52
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": -13.15
+   },
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": -11.07
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "103-conflict-status",
+  "kind": "conflict-status",
+  "engine": 39,
+  "subset": "FD001",
+  "cycle": 4,
+  "rul": {
+   "point": 121.9,
+   "lower": 90.3,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.81,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": 3.3
+   },
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": 3.13
+   },
+   {
+    "symbol": "W31",
+    "description": "HPT coolant bleed",
+    "contribution_cycles": -2.71
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "104-conflict-bounds",
+  "kind": "conflict-bounds",
+  "engine": 81,
+  "subset": "FD001",
+  "cycle": 221,
+  "rul": {
+   "point": 14.1,
+   "lower": 23.1,
+   "upper": 23.9,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.9671,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -17.0
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -15.73
+   },
+   {
+    "symbol": "Nf",
+    "description": "Physical fan speed",
+    "contribution_cycles": -12.79
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "105-missing-point",
+  "kind": "missing-point",
+  "engine": 29,
+  "subset": "FD001",
+  "cycle": 74,
+  "rul": {
+   "point": null,
+   "lower": 62.1,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0031,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -4.79
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -4.33
+   },
+   {
+    "symbol": "T50",
+    "description": "Total temperature at LPT outlet",
+    "contribution_cycles": -3.85
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "106-missing-probability",
+  "kind": "missing-probability",
+  "engine": 48,
+  "subset": "FD001",
+  "cycle": 121,
+  "rul": {
+   "point": 109.2,
+   "lower": 78.4,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": null,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -6.92
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -5.16
+   },
+   {
+    "symbol": "Nf",
+    "description": "Physical fan speed",
+    "contribution_cycles": 4.25
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "107-missing-attributions",
+  "kind": "missing-attributions",
+  "engine": 39,
+  "subset": "FD001",
+  "cycle": 74,
+  "rul": {
+   "point": 80.3,
+   "lower": 45.1,
+   "upper": 108.7,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0055,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "108-out-of-distribution",
+  "kind": "out-of-distribution",
+  "engine": 48,
+  "subset": "FD001",
+  "cycle": 16,
+  "rul": {
+   "point": 125.0,
+   "lower": 102.2,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0009,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": 4.13
+   },
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -3.84
+   },
+   {
+    "symbol": "T50",
+    "description": "Total temperature at LPT outlet",
+    "contribution_cycles": 3.67
+   }
+  ],
+  "out_of_distribution": {
+   "flag": true,
+   "sensors": [
+    "sensor_11"
+   ]
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "109-wide-interval",
+  "kind": "wide-interval",
+  "engine": 21,
+  "subset": "FD001",
+  "cycle": 64,
+  "rul": {
+   "point": 55.0,
+   "lower": 5.0,
+   "upper": 110.0,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0019,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": 5.12
+   },
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": -2.71
+   },
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -2.31
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "110-open-ended",
+  "kind": "open-ended",
+  "engine": 21,
+  "subset": "FD001",
+  "cycle": 148,
+  "rul": {
+   "point": 121.3,
+   "lower": 96.4,
+   "upper": 125.0,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -14.38
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -10.7
+   },
+   {
+    "symbol": "T50",
+    "description": "Total temperature at LPT outlet",
+    "contribution_cycles": -7.27
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "111-low-coverage",
+  "kind": "low-coverage",
+  "engine": 48,
+  "subset": "FD001",
+  "cycle": 23,
+  "rul": {
+   "point": 125.0,
+   "lower": 101.2,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0009,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": 3.64
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": 2.42
+   },
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": 1.8
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.71
+ },
+ {
+  "case_id": "112-at-threshold",
+  "kind": "at-threshold",
+  "engine": 15,
+  "subset": "FD001",
+  "cycle": 13,
+  "rul": {
+   "point": 123.9,
+   "lower": 98.6,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.5,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -8.01
+   },
+   {
+    "symbol": "W31",
+    "description": "HPT coolant bleed",
+    "contribution_cycles": 5.46
+   },
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -5.1
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "113-decimals",
+  "kind": "decimals",
+  "engine": 40,
+  "subset": "FD001",
+  "cycle": 64,
+  "rul": {
+   "point": 113.26,
+   "lower": 83.5,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0024,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": -3.62
+   },
+   {
+    "symbol": "T50",
+    "description": "Total temperature at LPT outlet",
+    "contribution_cycles": -1.65
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": 1.33
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "114-conflict-status",
+  "kind": "conflict-status",
+  "engine": 40,
+  "subset": "FD001",
+  "cycle": 43,
+  "rul": {
+   "point": 115.4,
+   "lower": 86.0,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.12,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "W31",
+    "description": "HPT coolant bleed",
+    "contribution_cycles": 3.53
+   },
+   {
+    "symbol": "BPR",
+    "description": "Bypass ratio",
+    "contribution_cycles": -3.14
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -2.67
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "115-conflict-status",
+  "kind": "conflict-status",
+  "engine": 15,
+  "subset": "FD001",
+  "cycle": 55,
+  "rul": {
+   "point": 121.9,
+   "lower": 97.5,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.81,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -5.51
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": 3.79
+   },
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -2.66
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "116-conflict-bounds",
+  "kind": "conflict-bounds",
+  "engine": 81,
+  "subset": "FD001",
+  "cycle": 137,
+  "rul": {
+   "point": 92.8,
+   "lower": 101.8,
+   "upper": 122.0,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0035,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": -3.7
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -3.58
+   },
+   {
+    "symbol": "W32",
+    "description": "LPT coolant bleed",
+    "contribution_cycles": -3.44
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "117-missing-point",
+  "kind": "missing-point",
+  "engine": 17,
+  "subset": "FD001",
+  "cycle": 12,
+  "rul": {
+   "point": null,
+   "lower": 99.0,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0008,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": -6.55
+   },
+   {
+    "symbol": "W32",
+    "description": "LPT coolant bleed",
+    "contribution_cycles": -3.84
+   },
+   {
+    "symbol": "T50",
+    "description": "Total temperature at LPT outlet",
+    "contribution_cycles": 3.64
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "118-missing-probability",
+  "kind": "missing-probability",
+  "engine": 48,
+  "subset": "FD001",
+  "cycle": 219,
+  "rul": {
+   "point": 9.0,
+   "lower": 2.9,
+   "upper": 19.6,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": null,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -37.32
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -29.31
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -7.05
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "119-missing-attributions",
+  "kind": "missing-attributions",
+  "engine": 81,
+  "subset": "FD001",
+  "cycle": 158,
+  "rul": {
+   "point": 91.1,
+   "lower": 53.4,
+   "upper": 120.1,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.004,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "120-out-of-distribution",
+  "kind": "out-of-distribution",
+  "engine": 17,
+  "subset": "FD001",
+  "cycle": 229,
+  "rul": {
+   "point": 39.6,
+   "lower": 23.2,
+   "upper": 61.0,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.137,
+   "threshold": 0.5
+  },
+  "status": "watch",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -23.87
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -15.97
+   },
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": -6.89
+   }
+  ],
+  "out_of_distribution": {
+   "flag": true,
+   "sensors": [
+    "sensor_11"
+   ]
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "121-wide-interval",
+  "kind": "wide-interval",
+  "engine": 29,
+  "subset": "FD001",
+  "cycle": 25,
+  "rul": {
+   "point": 55.0,
+   "lower": 5.0,
+   "upper": 110.0,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0017,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": 6.52
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -4.09
+   },
+   {
+    "symbol": "W31",
+    "description": "HPT coolant bleed",
+    "contribution_cycles": -3.01
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "122-open-ended",
+  "kind": "open-ended",
+  "engine": 29,
+  "subset": "FD001",
+  "cycle": 39,
+  "rul": {
+   "point": 121.3,
+   "lower": 96.4,
+   "upper": 125.0,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -5.12
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -4.23
+   },
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": 4.0
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "123-low-coverage",
+  "kind": "low-coverage",
+  "engine": 29,
+  "subset": "FD001",
+  "cycle": 81,
+  "rul": {
+   "point": 101.5,
+   "lower": 64.5,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0029,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "W31",
+    "description": "HPT coolant bleed",
+    "contribution_cycles": -4.82
+   },
+   {
+    "symbol": "T50",
+    "description": "Total temperature at LPT outlet",
+    "contribution_cycles": -4.68
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -4.42
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.71
+ },
+ {
+  "case_id": "124-at-threshold",
+  "kind": "at-threshold",
+  "engine": 81,
+  "subset": "FD001",
+  "cycle": 214,
+  "rul": {
+   "point": 23.7,
+   "lower": 13.7,
+   "upper": 35.9,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.5,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -14.65
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -12.65
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": -12.62
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "125-decimals",
+  "kind": "decimals",
+  "engine": 81,
+  "subset": "FD001",
+  "cycle": 46,
+  "rul": {
+   "point": 111.56,
+   "lower": 76.3,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.002,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -4.13
+   },
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -3.84
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": 3.19
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "126-conflict-status",
+  "kind": "conflict-status",
+  "engine": 21,
+  "subset": "FD001",
+  "cycle": 78,
+  "rul": {
+   "point": 111.0,
+   "lower": 75.5,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.12,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": 5.67
+   },
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -3.54
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": 2.95
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "127-conflict-status",
+  "kind": "conflict-status",
+  "engine": 21,
+  "subset": "FD001",
+  "cycle": 155,
+  "rul": {
+   "point": 46.4,
+   "lower": 27.7,
+   "upper": 67.5,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.81,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -18.19
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -12.9
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -9.45
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "128-conflict-bounds",
+  "kind": "conflict-bounds",
+  "engine": 39,
+  "subset": "FD001",
+  "cycle": 67,
+  "rul": {
+   "point": 89.1,
+   "lower": 98.1,
+   "upper": 119.2,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0033,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": 13.28
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -6.14
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -5.99
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "129-missing-point",
+  "kind": "missing-point",
+  "engine": 21,
+  "subset": "FD001",
+  "cycle": 127,
+  "rul": {
+   "point": null,
+   "lower": 59.3,
+   "upper": 124.3,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0029,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -7.09
+   },
+   {
+    "symbol": "T50",
+    "description": "Total temperature at LPT outlet",
+    "contribution_cycles": -5.88
+   },
+   {
+    "symbol": "BPR",
+    "description": "Bypass ratio",
+    "contribution_cycles": -4.3
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "130-missing-probability",
+  "kind": "missing-probability",
+  "engine": 17,
+  "subset": "FD001",
+  "cycle": 75,
+  "rul": {
+   "point": 114.7,
+   "lower": 81.8,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": null,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "Nf",
+    "description": "Physical fan speed",
+    "contribution_cycles": 5.6
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -4.4
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": 3.76
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "131-missing-attributions",
+  "kind": "missing-attributions",
+  "engine": 40,
+  "subset": "FD001",
+  "cycle": 155,
+  "rul": {
+   "point": 39.0,
+   "lower": 18.9,
+   "upper": 64.5,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.3166,
+   "threshold": 0.5
+  },
+  "status": "watch",
+  "top_attributions": [],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "132-out-of-distribution",
+  "kind": "out-of-distribution",
+  "engine": 15,
+  "subset": "FD001",
+  "cycle": 27,
+  "rul": {
+   "point": 123.6,
+   "lower": 98.4,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0008,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -4.59
+   },
+   {
+    "symbol": "W31",
+    "description": "HPT coolant bleed",
+    "contribution_cycles": 4.34
+   },
+   {
+    "symbol": "Nf",
+    "description": "Physical fan speed",
+    "contribution_cycles": 3.77
+   }
+  ],
+  "out_of_distribution": {
+   "flag": true,
+   "sensors": [
+    "sensor_11"
+   ]
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "133-wide-interval",
+  "kind": "wide-interval",
+  "engine": 40,
+  "subset": "FD001",
+  "cycle": 169,
+  "rul": {
+   "point": 55.0,
+   "lower": 5.0,
+   "upper": 110.0,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.9323,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -17.5
+   },
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": -12.78
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -10.87
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "134-open-ended",
+  "kind": "open-ended",
+  "engine": 15,
+  "subset": "FD001",
+  "cycle": 132,
+  "rul": {
+   "point": 121.3,
+   "lower": 96.4,
+   "upper": 125.0,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -9.94
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -8.35
+   },
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": 4.79
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "135-low-coverage",
+  "kind": "low-coverage",
+  "engine": 29,
+  "subset": "FD001",
+  "cycle": 151,
+  "rul": {
+   "point": 11.9,
+   "lower": 5.6,
+   "upper": 20.1,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.9825,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -19.68
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": -15.83
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": -13.12
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.71
+ },
+ {
+  "case_id": "136-at-threshold",
+  "kind": "at-threshold",
+  "engine": 48,
+  "subset": "FD001",
+  "cycle": 163,
+  "rul": {
+   "point": 65.3,
+   "lower": 37.8,
+   "upper": 94.8,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.5,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -27.03
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -16.31
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -7.6
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "137-decimals",
+  "kind": "decimals",
+  "engine": 3,
+  "subset": "FD001",
+  "cycle": 76,
+  "rul": {
+   "point": 116.46,
+   "lower": 85.9,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0011,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -3.21
+   },
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -3.21
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -2.87
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "138-conflict-status",
+  "kind": "conflict-status",
+  "engine": 48,
+  "subset": "FD001",
+  "cycle": 226,
+  "rul": {
+   "point": 5.7,
+   "lower": 0.0,
+   "upper": 16.0,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.12,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -38.29
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -29.47
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -8.36
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "139-conflict-status",
+  "kind": "conflict-status",
+  "engine": 29,
+  "subset": "FD001",
+  "cycle": 32,
+  "rul": {
+   "point": 110.2,
+   "lower": 71.2,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.81,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -6.2
+   },
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": 3.65
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -3.3
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "140-conflict-bounds",
+  "kind": "conflict-bounds",
+  "engine": 3,
+  "subset": "FD001",
+  "cycle": 69,
+  "rul": {
+   "point": 114.2,
+   "lower": 123.2,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0011,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -3.5
+   },
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -3.0
+   },
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -2.36
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "141-missing-point",
+  "kind": "missing-point",
+  "engine": 17,
+  "subset": "FD001",
+  "cycle": 26,
+  "rul": {
+   "point": null,
+   "lower": 98.0,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0008,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": -8.64
+   },
+   {
+    "symbol": "W31",
+    "description": "HPT coolant bleed",
+    "contribution_cycles": 6.94
+   },
+   {
+    "symbol": "Nf",
+    "description": "Physical fan speed",
+    "contribution_cycles": 6.73
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "142-missing-probability",
+  "kind": "missing-probability",
+  "engine": 17,
+  "subset": "FD001",
+  "cycle": 89,
+  "rul": {
+   "point": 119.4,
+   "lower": 91.0,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": null,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "Nf",
+    "description": "Physical fan speed",
+    "contribution_cycles": 4.38
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -3.66
+   },
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -2.4
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "143-missing-attributions",
+  "kind": "missing-attributions",
+  "engine": 29,
+  "subset": "FD001",
+  "cycle": 11,
+  "rul": {
+   "point": 120.2,
+   "lower": 91.2,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0015,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "144-out-of-distribution",
+  "kind": "out-of-distribution",
+  "engine": 48,
+  "subset": "FD001",
+  "cycle": 72,
+  "rul": {
+   "point": 119.5,
+   "lower": 94.4,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.001,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "Nf",
+    "description": "Physical fan speed",
+    "contribution_cycles": 4.53
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": 4.43
+   },
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -4.29
+   }
+  ],
+  "out_of_distribution": {
+   "flag": true,
+   "sensors": [
+    "sensor_11"
+   ]
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "145-wide-interval",
+  "kind": "wide-interval",
+  "engine": 48,
+  "subset": "FD001",
+  "cycle": 177,
+  "rul": {
+   "point": 55.0,
+   "lower": 5.0,
+   "upper": 110.0,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0245,
+   "threshold": 0.5
+  },
+  "status": "watch",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -27.04
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -13.87
+   },
+   {
+    "symbol": "W31",
+    "description": "HPT coolant bleed",
+    "contribution_cycles": -4.18
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "146-open-ended",
+  "kind": "open-ended",
+  "engine": 81,
+  "subset": "FD001",
+  "cycle": 186,
+  "rul": {
+   "point": 121.3,
+   "lower": 96.4,
+   "upper": 125.0,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "Ps30",
+    "description": "Static pressure at HPC outlet",
+    "contribution_cycles": -10.42
+   },
+   {
+    "symbol": "T24",
+    "description": "Total temperature at LPC outlet",
+    "contribution_cycles": -10.11
+   },
+   {
+    "symbol": "Nf",
+    "description": "Physical fan speed",
+    "contribution_cycles": -6.57
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "147-low-coverage",
+  "kind": "low-coverage",
+  "engine": 15,
+  "subset": "FD001",
+  "cycle": 6,
+  "rul": {
+   "point": 123.4,
+   "lower": 98.3,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0008,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "phi",
+    "description": "Ratio of fuel flow to Ps30",
+    "contribution_cycles": -8.12
+   },
+   {
+    "symbol": "T30",
+    "description": "Total temperature at HPC outlet",
+    "contribution_cycles": -6.95
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": 5.57
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.71
+ },
+ {
+  "case_id": "148-at-threshold",
+  "kind": "at-threshold",
+  "engine": 48,
+  "subset": "FD001",
+  "cycle": 65,
+  "rul": {
+   "point": 118.7,
+   "lower": 92.4,
+   "upper": null,
+   "open_ended": true,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.5,
+   "threshold": 0.5
+  },
+  "status": "alert",
+  "top_attributions": [
+   {
+    "symbol": "Nf",
+    "description": "Physical fan speed",
+    "contribution_cycles": 4.22
+   },
+   {
+    "symbol": "NRf",
+    "description": "Corrected fan speed",
+    "contribution_cycles": 4.19
+   },
+   {
+    "symbol": "P30",
+    "description": "Total pressure at HPC outlet",
+    "contribution_cycles": 2.78
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ },
+ {
+  "case_id": "149-decimals",
+  "kind": "decimals",
+  "engine": 21,
+  "subset": "FD001",
+  "cycle": 141,
+  "rul": {
+   "point": 77.36,
+   "lower": 45.1,
+   "upper": 106.4,
+   "open_ended": false,
+   "capped_at": 125
+  },
+  "failure_within_horizon": {
+   "horizon_cycles": 30,
+   "probability": 0.0056,
+   "threshold": 0.5
+  },
+  "status": "healthy",
+  "top_attributions": [
+   {
+    "symbol": "NRc",
+    "description": "Corrected core speed",
+    "contribution_cycles": -10.78
+   },
+   {
+    "symbol": "Nc",
+    "description": "Physical core speed",
+    "contribution_cycles": -9.73
+   },
+   {
+    "symbol": "W32",
+    "description": "LPT coolant bleed",
+    "contribution_cycles": -3.44
+   }
+  ],
+  "out_of_distribution": {
+   "flag": false,
+   "sensors": []
+  },
+  "measured_coverage": 0.95
+ }
+]

@@ -1,0 +1,45 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software, please cite it as below, and cite the C-MAPSS dataset
+  (Saxena et al., 2008) that it is trained and evaluated on.
+type: software
+title: "predmaint: turbofan remaining-useful-life prediction with calibrated uncertainty and explanations"
+version: 2.0.0
+license: MIT
+repository-code: "https://github.com/easensoy/ml-predictive-maintenance-system"
+authors:
+  - given-names: Emin Alper
+    family-names: Şensoy
+    alias: easensoy
+keywords:
+  - predictive maintenance
+  - remaining useful life
+  - C-MAPSS
+  - conformal prediction
+  - integrated gradients
+references:
+  - type: conference-paper
+    title: "Damage Propagation Modeling for Aircraft Engine Run-to-Failure Simulation"
+    authors:
+      - given-names: Abhinav
+        family-names: Saxena
+      - given-names: Kai
+        family-names: Goebel
+      - given-names: Don
+        family-names: Simon
+      - given-names: Neil
+        family-names: Eklund
+    collection-title: "2008 International Conference on Prognostics and Health Management (PHM08)"
+    year: 2008
+    doi: 10.1109/PHM.2008.4711414
+  - type: data
+    title: "Turbofan Engine Degradation Simulation Data Set (C-MAPSS)"
+    authors:
+      - given-names: Abhinav
+        family-names: Saxena
+      - given-names: Kai
+        family-names: Goebel
+    publisher:
+      name: "NASA Ames Prognostics Data Repository"
+    year: 2008
+    url: "https://phm-datasets.s3.amazonaws.com/NASA/6.+Turbofan+Engine+Degradation+Simulation+Data+Set.zip"
