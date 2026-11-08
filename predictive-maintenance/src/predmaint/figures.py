@@ -228,7 +228,7 @@ def fig_lives(run: dict, t: dict, out_dir: Path, theme: str, n: int = 4) -> Path
     threshold, horizon, cap = cfg["alert_threshold"], cfg["alert_cycles"], cfg["max_rul"]
     lengths = oof.groupby("unit")["cycle"].max().sort_values()
     picks = lengths.index[np.linspace(0, len(lengths) - 1, n).round().astype(int)]
-    fig, axes = plt.subplots(1, n, figsize=(11, 3.3), sharey=True)
+    fig, axes = plt.subplots(1, n, figsize=(11, 3.6), sharey=True)
     for ax, unit in zip(axes, picks, strict=True):
         g = oof[oof["unit"] == unit]
         ax.axhspan(0, horizon, color=t["zone"], alpha=0.09, linewidth=0)
@@ -279,20 +279,19 @@ def fig_lives(run: dict, t: dict, out_dir: Path, theme: str, n: int = 4) -> Path
         va="bottom",
     )
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(
-        handles, labels, loc="upper right", ncols=3, bbox_to_anchor=(0.99, 0.995), fontsize=8
-    )
+    # Below the panels: the title runs most of the way across the top.
+    fig.legend(handles, labels, loc="lower center", ncols=3, bbox_to_anchor=(0.5, 0.0), fontsize=8)
     lead = run["metrics"]["out_of_fold"]["lstm"]["per_repeat"][str(run["served_repeat"])]["alert"]
     _title(
         fig,
         t,
         f"{run['metrics']['subset']}: whole lives, each predicted by a network that never saw "
         "the engine",
-        f"Out-of-fold predictions for {lead['units']} engines: median first alert "
+        f"Out-of-fold predictions for {lead['units']} engines, served repeat: median first alert "
         f"{lead['lead_median']:.0f} cycles before failure, {lead['missed']} missed, "
         f"{lead['early']} first alerts more than {horizon} cycles early.",
     )
-    fig.tight_layout(rect=(0, 0, 1, 0.84))
+    fig.tight_layout(rect=(0, 0.07, 1, 0.85))
     return _save(fig, out_dir, "lives", theme)
 
 
@@ -418,15 +417,34 @@ def fig_alerts(runs: dict, focus: dict, t: dict, out_dir: Path, theme: str) -> P
         )
         if model == "lstm":
             for _, b in curve.iterrows():
-                low_corner = b["observed_rate"] < 0.08
-                ax_rel.annotate(
-                    f"{int(b['count']):,}",
-                    (b["mean_probability"], b["observed_rate"]),
-                    xytext=(6, 6) if low_corner else (5, -9),
-                    textcoords="offset points",
-                    fontsize=6.5,
-                    color=t["muted"],
-                )
+                point = (b["mean_probability"], b["observed_rate"])
+                if b["observed_rate"] < 0.08:
+                    # Both curves leave the origin steeply, so that bin's count goes in the
+                    # empty space above, with a leader line to its point.
+                    ax_rel.annotate(
+                        f"{int(b['count']):,}",
+                        point,
+                        xytext=(0.03, 0.2),
+                        textcoords="data",
+                        fontsize=6.5,
+                        color=t["muted"],
+                        arrowprops={
+                            "arrowstyle": "-",
+                            "color": t["muted"],
+                            "linewidth": 0.6,
+                            "shrinkA": 1,
+                            "shrinkB": 3,
+                        },
+                    )
+                else:
+                    ax_rel.annotate(
+                        f"{int(b['count']):,}",
+                        point,
+                        xytext=(5, -9),
+                        textcoords="offset points",
+                        fontsize=6.5,
+                        color=t["muted"],
+                    )
     ax_rel.set_xlim(0, 1)
     ax_rel.set_ylim(0, 1)
     ax_rel.set_xlabel(f"Predicted probability of failure within {horizon} cycles")
@@ -487,21 +505,26 @@ def fig_alerts(runs: dict, focus: dict, t: dict, out_dir: Path, theme: str) -> P
         fig,
         t,
         "How the alert behaves, out of fold",
-        "Left: calibration, with 95% intervals from resampling whole engines. Right: when the "
-        "alert first fires; dots right of the line fired before failure entered the horizon.",
+        f"Served repeat ({repeat}) of each subset. Left: reliability, with the ECE's 95% interval "
+        "from resampling whole engines.\nRight: when the LSTM's alert first fires; dots right of "
+        "the line fired before failure entered the horizon.",
     )
-    fig.tight_layout(rect=(0, 0, 1, 0.85))
+    fig.tight_layout(rect=(0, 0, 1, 0.81))
     return _save(fig, out_dir, "alerts", theme)
 
 
 def fig_results(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
     """This project's two models under one protocol. Published results use other protocols, so
     they are compared in a table, not on this axis."""
+    from predmaint.report import width_stats
+
     subsets = list(runs)
-    fig, (ax_err, ax_cov) = plt.subplots(
-        1, 2, figsize=(10.5, 1.5 + 0.6 * len(subsets)), sharey=True
+    fig, (ax_err, ax_cov, ax_width) = plt.subplots(
+        1, 3, figsize=(11, 1.6 + 0.6 * len(subsets)), sharey=True
     )
     y = np.arange(len(subsets))
+    widths = {s: width_stats(runs[s]["dir"]) for s in subsets}
+    marker = {"markersize": 6, "markeredgecolor": t["surface"], "elinewidth": 1.4, "capsize": 0}
     for offset, model in ((-0.14, "lstm"), (0.14, "lightgbm")):
         colour = t["series"][MODEL_SLOT[model]]
         summaries = [
@@ -515,24 +538,29 @@ def fig_results(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
             xerr=[s["rmse"]["sd"] or 0 for s in summaries],
             fmt="o",
             color=colour,
-            markersize=6,
-            markeredgecolor=t["surface"],
-            elinewidth=1.4,
-            capsize=0,
             label=MODEL_LABEL[model],
+            **marker,
         )
         means = np.array([s["coverage"]["mean"] for s in summaries])
         bounds = np.array([s["coverage_wilson_at_mean"] for s in summaries])
         ax_cov.errorbar(
             100 * means,
             y + offset,
-            xerr=[100 * (means - bounds[:, 0]), 100 * (bounds[:, 1] - means)],
+            xerr=[
+                100 * np.maximum(means - bounds[:, 0], 0),
+                100 * np.maximum(bounds[:, 1] - means, 0),
+            ],
             fmt="o",
             color=colour,
-            markersize=6,
-            markeredgecolor=t["surface"],
-            elinewidth=1.4,
-            capsize=0,
+            **marker,
+        )
+        ax_width.errorbar(
+            [widths[s][model]["mean"] for s in subsets],
+            y + offset,
+            xerr=[widths[s][model]["sd"] or 0 for s in subsets],
+            fmt="o",
+            color=colour,
+            **marker,
         )
     ax_cov.axvline(90, color=t["muted"], linewidth=1, linestyle=(0, (3, 3)))
     ax_cov.text(
@@ -540,12 +568,14 @@ def fig_results(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
     )
     ax_err.set_yticks(y, subsets)
     ax_err.set_ylim(len(subsets) - 0.5, -0.6)
-    ax_err.set_xlabel("Test RMSE, cycles (capped truth; mean ± sd over repeats)")
-    ax_cov.set_xlabel("Test engines inside the interval, % (95% Wilson interval)")
-    for ax in (ax_err, ax_cov):
+    ax_err.set_xlabel("Test RMSE, cycles\n(capped truth; mean ± sd over repeats)")
+    ax_cov.set_xlabel("Test engines inside the interval, %\n(95% Wilson interval)")
+    ax_width.set_xlabel("Mean interval width, cycles\n(open-ended counted to the cap)")
+    for ax in (ax_err, ax_cov, ax_width):
         ax.grid(axis="y", visible=False)
     ax_err.set_title("Point accuracy", pad=6)
     ax_cov.set_title("Interval coverage", pad=6)
+    ax_width.set_title("Interval width (narrower is sharper)", pad=6)
     fig.legend(
         *ax_err.get_legend_handles_labels(), loc="upper right", ncols=2, bbox_to_anchor=(0.99, 0.99)
     )
@@ -557,6 +587,220 @@ def fig_results(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
     )
     fig.tight_layout(rect=(0, 0, 1, 0.8))
     return _save(fig, out_dir, "results", theme)
+
+
+def hero_engine(replay: pd.DataFrame, threshold: float, cap: int) -> int:
+    """The replay engine shown in the hero figure, picked by a fixed rule: among engines whose
+    interval misses the truth at least once, the one with the median first-alert lead time."""
+    rows = []
+    for _, g in replay.groupby("unit"):
+        truth = np.minimum(g["rul"].to_numpy(), cap)
+        inside = (truth >= g["lower"].to_numpy()) & (
+            g["open_ended"].to_numpy(bool) | (truth <= g["upper"].to_numpy())
+        )
+        fired = g[(g["probability"] >= threshold) & (g["rul"] >= 1)]
+        lead = int(fired["rul"].to_numpy()[0]) if len(fired) else -1
+        rows.append((int(g["unit"].to_numpy()[0]), int((~inside).sum()), lead))
+    table = pd.DataFrame(rows, columns=["unit", "misses", "lead"])
+    pool = table[table["misses"] > 0] if (table["misses"] > 0).any() else table
+    pool = pool.sort_values(["lead", "unit"]).reset_index(drop=True)
+    return int(pool["unit"].to_numpy()[len(pool) // 2])
+
+
+def fig_hero(runs: dict, focus: dict, t: dict, out_dir: Path, theme: str) -> Path:
+    cfg = focus["metrics"]["config"]
+    cap, horizon, threshold = cfg["max_rul"], cfg["alert_cycles"], cfg["alert_threshold"]
+    replay = _served(pd.read_csv(focus["dir"] / "predictions" / "replay-holdout.csv.gz"), focus)
+    unit = hero_engine(replay, threshold, cap)
+    g = replay[replay["unit"] == unit].sort_values("cycle")
+    cycle = g["cycle"].to_numpy()
+    truth = np.minimum(g["rul"].to_numpy(), cap)
+    open_ended = g["open_ended"].to_numpy(bool)
+    inside = (truth >= g["lower"].to_numpy()) & (open_ended | (truth <= g["upper"].to_numpy()))
+
+    fig = plt.figure(figsize=(11, 4.1))
+    grid = fig.add_gridspec(2, 2, width_ratios=[1.9, 1], hspace=0.75, wspace=0.22)
+    ax = fig.add_subplot(grid[:, 0])
+    ax_err = fig.add_subplot(grid[0, 1])
+    ax_cov = fig.add_subplot(grid[1, 1], sharey=ax_err)
+
+    ax.axhspan(0, horizon, color=t["zone"], alpha=0.09, linewidth=0)
+    top = cap + 10
+    upper = np.where(open_ended, top, g["upper"].to_numpy())
+    ax.fill_between(
+        cycle,
+        g["lower"],
+        upper,
+        color=t["series"][0],
+        alpha=0.16,
+        lw=0,
+        label="Nominal 90% interval",
+    )
+    ax.plot(cycle, truth, color=t["truth"], lw=1.6, label=f"True RUL (capped at {cap})")
+    ax.plot(cycle, g["point"], color=t["series"][0], lw=1.8, label="Predicted RUL")
+    if (~inside).any():
+        ax.scatter(
+            cycle[~inside],
+            truth[~inside],
+            s=10,
+            color=t["serious"],
+            zorder=4,
+            label=f"Truth outside the interval ({int((~inside).sum())} cycles)",
+        )
+    fired = g[(g["probability"] >= threshold) & (g["rul"] >= 1)]
+    if len(fired):
+        first_cycle = int(fired["cycle"].to_numpy()[0])
+        first_left = int(fired["rul"].to_numpy()[0])
+        ax.axvline(first_cycle, color=t["serious"], lw=1)
+        ax.annotate(
+            f"first alert: {first_left} cycles\nbefore failure",
+            (first_cycle, 4),
+            xytext=(-5, 0),
+            textcoords="offset points",
+            ha="right",
+            va="bottom",
+            fontsize=8,
+            color=t["text2"],
+            bbox={"boxstyle": "round,pad=0.25", "fc": t["surface"], "ec": "none", "alpha": 0.9},
+        )
+    ax.text(
+        cycle[0] + 2,
+        top - 3,
+        "open-ended: at least the lower end",
+        fontsize=7.5,
+        color=t["muted"],
+        va="top",
+    )
+    ax.set_xlim(1, cycle.max())
+    ax.set_ylim(0, top)
+    ax.set_xlabel("Cycle")
+    ax.set_ylabel("Remaining useful life (cycles)")
+    ax.grid(axis="x", visible=False)
+    ax.legend(loc="lower left", bbox_to_anchor=(0.0, 0.25), fontsize=7.5)
+    ax.set_title(f"{focus['metrics']['subset']} engine {unit}, held out of all training", pad=6)
+
+    subsets = list(runs)
+    y = np.arange(len(subsets))
+    for offset, model in ((-0.15, "lstm"), (0.15, "lightgbm")):
+        summaries = [
+            runs[s]["metrics"]["test"]["models"].get(model, {}).get("summary") for s in subsets
+        ]
+        if not all(summaries):
+            continue
+        colour = t["series"][MODEL_SLOT[model]]
+        ax_err.errorbar(
+            [s["rmse"]["mean"] for s in summaries],
+            y + offset,
+            xerr=[s["rmse"]["sd"] or 0 for s in summaries],
+            fmt="o",
+            color=colour,
+            markersize=5,
+            markeredgecolor=t["surface"],
+            elinewidth=1.2,
+            capsize=0,
+            label=MODEL_LABEL[model],
+        )
+        ax_cov.plot(
+            [100 * s["coverage"]["mean"] for s in summaries],
+            y + offset,
+            "o",
+            color=colour,
+            markersize=5,
+            markeredgecolor=t["surface"],
+        )
+    ax_cov.axvline(90, color=t["muted"], lw=1, linestyle=(0, (3, 3)))
+    ax_err.set_yticks(y, subsets)
+    ax_err.set_ylim(len(subsets) - 0.5, -0.6)
+    ax_err.set_title("Test RMSE (cycles)", pad=4, fontsize=9)
+    ax_cov.set_title("Test coverage, nominal 90% (%)", pad=4, fontsize=9)
+    for a in (ax_err, ax_cov):
+        a.grid(axis="y", visible=False)
+        a.tick_params(labelsize=8)
+    ax_err.legend(loc="upper center", bbox_to_anchor=(0.5, -0.32), ncols=2, fontsize=7)
+    _title(
+        fig,
+        t,
+        "How many cycles are left, how sure is the model, and when should it alert?",
+        "Left: one engine the model never saw, cycle by cycle. Right: the network and the "
+        "gradient-boosting baseline on all four test sets, mean over repeats.",
+    )
+    fig.subplots_adjust(left=0.06, right=0.98, top=0.8, bottom=0.12)
+    return _save(fig, out_dir, "hero", theme)
+
+
+def fig_attribution_checks(focus: dict, t: dict, out_dir: Path, theme: str) -> Path | None:
+    path = focus["dir"] / "attribution-checks.json"
+    if not path.is_file():
+        return None
+    report = json.loads(path.read_text())
+    curves, s = report["curves"], report["summary"]
+    x = 100 * np.asarray(curves["fractions"])
+    fig, (ax_del, ax_ins, ax_rho) = plt.subplots(
+        1, 3, figsize=(11, 3.4), gridspec_kw={"width_ratios": [1, 1, 1.25]}
+    )
+    styles = (
+        ("ig", "integrated gradients", t["series"][0], "-", 1.8),
+        ("input_deviation", "|input - baseline| alone", t["series"][1], "-", 1.3),
+        ("randomised_ig", "integrated gradients, randomised weights", t["series"][2], "-", 1.3),
+        ("random", "random order (mean of 20)", t["muted"], (0, (4, 3)), 1.3),
+    )
+    for ax, key, title in (
+        (ax_del, "deletion", "Deletion: highest-ranked readings removed first"),
+        (ax_ins, "insertion", "Insertion: highest-ranked readings added first"),
+    ):
+        for name, label, colour, style, width in styles:
+            if f"{key}_{name}" in curves:
+                ax.plot(
+                    x, curves[f"{key}_{name}"], color=colour, lw=width, linestyle=style, label=label
+                )
+        ax.set_xlabel("Readings replaced (%)")
+        ax.set_title(title, pad=6, fontsize=9)
+        ax.set_ylim(-0.2, 1.2)
+        ax.axhline(0, color=t["axis"], lw=0.8)
+        ax.axhline(1, color=t["axis"], lw=0.8)
+    ax_del.set_ylabel("Share of the prediction's\ndeparture from the baseline (median)")
+    fig.legend(
+        *ax_del.get_legend_handles_labels(),
+        loc="lower left",
+        ncols=4,
+        bbox_to_anchor=(0.06, 0.0),
+        fontsize=7.5,
+    )
+    labels = [
+        ("spearman_vs_full_randomisation", "vs randomised weights"),
+        ("spearman_vs_head_randomisation", "vs randomised output heads"),
+        ("spearman_vs_own_baseline", "vs the engine's first cycles as baseline"),
+        ("spearman_vs_input_deviation", "vs |input - baseline| alone"),
+    ]
+    values = [s[k]["median"] for k, _ in labels]
+    lows = [s[k]["median"] - s[k]["p10"] for k, _ in labels]
+    highs = [s[k]["p90"] - s[k]["median"] for k, _ in labels]
+    yy = np.arange(len(labels))
+    ax_rho.barh(
+        yy,
+        values,
+        color=t["series"][0],
+        height=0.5,
+        xerr=[lows, highs],
+        error_kw={"ecolor": t["text2"], "elinewidth": 1},
+    )
+    ax_rho.set_yticks(yy, [label for _, label in labels], fontsize=8)
+    ax_rho.set_xlim(-0.2, 1)
+    ax_rho.axvline(0, color=t["axis"], lw=0.8)
+    ax_rho.set_ylim(len(labels) - 0.5, -0.5)
+    ax_rho.set_xlabel("Rank correlation of attribution maps\n(median, 10th to 90th percentile)")
+    ax_rho.set_title("Similarity to the served model's maps", pad=6, fontsize=9)
+    ax_rho.grid(axis="y", visible=False)
+    _title(
+        fig,
+        t,
+        "Sanity checks on the attributions",
+        f"{report['windows']} windows from {report['engines']} held-out engines at "
+        f"{', '.join(map(str, report['stages_cycles_left']))} cycles before failure. "
+        f"Completeness gap: median {s['completeness_gap_cycles']['median']:.2f} cycles.",
+    )
+    fig.tight_layout(rect=(0, 0.07, 1, 0.84))
+    return _save(fig, out_dir, "attribution-checks", theme)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -577,7 +821,7 @@ def main(argv: list[str] | None = None) -> int:
         s: _load(artifacts, s)
         for s in args.subsets
         if (artifacts / s / "metrics.json").is_file()
-        and json.loads((artifacts / s / "metrics.json").read_text()).get("test")
+        and json.loads((artifacts / s / "metrics.json").read_text()).get("served")
     }
     if not runs:
         parser.error(f"No evaluated subsets found in {artifacts}")
@@ -587,6 +831,7 @@ def main(argv: list[str] | None = None) -> int:
     for theme, t in THEMES.items():
         _style(t)
         written += [
+            fig_hero(runs, focus, t, args.out, theme),
             fig_test_sets(runs, t, args.out, theme),
             fig_lives(focus, t, args.out, theme),
             fig_alerts(runs, focus, t, args.out, theme),
@@ -594,6 +839,8 @@ def main(argv: list[str] | None = None) -> int:
         ]
         if (focus["dir"] / "model.pt").is_file():
             written.append(fig_attribution(focus, t, args.out, theme))
+        if checks := fig_attribution_checks(focus, t, args.out, theme):
+            written.append(checks)
     for path in written:
         print(path)
     return 0
