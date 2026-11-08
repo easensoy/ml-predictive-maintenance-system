@@ -34,6 +34,9 @@ class Settings:
     replay_interval_s: float = 1.0
     replay_engines: int = 12
     replay_autostart: bool = True
+    # Integrated gradients dominates a replay tick (docs/benchmark.json), so each tick refreshes
+    # the attribution of at most this many watched engines, round robin.
+    explain_per_tick: int = 2
     cors_origins: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
@@ -49,6 +52,8 @@ class Settings:
             )
         if self.replay_engines < 1:
             raise ValueError("PM_REPLAY_ENGINES must be at least 1")
+        if self.explain_per_tick < 1:
+            raise ValueError("PM_EXPLAIN_PER_TICK must be at least 1")
 
     @property
     def model_dir(self) -> Path:
