@@ -79,6 +79,16 @@ def test_audit_catches_edited_out_of_fold_alerts(audited):
     assert any("out_of_fold" in p for p in audit(artifacts, readme))
 
 
+def test_audit_catches_edited_replay_holdout_predictions(audited):
+    artifacts, readme = audited
+    path = artifacts / "FD001" / "predictions" / "replay-holdout.csv.gz"
+    replay = pd.read_csv(path)
+    replay["probability"] = 0.0
+    replay["point"] += 10
+    replay.to_csv(path, index=False, compression="gzip")
+    assert any("replay_holdout" in p for p in audit(artifacts, readme))
+
+
 def test_audit_catches_a_hand_edited_readme(audited):
     artifacts, readme = audited
     text = readme.read_text(encoding="utf-8")
