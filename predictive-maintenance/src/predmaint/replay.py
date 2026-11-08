@@ -72,6 +72,18 @@ class FleetReplay:
         out = self.predictor.predict_windows(windows)
         self.history[unit] = [self._entry(unit, p, out, i) for i, p in enumerate(positions)]
 
+    def seek(self, unit: int, cycle: int) -> None:
+        """Put one engine at one of its recorded cycles, with its prediction history up to it, so
+        a view of the replay can be reproduced exactly (the README screenshots use this)."""
+        with self.lock:
+            frame = self.frames[unit]
+            found = np.flatnonzero(frame["cycle"].to_numpy() == cycle)
+            if not len(found):
+                raise ValueError(f"engine {unit} has no recorded cycle {cycle}")
+            self.position[unit] = int(found[0])
+            self.lap[unit], self.failed_ticks[unit] = 1, 0
+            self._backfill(unit)
+
     def step(self) -> dict:
         with self.lock:
             self.tick += 1

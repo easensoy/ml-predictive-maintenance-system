@@ -17,7 +17,7 @@ def test_results_block_reads_metrics(artifacts_dir):
     block = results_block(artifacts_dir)
     metrics = json.loads((artifacts_dir / "FD001" / "metrics.json").read_text())
     rows = _rows(block, "FD001")
-    assert [r[1] for r in rows] == ["LSTM ensemble", "LightGBM"]
+    assert [r[1] for r in rows] == ["LSTM", "LightGBM"]
     lstm = metrics["test"]["models"]["lstm"]["summary"]["rmse"]
     assert rows[0][2].strip("*").startswith(f"{lstm['mean']:.2f} ± {lstm['sd']:.2f}")
     assert "paired bootstrap" in block
