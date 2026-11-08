@@ -260,7 +260,7 @@
         yAxis: { type: "value", min: 0, max: state.info.max_rul, interval: 25, ...axisCommon(c), axisLine: { show: false } },
         series: [
           { name: "lower", type: "line", data: s.lower, stack: "band", symbol: "none", silent: true, lineStyle: { opacity: 0 }, connectNulls: false },
-          { name: "90% interval", type: "line", data: s.span, stack: "band", symbol: "none", silent: true, lineStyle: { opacity: 0 }, areaStyle: { color: c.wash, opacity: 1 } },
+          { name: "Nominal 90% interval", type: "line", data: s.span, stack: "band", symbol: "none", silent: true, lineStyle: { opacity: 0 }, areaStyle: { color: c.wash, opacity: 1 } },
           { name: "True RUL", type: "line", data: s.truth, symbol: "none", lineStyle: { color: c.truth, width: 2 }, emphasis: { disabled: true } },
           {
             name: "Predicted RUL",
@@ -612,13 +612,17 @@
     window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", rerender);
     window.addEventListener("resize", () => Object.values(state.charts).forEach((ch) => ch.resize()));
     setText("theme-label", effectiveTheme() === "dark" ? "Light" : "Dark");
+    // Deep link: ?engine=<unit> opens that engine; &only=detail shows just its panel.
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("only") === "detail") document.body.classList.add("only-detail");
     try {
       const [info, fleet] = await Promise.all([fetchJson("/api/model-info"), fetchJson("/api/fleet")]);
       renderInfo(info);
       renderFleet(fleet);
       const priority = ["alert", "watch", "failed", "healthy"];
       const first = [...fleet.engines].sort((a, b) => priority.indexOf(a.status) - priority.indexOf(b.status))[0];
-      selectEngine(first.unit);
+      const linked = Number(params.get("engine"));
+      selectEngine(fleet.engines.some((e) => e.unit === linked) ? linked : first.unit);
     } catch (error) {
       setText("model-card", "The model is not loaded. Train it first: python -m predmaint.train");
       setConnection("lost", "No model");
