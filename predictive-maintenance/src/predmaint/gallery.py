@@ -21,7 +21,7 @@ from predmaint.audit import SUBSETS
 from predmaint.calibration import covered
 from predmaint.config import PROJECT_ROOT, Settings
 
-NAMES = {"lstm": "LSTM ensemble", "lightgbm": "LightGBM"}
+NAMES = {"lstm": "LSTM", "lightgbm": "LightGBM"}
 RUL_BINS = [-1, 25, 50, 75, 100, 124, 10_000]
 RUL_LABELS = ["0–25", "26–50", "51–75", "76–100", "101–124", "125 or more"]
 LENGTH_BINS = [0, 29, 59, 119, 10_000]
@@ -140,7 +140,7 @@ def slices(runs: dict) -> str:
     test["rul_bin"] = pd.cut(test["rul_true"], RUL_BINS, labels=RUL_LABELS).astype(str)
     test["length_bin"] = pd.cut(test["length"], LENGTH_BINS, labels=LENGTH_LABELS).astype(str)
     header = (
-        "| {what} | Test engines | LSTM ensemble: RMSE / bias / coverage "
+        "| {what} | Test engines | LSTM: RMSE / bias / coverage "
         "| LightGBM: RMSE / bias / coverage |\n|---|---:|---|---|"
     )
     parts = [
@@ -170,7 +170,7 @@ has, which is the dangerous direction.
 
 ## Worst interval misses on the official test sets
 
-The test engines whose capped true RUL lies furthest outside the LSTM ensemble's nominal 90%
+The test engines whose capped true RUL lies furthest outside the served LSTM's nominal 90%
 interval.
 
 {worst_misses(runs)}
