@@ -35,17 +35,18 @@
   "dirty": false,
   "changed": []
  },
+ "hashing": "SHA-256 of each file, with .json, .csv, .md and .txt files read with LF line endings",
  "files_sha256": {
-  "calibration.json": "802696b4717033e4c3e835e153fcc1cfdb0cdf5d470f5dda0b0cc99790a0f6f7",
-  "contract.json": "db1f27ca374e5082e793d62a26ba5a73f929e5edd775dee38032d169c559c9ee",
+  "calibration.json": "b075f8f686a90fcb2f51961da08371ed0dffa5ab54a26dd110e08eb577cc6805",
+  "contract.json": "ef7080b373cf17ba1274642be218484c728166063b9e2f954ecf8cc5623cf939",
   "history.json": "6494e2596f50d1bc37d586bc77f27cd238166bc61b83ce1930cb170c13e53f4a",
-  "metrics.json": "7ad4a63e5ed06d7a71b0cef83b90c52485f5e3949b2167d897c490af984354de",
+  "metrics.json": "88187f302783b7f2ae4c90a2866ade59cc0f0e9bfddf6016b0ec9aca36859525",
   "model.pt": "98eeabb300a77bce911f7e79901c6e0356be742b1fa66677665dea1d6f493343",
-  "predictions/calibration-points.csv": "73849e178c8d83c7f55ff35cd282c5df2c36c27e5fd8eb451d53885ac6ca7188",
+  "predictions/calibration-points.csv": "d7836d208a4d068b18b7f0a8dadb5ffc9dd001abf98e0730e68b8a21def285dc",
   "predictions/oof.csv.gz": "577ea0169c4443f5e7f0491cd73ae385e757fdd103e29d8f0128e06782ff016e",
   "predictions/replay-holdout.csv.gz": "b9e7a91116c6d8a6d63a544e8546039ef4523204f992a4c313e6fc745caa7e79",
-  "predictions/test-members.csv": "dbb73a38eedde48a2aa4786642c2f2d2faba70a58c08097381c73e1e7c19715c",
-  "predictions/test.csv": "989342e6d7bdb10c10c4b7401bb13efd904695000ad38da567e9a47beba4f283",
-  "replay.csv": "42f97ee114bd150f0a04caa6ae77fccac88d8a5d2c98edb4ad6baa5cf60ca827"
+  "predictions/test-members.csv": "b631138c9dd3af14252750c985b7d3de9f44d806a961998b468230db0fe0f4a9",
+  "predictions/test.csv": "08bc04313b34d098879160fe8378f18a2647cb5d42fb3866f665ebf29b6f51ca",
+  "replay.csv": "99df4574f1970c2853dd33e2fcd405832d42c7cf9cf34e9c33c50f56b0989d6e"
  }
 }

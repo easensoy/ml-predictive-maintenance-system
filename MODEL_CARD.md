@@ -23,8 +23,8 @@
 - **Versions.** Each subset was trained three times (repeats) with different seeds. The dashboard,
   API and Docker image serve the first repeat of FD001.
 - **Provenance.** Each `metrics.json` records the git commit the training ran from, the dataset
-  file hashes and the software versions; `manifest.json` adds the SHA-256 of every artifact. The
-  published runs were trained from a clean checkout of one commit.
+  file hashes and the software versions; `manifest.json` adds the SHA-256 of every artifact,
+  which the audit checks. The published runs were trained from a clean checkout of one commit.
 - **Author and licence.** Emin Alper Şensoy, 2026. Code under the [MIT licence](LICENSE).
 
 ## Intended use
