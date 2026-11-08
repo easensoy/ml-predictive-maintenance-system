@@ -674,3 +674,14 @@ a {
     transition: none;
   }
 }
+
+/* ?only=detail: one engine's panel alone, for embedding and the README screenshot. */
+.only-detail .topbar,
+.only-detail .kpis,
+.only-detail .fleet,
+.only-detail .footer {
+  display: none;
+}
+.only-detail .layout {
+  grid-template-columns: 1fr;
+}
