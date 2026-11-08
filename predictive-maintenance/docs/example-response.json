@@ -1,0 +1,130 @@
+{
+  "rul": {
+    "point": 56.0,
+    "lower": 35.7,
+    "upper": 80.6,
+    "open_ended": false,
+    "summary": "36 to 81 cycles",
+    "interval": 0.9,
+    "capped_at": 125
+  },
+  "failure_within_horizon": {
+    "horizon_cycles": 30,
+    "probability": 0.0268,
+    "alert": false
+  },
+  "status": "healthy",
+  "cycles_received": 70,
+  "window_padded": false,
+  "out_of_distribution": {
+    "flag": false,
+    "rows_checked": 60,
+    "sensors_outside_training_range": [],
+    "rows_with_unseen_operating_settings": 0
+  },
+  "explanation": {
+    "method": "integrated gradients vs. an average engine in the same operating regime",
+    "reading": "what the model's output depends on, not a physical diagnosis",
+    "baseline_rul_cycles": 117.6,
+    "sensors": [
+      {
+        "sensor": "sensor_13",
+        "symbol": "NRf",
+        "description": "Corrected fan speed",
+        "unit": "rpm",
+        "contribution_cycles": -11.15
+      },
+      {
+        "sensor": "sensor_04",
+        "symbol": "T50",
+        "description": "Total temperature at LPT outlet",
+        "unit": "°R",
+        "contribution_cycles": -8.79
+      },
+      {
+        "sensor": "sensor_11",
+        "symbol": "Ps30",
+        "description": "Static pressure at HPC outlet",
+        "unit": "psia",
+        "contribution_cycles": -7.75
+      },
+      {
+        "sensor": "sensor_02",
+        "symbol": "T24",
+        "description": "Total temperature at LPC outlet",
+        "unit": "°R",
+        "contribution_cycles": -7.08
+      },
+      {
+        "sensor": "sensor_15",
+        "symbol": "BPR",
+        "description": "Bypass ratio",
+        "unit": "",
+        "contribution_cycles": -6.89
+      },
+      {
+        "sensor": "sensor_14",
+        "symbol": "NRc",
+        "description": "Corrected core speed",
+        "unit": "rpm",
+        "contribution_cycles": 6.83
+      },
+      {
+        "sensor": "sensor_07",
+        "symbol": "P30",
+        "description": "Total pressure at HPC outlet",
+        "unit": "psia",
+        "contribution_cycles": -6.22
+      },
+      {
+        "sensor": "sensor_12",
+        "symbol": "phi",
+        "description": "Ratio of fuel flow to Ps30",
+        "unit": "pps/psi",
+        "contribution_cycles": -5.05
+      },
+      {
+        "sensor": "sensor_08",
+        "symbol": "Nf",
+        "description": "Physical fan speed",
+        "unit": "rpm",
+        "contribution_cycles": -4.93
+      },
+      {
+        "sensor": "sensor_20",
+        "symbol": "W31",
+        "description": "HPT coolant bleed",
+        "unit": "lbm/s",
+        "contribution_cycles": -3.52
+      },
+      {
+        "sensor": "sensor_03",
+        "symbol": "T30",
+        "description": "Total temperature at HPC outlet",
+        "unit": "°R",
+        "contribution_cycles": -2.83
+      },
+      {
+        "sensor": "sensor_21",
+        "symbol": "W32",
+        "description": "LPT coolant bleed",
+        "unit": "lbm/s",
+        "contribution_cycles": -1.94
+      },
+      {
+        "sensor": "sensor_17",
+        "symbol": "htBleed",
+        "description": "Bleed enthalpy",
+        "unit": "",
+        "contribution_cycles": -1.88
+      },
+      {
+        "sensor": "sensor_09",
+        "symbol": "Nc",
+        "description": "Physical core speed",
+        "unit": "rpm",
+        "contribution_cycles": -0.4
+      }
+    ]
+  }
+}
