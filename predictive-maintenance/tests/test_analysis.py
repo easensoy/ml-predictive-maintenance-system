@@ -4,7 +4,7 @@ latency benchmark and the hero figure's engine choice."""
 import pandas as pd
 
 from predmaint import attribution_checks, benchmark, gallery
-from predmaint.figures import hero_engine
+from predmaint.report import hero_engine
 
 
 def test_attribution_checks_report_every_check(artifacts_dir):
