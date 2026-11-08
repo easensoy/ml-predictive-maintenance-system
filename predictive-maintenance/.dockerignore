@@ -9,3 +9,4 @@ artifacts/*
 tests
 docs
 *.md
+artifacts/FD001/predictions
