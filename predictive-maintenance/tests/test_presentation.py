@@ -8,6 +8,7 @@ output stops matching them.
 import json
 import shutil
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -40,6 +41,45 @@ def test_coverage_by_remaining_life_adds_up_to_the_overall_coverage(artifacts_di
         expected = metrics["test"]["models"][model]["summary"]["coverage"]["mean"]
         assert overall == pytest.approx(expected, abs=1e-9)
         assert ((rows["low"] <= rows["coverage"]) & (rows["coverage"] <= rows["high"])).all()
+
+
+def test_pooled_coverage_is_the_engine_weighted_coverage_of_the_subsets(artifacts_dir):
+    run_dir = artifacts_dir / "FD001"
+    metrics = json.loads((run_dir / "metrics.json").read_text())
+    pooled = report.pooled_coverage({"FD001": run_dir})
+    for model, p in pooled.items():
+        expected = metrics["test"]["models"][model]["summary"]["coverage"]["mean"]
+        assert p["engines"] == metrics["data"]["test_engines"]
+        assert p["coverage"] == pytest.approx(expected, abs=1e-9)
+        # The Wilson bounds can miss an exact 0 or 1 by one rounding error.
+        assert p["low"] - 1e-12 <= p["coverage"] <= p["high"] + 1e-12
+
+
+def test_closed_widths_leave_out_every_engine_either_model_leaves_open(tmp_path):
+    """Widths compared only where neither interval is open-ended: engine 2 is open for LightGBM
+    in repeat 0 and engine 3 for the LSTM in repeat 1, so each repeat keeps two engines."""
+    rows = []
+    for repeat, open_for in ((0, ("lightgbm", 2)), (1, ("lstm", 3))):
+        for model, width in (("lstm", 10.0), ("lightgbm", 30.0)):
+            for unit in (1, 2, 3):
+                is_open = (model, unit) == open_for
+                rows.append(
+                    {
+                        "unit": unit,
+                        "repeat": repeat,
+                        "model": model,
+                        "lower": 50.0,
+                        "upper": 125.0 if is_open else 50.0 + width * unit,
+                        "open_ended": is_open,
+                    }
+                )
+    (tmp_path / "predictions").mkdir()
+    pd.DataFrame(rows).to_csv(tmp_path / "predictions" / "test.csv", index=False)
+    widths = report.closed_widths(tmp_path)
+    assert widths["engines"] == 2
+    # repeat 0 keeps engines 1 and 3, repeat 1 keeps engines 1 and 2
+    assert widths["lstm"] == pytest.approx(np.mean([(10 + 30) / 2, (10 + 20) / 2]))
+    assert widths["lightgbm"] == pytest.approx(np.mean([(30 + 90) / 2, (30 + 60) / 2]))
 
 
 def test_the_replay_shows_the_evaluated_prediction_at_a_sought_cycle(artifacts_dir):
