@@ -7,7 +7,7 @@ has, which is the dangerous direction.
 
 ## Worst interval misses on the official test sets
 
-The test engines whose capped true RUL lies furthest outside the LSTM ensemble's nominal 90%
+The test engines whose capped true RUL lies furthest outside the served LSTM's nominal 90%
 interval.
 
 | Subset | Engine | Observed cycles | True RUL | Predicted | Interval | Missed by |
@@ -42,7 +42,7 @@ All four test sets pooled, one prediction per engine. Coverage reads open-ended 
 "at least the lower end". The networks read the last 50, 60 cycles;
 shorter histories are padded by repeating the first cycle.
 
-| True RUL (cycles) | Test engines | LSTM ensemble: RMSE / bias / coverage | LightGBM: RMSE / bias / coverage |
+| True RUL (cycles) | Test engines | LSTM: RMSE / bias / coverage | LightGBM: RMSE / bias / coverage |
 |---|---:|---|---|
 | 0–25 | 143 | 5.4 / +3.3 / 97% | 4.8 / +2.0 / 99% |
 | 26–50 | 87 | 8.4 / +3.0 / 97% | 7.4 / +3.1 / 99% |
@@ -51,14 +51,14 @@ shorter histories are padded by repeating the first cycle.
 | 101–124 | 107 | 11.8 / -3.5 / 99% | 12.0 / -3.2 / 98% |
 | 125 or more | 150 | 11.5 / -8.7 / 98% | 10.6 / -7.5 / 99% |
 
-| Observed cycles (shorter than the window: padded) | Test engines | LSTM ensemble: RMSE / bias / coverage | LightGBM: RMSE / bias / coverage |
+| Observed cycles (shorter than the window: padded) | Test engines | LSTM: RMSE / bias / coverage | LightGBM: RMSE / bias / coverage |
 |---|---:|---|---|
 | under 30 | 17 | 4.3 / -1.6 / 100% | 5.1 / -2.8 / 100% |
 | 30–59 | 65 | 13.1 / +1.5 / 94% | 13.7 / +0.2 / 94% |
 | 60–119 | 184 | 15.9 / +2.7 / 95% | 15.4 / +4.3 / 90% |
 | 120 or more | 441 | 11.7 / +0.1 / 96% | 10.7 / -0.2 / 98% |
 
-| Subset | Test engines | LSTM ensemble: RMSE / bias / coverage | LightGBM: RMSE / bias / coverage |
+| Subset | Test engines | LSTM: RMSE / bias / coverage | LightGBM: RMSE / bias / coverage |
 |---|---:|---|---|
 | FD001 (1 condition, 1 fault) | 100 | 13.0 / +0.9 / 95% | 12.1 / +1.0 / 95% |
 | FD002 (6 conditions, 1 fault) | 259 | 12.6 / -0.1 / 96% | 11.4 / +0.2 / 97% |
