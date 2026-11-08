@@ -12,10 +12,11 @@ uv sync
 uv run python -m predmaint.serve     # dashboard and API at http://127.0.0.1:5000
 ```
 
-The dashboard replays the FD001 training engines that were held out of every training and
-calibration step, one recorded cycle per tick. It shows each watched engine's prediction, its
-nominal 90% interval, the alert and the attribution. The engines are simulated C-MAPSS engines,
-and the replay is not a live feed or field telemetry.
+The dashboard replays the FD001 replay holdout, training engines excluded from training,
+preprocessing, model selection and calibration, one recorded cycle per tick. It shows each
+watched engine's prediction, its nominal 90% interval (open-ended at the 125-cycle cap), the
+alert and the integrated-gradients attribution. The engines are simulated C-MAPSS engines, and
+the replay is not a live feed or field telemetry.
 
 Deep links: `?engine=<unit>` opens one engine, `&only=detail` shows just its panel, and
 `&only=prediction` just its prediction, as in the README screenshot. `python -m
@@ -113,7 +114,9 @@ flowchart LR
   window for the same cycles. The server refuses to start on artifacts it cannot use.
 - **The model.** A 2-layer LSTM with attention pooling feeds two heads: the RUL point (MSE) with
   its 5th and 95th percentiles (pinball loss), and the logit of failure within 30 cycles. Each of
-  the five networks reads its own window length, and the served prediction averages them.
+  the five networks reads its own window length. The served point averages them, the interval is
+  their CV+ interval with nominal 90% coverage, and the probability averages their
+  temperature-scaled probabilities.
 - **The baseline.** LightGBM reads four statistics per sensor over the same window: the last
   value, the mean, the standard deviation and the slope. It gets the same folds, window choice,
   interval calibration and alert calibration, and it too is evaluated as a five-fold ensemble;
