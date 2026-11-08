@@ -10,13 +10,13 @@ import shutil
 import pandas as pd
 import pytest
 
-from predmaint.audit import audit
+from predmaint.audit import DOCUMENTS, audit
 from predmaint.config import PROJECT_ROOT
 from predmaint.evaluate import artifact_sha256
 from predmaint.report import END, START, update_readme
 
 REPO_ARTIFACTS = PROJECT_ROOT / "artifacts"
-REPO_DOCS = (PROJECT_ROOT.parent / "README.md", PROJECT_ROOT.parent / "MODEL_CARD.md")
+REPO_DOCS = DOCUMENTS
 
 
 def _repo_is_evaluated() -> bool:
@@ -32,7 +32,7 @@ def _repo_is_evaluated() -> bool:
     not _repo_is_evaluated(), reason="the repository has no evaluated cross-fitted artifacts"
 )
 def test_committed_documents_match_committed_predictions():
-    assert audit(REPO_ARTIFACTS, *REPO_DOCS) == []
+    assert audit(REPO_ARTIFACTS, *REPO_DOCS, complete=True) == []
 
 
 @pytest.fixture
