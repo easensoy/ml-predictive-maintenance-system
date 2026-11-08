@@ -1,0 +1,51 @@
+{
+ "subset": "FD001",
+ "provenance": {
+  "predmaint": "2.0.0",
+  "source_sha256": "ee3816954591e3ff",
+  "git": {
+   "commit": "a1b69fff55583d453dc038c46492ff1c081b61cf",
+   "dirty": false,
+   "changed": []
+  },
+  "data": {
+   "source": "https://phm-datasets.s3.amazonaws.com/NASA/6.+Turbofan+Engine+Degradation+Simulation+Data+Set.zip",
+   "archive_sha256": "c9c5dec12a945a82e8bb4446589d7fb3cc057b5e5d81fa1a12e25ee9912ad3b2",
+   "files_sha256": {
+    "train_FD001.txt": "963b5e22825b34d8b21c69e1aeb4af3e647050eb672ee8834ba4b5d91d2de0f8",
+    "test_FD001.txt": "3cda7109ce17bafb5443f2ac926cfcf88154b941b8c4cf95eb55d1ddd6f52851"
+   }
+  },
+  "environment": {
+   "python": "3.15.2",
+   "torch": "2.15.0+cu132",
+   "torch_cuda": "13.2",
+   "lightgbm": "4.7.0",
+   "numpy": "2.5.4",
+   "pandas": "3.1.1",
+   "scikit_learn": "1.9.1",
+   "platform": "Windows-11-10.0.26200-SP0",
+   "processor": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel",
+   "training_device": "NVIDIA RTX 1000 Ada Generation Laptop GPU"
+  },
+  "test_labels_read": false
+ },
+ "evaluated_with": {
+  "commit": "a1b69fff55583d453dc038c46492ff1c081b61cf",
+  "dirty": false,
+  "changed": []
+ },
+ "files_sha256": {
+  "calibration.json": "c30207f540acb5abe87670136f804a984c8d8838c1872735dacf5f4183ef3970",
+  "contract.json": "4827cbd689f030795324820fea5be848cea57da7de93fc6a0fbc2f47459f0359",
+  "history.json": "2f2454297c0693e77f7bb6385f7521ac7b89a4fc5f15e93b8993aec08990b12b",
+  "metrics.json": "836dfbb0adbabef1b3246e9b287b8a8edd4b8c9552a3c38dce83bfcbc595aaf0",
+  "model.pt": "a4c3546c5f04ae3221e39087c8327ffe52ea3ec774ee35331feb05752040f9ac",
+  "predictions/calibration-points.csv": "1c9a8c92d357ba628f178f8acfaf2e67f9a476a702e189a94eb7ab83b0122f53",
+  "predictions/oof.csv.gz": "166ae8472e8a962eeeb59380cbb567c9e00bd193926ace0170bdcde85d06dd92",
+  "predictions/replay-holdout.csv.gz": "9ad0814507a0d652713bdfaa40a3326475eccca191f7cf862e6b75933bd8bc87",
+  "predictions/test-members.csv": "f1c123c226f168611d37ceea8c6b98a51b180dc3d1e3252ee9c44c60e0c14088",
+  "predictions/test.csv": "f59aa7fe276ed8e4b223783d0378b4db7c39379b654d7679ff9ca418a8796160",
+  "replay.csv": "741126fec3c5b619e0fb9ec47ac61a57b9f0ab60ab3459cb5e1c92d1d6ac2eef"
+ }
+}
