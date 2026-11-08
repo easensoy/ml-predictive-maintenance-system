@@ -4,6 +4,10 @@ An evaluation harness for one narrow job: turning a structured prediction record
 `/api/predict` returns, plus the subset's measured coverage) into a short maintenance note. It
 is optional. The API, the dashboard and CI do not depend on it.
 
+**Status: template-only results.** Only the deterministic template baseline has been graded. No
+language-model call has been made in this repository, so no model fidelity, abstention,
+latency or cost result exists.
+
 ## What is graded
 
 Every note, from either system, is graded on four properties (`predmaint.notes.grade`):
@@ -45,12 +49,16 @@ uv sync --extra notes
 uv run python -m predmaint.notes eval --claude
 ```
 
-That makes one call per case and two extra calls for each of the first 30 cases, to measure
-repeatability. Each request uses structured output, so the reply always parses, and the
-server-side refusal fallback. Every response is appended to `claude-responses.jsonl` with its
-latency and token counts, so `results.md` (pass rates, latency, cost, repeatability and every case
-where the model loses to the template) can be regenerated offline.
+That would make one call per case and two extra calls for each of the first 30 cases, to
+measure repeatability. Each request asks for structured output and sets a server-side fallback
+for refusals; neither has been exercised here. Every response would be appended to
+`claude-responses.jsonl` with its latency and token counts, so that `results.md` (pass rates,
+latency, cost, repeatability and every case where the model loses to the template) could be
+regenerated offline.
 
 ## Status
 
-`results.md` holds the template's grades. The model side has not been run in this repository.
+`results.md` holds the template's grades only. The template follows the grading rules by
+construction, so its pass rates show that the cases and the grader agree, not how well a
+language model would do. The model side has not been run, `claude-responses.jsonl` does not
+exist, and the human-review sample has not been filled in.
