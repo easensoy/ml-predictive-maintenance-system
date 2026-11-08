@@ -527,6 +527,10 @@
       "detail-meta",
       `Cycle ${last.cycle} of ${d.total_cycles} · predicted RUL ${fmt.num(last.point, 0)} (${fmt.range(last)}) · true RUL ${last.rul_true}${d.lap > 1 ? ` · run ${d.lap}` : ""}`,
     );
+    setText(
+      "detail-source",
+      `Replay of ${state.info.subset} training engine ${d.unit}, held out of all training and calibration: simulated C-MAPSS data, not field telemetry`,
+    );
     renderLife(d);
     renderHeat(d);
     renderDrivers(d);
@@ -563,19 +567,19 @@
 
   function connect() {
     if (typeof io !== "function") {
-      setConnection("lost", "Live updates unavailable");
+      setConnection("lost", "Updates unavailable");
       return;
     }
     const socket = io();
     state.socket = socket;
     socket.on("connect", () => {
-      setConnection("live", "Live");
+      setConnection("live", "Connected");
       if (state.selected != null) selectEngine(state.selected);
     });
     socket.on("disconnect", () => setConnection("lost", "Reconnecting…"));
     socket.on("fleet_update", (snapshot) => {
       renderFleet(snapshot);
-      setConnection("live", `Live · tick ${snapshot.tick}`);
+      setConnection("live", `Replaying · tick ${snapshot.tick}`);
     });
     socket.on("engine_update", (detail) => {
       if (detail.unit === state.selected) renderDetail(detail);
@@ -612,9 +616,12 @@
     window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", rerender);
     window.addEventListener("resize", () => Object.values(state.charts).forEach((ch) => ch.resize()));
     setText("theme-label", effectiveTheme() === "dark" ? "Light" : "Dark");
-    // Deep link: ?engine=<unit> opens that engine; &only=detail shows just its panel.
+    // Deep link: ?engine=<unit> opens that engine; &only=detail shows just its panel, and
+    // &only=prediction just its prediction (the README screenshots use that).
     const params = new URLSearchParams(window.location.search);
-    if (params.get("only") === "detail") document.body.classList.add("only-detail");
+    const only = params.get("only");
+    if (only === "detail" || only === "prediction") document.body.classList.add("only-detail");
+    if (only === "prediction") document.body.classList.add("only-prediction");
     try {
       const [info, fleet] = await Promise.all([fetchJson("/api/model-info"), fetchJson("/api/fleet")]);
       renderInfo(info);
