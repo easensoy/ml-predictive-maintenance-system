@@ -1,30 +1,37 @@
-# Model card: predmaint remaining-useful-life models (v2)
+# Model card: predmaint remaining-useful-life models (v2.1)
 
 ## Model details
 
-- **What it predicts.** For one turbofan engine's recent sensor history: the remaining useful
-  life (RUL) in cycles, a nominal 90% interval around it, and the probability that the engine
-  fails within the next 30 cycles. Each prediction comes with an integrated-gradients
-  attribution over the sensor readings in the model's input window.
-- **Architecture.** An ensemble of five 2-layer LSTM networks with attention pooling. Each
-  network predicts the RUL point estimate (MSE loss), its 5th and 95th percentiles (pinball loss)
-  and the failure-within-30-cycles logit (cross-entropy). The percentile band is widened by
-  conformalized quantile regression; the alert logit is temperature-scaled.
-- **Target.** RUL capped at 125 cycles (the usual piecewise-linear C-MAPSS target). A prediction
-  near 125 means "at least about 125 cycles left", not "exactly 125".
-- **Versions.** predmaint 2.0.0. One model per C-MAPSS subset in `artifacts/FD00x`. The dashboard,
-  API and Docker image serve the FD001 model.
-- **Provenance gap.** Every published `metrics.json` records git commit `d7cefb3-dirty` and source
-  digest `7ce7c9f6425cd685`: the training code was not committed when these models were trained,
-  so git cannot reproduce that exact source.
+- **What it predicts.** From one turbofan engine's recent sensor history:
+  - the remaining useful life (RUL) in cycles;
+  - a nominal 90% interval around it;
+  - the probability that the engine fails within the next 30 cycles.
+
+  Each prediction also comes with an integrated-gradients attribution over the readings in the
+  model's input window.
+- **Architecture.** Five 2-layer LSTM networks with attention pooling, one per cross-fitting fold.
+  - Network k was trained without fold k's engines, on the input window (30–60 cycles) that won
+    on inner-validation engines.
+  - Each network predicts the RUL point (MSE), its 5th and 95th percentiles (pinball loss) and the
+    alert logit (cross-entropy). The served prediction averages the five.
+  - The interval comes from CV+ conformalized quantile regression. The alert probability is
+    temperature-scaled.
+- **Target.** RUL capped at 125 cycles. A point estimate near 125 means "at least about 125 cycles
+  left". An interval that reaches 125 is open-ended and reads "at least the lower end".
+- **Baseline.** LightGBM on four statistics per sensor (last value, mean, standard deviation,
+  slope), with the same folds, window choice, interval calibration and alert calibration.
+- **Versions.** Each subset was trained three times (repeats) with different seeds. The dashboard,
+  API and Docker image serve the first repeat of FD001.
+- **Provenance.** Each `metrics.json` records the git commit the training ran from, the dataset
+  file hashes and the software versions; `manifest.json` adds the SHA-256 of every artifact. The
+  published runs were trained from a clean checkout of one commit.
 - **Author and licence.** Emin Alper Şensoy, 2026. Code under the [MIT licence](LICENSE).
 
 ## Intended use
 
 - A worked, inspectable example of RUL prediction with calibrated uncertainty, alerting and
   attributions on a public simulated benchmark, for research, teaching and code review.
-- The API and dashboard exist to show how the model behaves, cycle by cycle, on engines it did
-  not train on.
+- The API and dashboard show how the model behaves, cycle by cycle, on engines it did not train on.
 
 ## Out of scope
 
@@ -40,72 +47,129 @@
 
 - **Source.** NASA's C-MAPSS turbofan degradation simulation (Saxena, Goebel, Simon and Eklund,
   PHM08, 2008, [doi:10.1109/PHM.2008.4711414](https://doi.org/10.1109/PHM.2008.4711414)), subsets
-  FD001 to FD004. Training trajectories run to failure; test trajectories stop some time before
+  FD001 to FD004. Training trajectories run to failure. Test trajectories stop some time before
   failure, and NASA gives the true RUL at that point.
 - **Terms.** NASA's data portal does not specify a licence for this dataset. The raw files are
   therefore not redistributed in git: `python -m predmaint.data download` fetches them from NASA
   and checks their SHA-256.
-- **NASA rows that are in the repository.** Three kinds of file contain values taken directly
-  from the dataset:
-  - `artifacts/FD001/replay.csv` holds the raw rows of the 15 FD001 holdout engines, taken from
+- **NASA rows and labels that are in the repository.**
+  - `artifacts/FD001/replay.csv` holds the raw rows of the FD001 replay engines, taken from
     `train_FD001.txt`, so the dashboard can replay them without the download.
   - `docs/example-request.json` holds 70 cycles of test engine 3 from `test_FD001.txt`.
-  - The prediction files under `artifacts/*/predictions/` hold NASA's true RUL for each engine.
-- **Splits.** Training engines are split by engine, never by row, into train (70%), validation
-  (15%) and holdout (15%) with seed 42. Scaling and operating-regime clusters are fitted on the
-  train split only.
+  - The prediction files under `artifacts/*/predictions/` hold NASA's true RUL for each engine
+    they score.
+  - `docs/notes-eval/cases.json` is derived from the FD001 replay engines.
+- **Splits.** All splits are by engine, never by row:
+  - 10% of the training engines are held out for the replay;
+  - the rest are cross-fitted in five folds stratified by life length;
+  - each fold's training engines are split 85/15 into inner-train and inner-validation.
+- **What touched the test labels.** Only `predmaint.evaluate`, once per subset for these runs;
+  the [experiment ledger](predictive-maintenance/docs/experiment-ledger.md) records when. The
+  version 2 development runs listed there also printed test scores.
 
 ## Metrics
 
-Official test sets, one prediction per engine at its last recorded cycle. These numbers are
-**development-exposed**: test scores were printed while the window length was being chosen (see
-the [experiment ledger](predictive-maintenance/docs/experiment-ledger.md)). Coverage intervals are
-95% Wilson intervals over engines. The table is generated by `python -m predmaint.report` and
-checked by `python -m predmaint.audit`.
+Generated by `python -m predmaint.report` and checked by `python -m predmaint.audit`.
 
 <!-- results:start -->
-| Subset | Model | RMSE | PHM08 score | RMSE vs actual RUL | Inside nominal 90% interval, capped truth (95% CI) | Inside, actual RUL (95% CI) | Mean interval width | Alert AP | First alert, cycles before failure: median (range) |
+**Official test sets.** Mean ± sd over 3 repeats of the whole pipeline; bold marks the better model in each subset. The coverage interval is a 95% Wilson interval over test engines at the mean rate. Width counts an open-ended interval up to the 125-cycle cap, so both models are measured on the same engines.
+
+| Subset | Model | RMSE | PHM08 score | RMSE vs actual RUL | Inside the nominal 90% interval (95% CI) | Open-ended intervals | Mean interval width | Alert AP | Alert ECE |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| FD001 (100 engines) | LSTM ensemble (5 networks) | 12.89 | **249** | 14.32 | 86% (78–91%) | 78% (69–85%) | 32 cycles | 0.985 | 27 (24–37); 0/15 holdout engines missed |
-| FD001 (100 engines) | One LSTM network (mean ± sd over the 5 networks of this ensemble) | 13.44 ± 0.62 | 286 ± 41 | – | – | – | – | – | – |
-| FD001 (100 engines) | LightGBM on window statistics (one seed) | **12.52** | 268 | **13.60** | – | – | – | – | – |
-| FD002 (259 engines) | LSTM ensemble (5 networks) | 12.48 | 711 | 25.36 | 91% (87–94%) | 70% (64–75%) | 33 cycles | 0.996 | 31 (22–45); 0/39 holdout engines missed |
-| FD002 (259 engines) | One LSTM network (mean ± sd over the 5 networks of this ensemble) | 13.05 ± 0.41 | 804 ± 87 | – | – | – | – | – | – |
-| FD002 (259 engines) | LightGBM on window statistics (one seed) | **11.54** | **579** | **24.24** | – | – | – | – | – |
-| FD003 (100 engines) | LSTM ensemble (5 networks) | 13.19 | 645 | 14.92 | 83% (74–89%) | 69% (59–77%) | 29 cycles | 0.998 | 29 (24–40); 0/15 holdout engines missed |
-| FD003 (100 engines) | One LSTM network (mean ± sd over the 5 networks of this ensemble) | 13.76 ± 0.37 | 701 ± 160 | – | – | – | – | – | – |
-| FD003 (100 engines) | LightGBM on window statistics (one seed) | **12.47** | **329** | **13.91** | – | – | – | – | – |
-| FD004 (248 engines) | LSTM ensemble (5 networks) | **13.06** | **764** | **25.84** | 82% (77–87%) | 60% (54–66%) | 30 cycles | 0.981 | 32 (23–90); 0/37 holdout engines missed |
-| FD004 (248 engines) | One LSTM network (mean ± sd over the 5 networks of this ensemble) | 13.78 ± 0.41 | 896 ± 88 | – | – | – | – | – | – |
-| FD004 (248 engines) | LightGBM on window statistics (one seed) | 13.48 | 976 | 25.91 | – | – | – | – | – |
+| FD001 (100 engines) | LSTM ensemble | 12.94 ± 0.11 | 306 ± 17 | 14.28 ± 0.14 | 95.3 ± 0.6% (89–98%) | 45 ± 2% | 41.5 ± 1.4 cycles | 0.984 ± 0.004 | 0.045 ± 0.007 |
+| FD001 (100 engines) | LightGBM | **12.11 ± 0.24** | **244 ± 3** | **13.36 ± 0.21** | 95.0 ± 1.0% (89–98%) | 39 ± 3% | 46.1 ± 2.7 cycles | **0.984 ± 0.002** | 0.044 ± 0.003 |
+| FD002 (259 engines) | LSTM ensemble | 12.53 ± 0.11 | 643 ± 43 | 25.27 ± 0.37 | 96.4 ± 0.2% (94–98%) | 43 ± 2% | 39.7 ± 0.8 cycles | 0.996 ± 0.002 | 0.029 ± 0.000 |
+| FD002 (259 engines) | LightGBM | **11.47 ± 0.10** | **571 ± 13** | **24.04 ± 0.08** | 95.6 ± 1.2% (93–98%) | 40 ± 4% | 41.6 ± 2.5 cycles | **0.999 ± 0.000** | 0.021 ± 0.002 |
+| FD003 (100 engines) | LSTM ensemble | 13.22 ± 0.26 | 610 ± 55 | 14.90 ± 0.15 | 94.7 ± 3.1% (89–98%) | 42 ± 1% | 37.6 ± 2.9 cycles | **0.987 ± 0.001** | 0.031 ± 0.010 |
+| FD003 (100 engines) | LightGBM | **12.03 ± 0.15** | **281 ± 12** | **13.63 ± 0.16** | 95.0 ± 3.0% (89–98%) | 57 ± 15% | 58.0 ± 11.3 cycles | 0.986 ± 0.006 | 0.031 ± 0.007 |
+| FD004 (248 engines) | LSTM ensemble | **12.82 ± 0.29** | **737 ± 48** | 25.75 ± 0.06 | 95.8 ± 1.3% (93–98%) | 50 ± 0% | 43.1 ± 1.8 cycles | **0.985 ± 0.002** | 0.025 ± 0.004 |
+| FD004 (248 engines) | LightGBM | 13.11 ± 0.15 | 905 ± 34 | **25.41 ± 0.11** | 94.2 ± 0.2% (91–97%) | 62 ± 5% | 56.0 ± 3.5 cycles | 0.984 ± 0.002 | 0.012 ± 0.004 |
+
+**LSTM minus LightGBM on the same test engines.** Repeat-averaged difference, with a 95% interval from a paired bootstrap over test engines (2,000 draws). An interval that excludes 0 means the difference is larger than engine-to-engine noise.
+
+| Subset | RMSE, LSTM minus LightGBM | PHM08 score, LSTM minus LightGBM | Coverage, LSTM minus LightGBM (points) | Interval width, LSTM minus LightGBM |
+|---|---:|---:|---:|---:|
+| FD001 | +0.83 (-0.70 to +2.39) | +62 (-22 to +180) | +0.3 (-2.3 to +3.0) | -4.6 (-7.7 to -1.8) |
+| FD002 | +1.06 (+0.26 to +1.93) | +72 (-42 to +190) | +0.8 (-1.4 to +3.1) | -1.9 (-3.4 to -0.5) |
+| FD003 | +1.19 (-0.50 to +3.25) | +329 (-53 to +1048) | -0.3 (-4.0 to +3.7) | -20.4 (-26.5 to -14.9) |
+| FD004 | -0.30 (-1.04 to +0.46) | -168 (-438 to +14) | +1.6 (-0.9 to +4.2) | -12.9 (-16.0 to -10.1) |
+
+**The alert over whole lives, out of fold.** Every cycle of every cross-fitted training engine, each predicted by a model that never saw it. Mean ± sd over repeats; the ECE interval is the repeat-averaged 95% bootstrap interval over engines.
+
+| Subset | Model | Engines | First alert, median cycles before failure | Missed | First alert more than 30 cycles early | False-alert episodes per engine | Flaps per engine | ECE over all cycles (95% CI) |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| FD001 | LSTM ensemble | 90 | 30 ± 1 | 0.0 ± 0.0 | 42.7 ± 3.2 | 0.48 ± 0.04 | 0.02 ± 0.01 | 0.008 ± 0.002 (0.006–0.013) |
+| FD001 | LightGBM | 90 | 30 ± 0 | 0.0 ± 0.0 | 42.7 ± 1.5 | 0.61 ± 0.07 | 0.39 ± 0.06 | 0.005 ± 0.003 (0.004–0.009) |
+| FD002 | LSTM ensemble | 234 | 30 ± 2 | 0.0 ± 0.0 | 111.3 ± 18.2 | 0.52 ± 0.10 | 0.15 ± 0.03 | 0.009 ± 0.003 (0.006–0.012) |
+| FD002 | LightGBM | 234 | 30 ± 0 | 0.0 ± 0.0 | 110.3 ± 2.5 | 0.62 ± 0.04 | 0.36 ± 0.03 | 0.005 ± 0.001 (0.004–0.007) |
+| FD003 | LSTM ensemble | 90 | 30 ± 1 | 0.0 ± 0.0 | 40.7 ± 6.7 | 0.47 ± 0.08 | 0.11 ± 0.02 | 0.008 ± 0.002 (0.005–0.012) |
+| FD003 | LightGBM | 90 | 30 ± 0 | 0.0 ± 0.0 | 43.7 ± 1.5 | 0.61 ± 0.03 | 0.33 ± 0.06 | 0.004 ± 0.001 (0.003–0.007) |
+| FD004 | LSTM ensemble | 224 | 31 ± 1 | 1.7 ± 1.5 | 110.0 ± 8.2 | 0.53 ± 0.05 | 0.12 ± 0.02 | 0.005 ± 0.001 (0.003–0.010) |
+| FD004 | LightGBM | 224 | 30 ± 0 | 0.0 ± 0.0 | 105.7 ± 2.3 | 0.65 ± 0.01 | 0.49 ± 0.01 | 0.004 ± 0.001 (0.003–0.008) |
 <!-- results:end -->
 
 ## Uncertainty and calibration: what holds and what does not
 
-- **Intervals are nominal 90%.** The conformal margin was fitted on the validation engines, which
-  had also chosen the window length and stopped training, so split-conformal's coverage guarantee
-  does not formally apply. Calibration also pooled every window of each validation engine, while
-  the test set scores one window per engine. Measured test coverage of the capped truth is below
-  90% on FD001, FD003 and FD004.
-- **The interval stops at the cap.** Its upper end is clipped at 125 cycles, so it can never
-  contain an actual RUL above 125. Coverage of the actual RUL is therefore much lower than
-  coverage of the capped truth (see the table).
-- **Alert probabilities** were temperature-scaled on validation windows. Their reliability has
-  only been checked on the cycles of 15 to 39 holdout engines per subset. Neighbouring cycles of
-  one engine are strongly correlated, so that check is weaker than its sample size suggests.
+- **Intervals.** CV+ guarantees at least 80% coverage for engines exchangeable with the training
+  engines and is usually close to the nominal 90%. Measured test coverage is higher than 90% on
+  every subset, so the intervals are conservative there.
+- **The calibration population.** Calibration points match the test set's trajectory lengths but
+  not its distribution of remaining life, because matching that would need the test labels.
+- **The cap.** Upper ends at the cap are open-ended. Under that reading, coverage of the capped
+  truth equals coverage of the actual remaining life.
+- **Alert probability.**
+  - It was temperature-scaled on out-of-fold truncation points.
+  - Its calibration was then measured on every out-of-fold cycle, with bootstrap intervals that
+    resample whole engines, and on the test sets.
+  - It is close to calibrated in both (see the ECE columns).
+  - The alert fires at a probability of 0.5, a threshold fixed in advance and not tuned to any
+    cost of missed or false alerts.
+
+## Attributions
+
+<!-- attribution:start -->
+On 40 windows from 10 FD001 replay engines (at 100, 60, 30, 10 cycles before failure), with the served five-network ensemble:
+
+- **Completeness holds.** The attributions add up to the change in prediction to within 0.04 cycles (median), against a median change of 69 cycles.
+- **They find readings the output depends on.** Removing readings in attribution order moves the prediction to the baseline far faster than random order: median deletion area 0.097 against 0.557 (lower is better), better in 32 of 40 windows.
+- **But much of that is input deviation.** Ranking readings simply by how far they are from the baseline does almost as well (deletion area 0.132; attributions win in 26 of 40 windows, and in 18 of 40 on insertion).
+- **The trained weights matter, moderately.** A randomly re-initialised network gives maps that rank-correlate 0.55 with the trained ones and delete less well (0.190).
+- **The baseline matters.** Using each engine's own first cycles as the baseline instead of the regime average changes the maps (rank correlation 0.54; the top three sensors keep 2 of 3 in the median window).
+<!-- attribution:end -->
+
+Attributions say what the model's output depends on, relative to an average engine in the same
+operating regime. They are not a physical diagnosis.
 
 ## Known failure modes
 
-- Alerts can fire well outside the 30-cycle horizon: one FD004 holdout engine first alerted 90
-  cycles before failure.
-- Test engines with long remaining life are all scored against the 125 cap, which hides how wrong
-  a prediction is for an engine with, say, 190 cycles left.
-- The out-of-distribution flag only checks that each scaled sensor and the operating settings are
-  within the training range (plus 10% of that range). A new fault mode that keeps every sensor in
-  range would not be flagged.
-- Attributions show what the model's output depends on, relative to an average engine in the same
-  operating regime. They are not a physical diagnosis and have not yet been validated with
-  deletion tests or sanity checks.
+- **Engines with long remaining life.** Engines far from failure get open-ended intervals: the
+  model cannot say how much longer than 125 cycles such an engine will run.
+- **Mid-life engines.** Errors are largest for engines about 50 to 100 cycles from failure, and
+  there both models overestimate the remaining life, the dangerous direction. Most of the worst
+  interval misses are such engines given an open-ended interval.
+- **Alert timing.** About half of first alerts come before the 30-cycle horizon begins, most
+  within 10 cycles of it. A few engines on the six-condition subsets, FD002 and FD004, get a
+  first alert more than 60 cycles early, and the LSTM misses a few FD004 engines outright.
+- **The out-of-distribution flag** only checks that each scaled sensor and the operating
+  settings are within the training range (plus 10% of that range). A new fault mode that keeps
+  every sensor in range would not be flagged.
+- **The worst individual misses** are listed in
+  [`failure-cases.md`](predictive-maintenance/docs/failure-cases.md).
+
+## Latency
+
+<!-- latency:start -->
+Measured in process on an Intel Core Ultra 7 165H with 16 PyTorch threads, CPU only, for the served 5-network FD001 model:
+
+| Operation | Median (p95) |
+|---|---|
+| Prediction | 11 ms (p95 13 ms) |
+| Prediction with integrated gradients | 255 ms (p95 274 ms) |
+| Replay tick, whole 10-engine fleet, no attributions | 61 ms (p95 64 ms) |
+| Attribution refresh for one watched engine | 243 ms (p95 278 ms) |
+
+The replay ticks every 1000 ms. At the 95th percentile, the fleet step plus 2 attribution refreshes takes 620 ms, and one more refresh would take it to 898 ms. So each tick refreshes at most `PM_EXPLAIN_PER_TICK` watched engines (2 by default), taking turns when more are watched.
+<!-- latency:end -->
 
 ## Citation
 
