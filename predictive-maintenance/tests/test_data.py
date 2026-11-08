@@ -23,16 +23,51 @@ def test_test_rul_matches_official_file_at_last_cycle(cmapss_dir):
     np.testing.assert_array_equal(last, official)
 
 
-def test_split_is_by_engine_disjoint_and_complete():
-    units = np.arange(1, 101)
-    split = cmapss.split_units(units, seed=42)
-    train, val, holdout = (set(split[k]) for k in ("train", "val", "holdout"))
-    assert train.isdisjoint(val)
-    assert train.isdisjoint(holdout)
-    assert val.isdisjoint(holdout)
-    assert train | val | holdout == set(units)
-    assert (len(split["train"]), len(split["val"]), len(split["holdout"])) == (70, 15, 15)
-    np.testing.assert_array_equal(split["val"], cmapss.split_units(units, seed=42)["val"])
+def test_test_labels_come_only_from_the_rul_file(cmapss_dir):
+    inputs = cmapss.load_test_inputs(cmapss_dir, "FD001")
+    assert "rul" not in inputs.columns
+    labels = cmapss.load_test_labels(cmapss_dir, "FD001")
+    np.testing.assert_array_equal(labels.index, np.sort(inputs["unit"].unique()))
+
+
+LIVES = np.random.default_rng(0).integers(128, 360, 100)
+UNITS = np.arange(1, 101)
+
+
+def test_folds_are_complete_balanced_and_stratified_by_life():
+    folds = cmapss.assign_folds(UNITS, LIVES, 5, seed=3)
+    assert sorted(folds) == list(UNITS)
+    sizes = np.bincount(list(folds.values()))
+    assert sizes.tolist() == [20] * 5
+    mean_life = [LIVES[[folds[u] == k for u in UNITS]].mean() for k in range(5)]
+    assert max(mean_life) - min(mean_life) < 0.1 * LIVES.mean()
+    assert folds == cmapss.assign_folds(UNITS, LIVES, 5, seed=3)
+    assert folds != cmapss.assign_folds(UNITS, LIVES, 5, seed=4)
+
+
+def test_stratified_subset_is_disjoint_and_spans_life_lengths():
+    rest, picked = cmapss.stratified_subset(UNITS, LIVES, 0.1, seed=42)
+    assert len(picked) == 10
+    assert set(rest).isdisjoint(picked)
+    assert set(rest) | set(picked) == set(UNITS)
+    picked_lives = LIVES[np.isin(UNITS, picked)]
+    assert (
+        picked_lives.min()
+        < np.percentile(LIVES, 20)
+        < np.percentile(LIVES, 80)
+        < picked_lives.max()
+    )
+
+
+def test_truncation_points_use_test_lengths_and_leave_cycles_to_run():
+    lives = {1: 150, 2: 300}
+    lengths = np.array([31, 120, 200, 290])
+    points = cmapss.test_like_truncations(lives, lengths, 50, np.random.default_rng(0))
+    assert len(points) == 100
+    for unit, cycle in points:
+        assert cycle in lengths
+        assert cycle < lives[unit]
+    assert {c for u, c in points if u == 1} <= {31, 120}
 
 
 def test_rejects_wrong_column_count(tmp_path):
