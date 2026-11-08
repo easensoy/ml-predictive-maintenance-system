@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Turbofan fleet health · predmaint {{ version }}</title>
-  <meta name="description" content="Live replay of NASA C-MAPSS turbofan engines with calibrated remaining-useful-life predictions and explanations.">
+  <meta name="description" content="Live replay of NASA C-MAPSS turbofan engines with remaining-useful-life predictions, nominal 90% intervals and attributions.">
   <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
   <script src="{{ url_for('static', filename='theme.js') }}"></script>
 </head>
@@ -13,7 +13,7 @@
     <header class="topbar">
       <div class="brand">
         <h1>Turbofan fleet health</h1>
-        <p class="subtitle">Live replay of NASA C-MAPSS <span id="subset-name">{{ subset }}</span> engines the model never saw in training. The model runs on every new cycle.</p>
+        <p class="subtitle">Live replay of NASA C-MAPSS <span id="subset-name">{{ subset }}</span> engines that no network or calibration step saw in training. The model runs on every new cycle.</p>
       </div>
       <div class="topbar-actions">
         <span id="connection" class="connection" role="status" aria-live="polite">
@@ -37,7 +37,7 @@
         <p class="tile-caption" id="kpi-score-caption">Lower is better; late predictions cost more</p>
       </article>
       <article class="tile">
-        <h2 class="tile-label">Inside the 90% interval</h2>
+        <h2 class="tile-label">Inside the nominal 90% interval</h2>
         <p class="tile-value"><span id="kpi-coverage">–</span></p>
         <p class="tile-caption" id="kpi-coverage-caption">Share of test engines</p>
       </article>
@@ -75,12 +75,12 @@
           </table>
         </div>
         <ul class="status-legend" aria-label="Status meanings">
-          <li><span class="chip chip-healthy"><span class="chip-icon" aria-hidden="true">✓</span>Healthy</span> failure within the horizon is outside the 90% interval</li>
-          <li><span class="chip chip-watch"><span class="chip-icon" aria-hidden="true">!</span>Watch</span> failure within the horizon is inside the 90% interval</li>
+          <li><span class="chip chip-healthy"><span class="chip-icon" aria-hidden="true">✓</span>Healthy</span> failure within the horizon is outside the interval</li>
+          <li><span class="chip chip-watch"><span class="chip-icon" aria-hidden="true">!</span>Watch</span> failure within the horizon is inside the interval</li>
           <li><span class="chip chip-alert"><span class="chip-icon" aria-hidden="true">▲</span>Alert</span> failure within the horizon is more likely than not</li>
           <li><span class="chip chip-failed"><span class="chip-icon" aria-hidden="true">✕</span>Failed</span> the recorded run ended; the replay restarts it</li>
         </ul>
-        <p class="range-key"><span class="range-key-bar" aria-hidden="true"><span class="range-key-band"></span><span class="range-key-dot"></span><span class="range-key-true"></span></span><span>Bar: 90% interval, dot: prediction, grey tick: true RUL, on a 0–<span class="max-rul">125</span> cycle scale</span></p>
+        <p class="range-key"><span class="range-key-bar" aria-hidden="true"><span class="range-key-band"></span><span class="range-key-dot"></span><span class="range-key-true"></span></span><span>Bar: nominal 90% interval (fading out when open-ended), dot: prediction, grey tick: true RUL, on a 0–<span class="max-rul">125</span> cycle scale</span></p>
       </section>
 
       <section class="card detail" aria-labelledby="detail-title">
@@ -93,11 +93,11 @@
         <figure class="chart-block">
           <figcaption>
             <span class="fig-title">Remaining useful life</span>
-            <span class="fig-sub">Prediction and its calibrated 90% interval against the true RUL, capped at <span class="max-rul">125</span> cycles like the training target.</span>
+            <span class="fig-sub">Prediction and its nominal 90% interval against the true RUL, capped at <span class="max-rul">125</span> cycles like the training target. An interval that reaches the cap is open-ended: at least its lower end.</span>
           </figcaption>
           <div class="legend" aria-hidden="true">
             <span class="legend-item"><span class="key-line key-series"></span>Predicted RUL</span>
-            <span class="legend-item"><span class="key-area"></span>90% interval</span>
+            <span class="legend-item"><span class="key-area"></span>Nominal 90% interval</span>
             <span class="legend-item"><span class="key-line key-truth"></span>True RUL</span>
           </div>
           <div id="chart-rul" class="chart chart-tall" role="img" aria-label="Predicted and true remaining useful life by cycle"></div>
@@ -112,8 +112,8 @@
         <div class="two-col">
           <figure class="chart-block">
             <figcaption>
-              <span class="fig-title">What drives the current prediction</span>
-              <span class="fig-sub">Integrated-gradients contribution of each reading in the model's window, in cycles of RUL, compared with an average engine in the same operating regime.</span>
+              <span class="fig-title">What the current prediction depends on</span>
+              <span class="fig-sub">Integrated-gradients contribution of each reading in the model's window, in cycles of RUL, compared with an average engine in the same operating regime. It shows what the model uses, not a physical cause.</span>
             </figcaption>
             <div id="chart-heat" class="chart chart-heat" role="img" aria-label="Contribution of each sensor and cycle to the prediction"></div>
           </figure>

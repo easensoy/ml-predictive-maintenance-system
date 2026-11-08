@@ -21,8 +21,10 @@ def test_environment_overrides_are_typed():
             "PM_REPLAY_INTERVAL_S": "0.5",
             "PM_ARTIFACTS_DIR": "/tmp/models",
             "PM_CORS_ORIGINS": "https://a.example, https://b.example",
+            "PM_EXPLAIN_PER_TICK": "4",
         }
     )
+    assert settings.explain_per_tick == 4
     assert settings.subset == "FD003"
     assert settings.port == 8080
     assert settings.debug is True
@@ -41,6 +43,7 @@ def test_environment_overrides_are_typed():
         {"PM_DEBUG": "maybe"},
         {"PM_REPLAY_INTERVAL_S": "0"},
         {"PM_REPLAY_ENGINES": "0"},
+        {"PM_EXPLAIN_PER_TICK": "0"},
         # float() accepts these spellings, and NaN slips past a plain `<= 0` check.
         {"PM_REPLAY_INTERVAL_S": "nan"},
         {"PM_REPLAY_INTERVAL_S": "inf"},
