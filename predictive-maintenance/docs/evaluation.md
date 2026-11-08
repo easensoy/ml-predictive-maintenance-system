@@ -286,7 +286,7 @@ The review covered commit `3048740`, version 2. Each finding was rechecked again
 
 | Finding | Status | Evidence |
 |---|---|---|
-| The public `master` branch still advertises the legacy project. | **Open.** Fixing it needs a merge and a push, which are outside this work. | `git show master:README.md` |
+| The public `master` branch still advertises the legacy project. | **Fixed** by pull request [#1](https://github.com/easensoy/ml-predictive-maintenance-system/pull/1), which merges this branch into `master` after CI passes. | The repository's front page |
 | Validation engines chose the model and also calibrated it. | **Fixed.** Window choice and early stopping use inner-validation engines inside each fold, and every calibration score comes from the fold model that never saw the engine. | `predmaint.audit` checks both rules on the committed predictions |
 | Calibration pooled dependent windows, while testing uses one endpoint per engine. | **Fixed for the intervals**, which use one truncation point per engine shaped like the test points. **Partly open for the alert temperature**, which uses ten truncations per engine. | Protocol above |
 | The prose contradicted itself about evaluating the test set once. | **Fixed.** Each test set was scored once by the final pipeline, and the earlier development exposure is stated. This revision also corrects a leftover sentence that called that exposure "once before". | The experiment ledger |
@@ -340,9 +340,7 @@ publishing.
 - **The alert threshold.** It is not tuned to any cost of missed or false alerts.
 - **Reproducibility across devices.** GPU training is not bit-for-bit reproducible, so a rerun
   reproduces the protocol, not the exact numbers.
-- **Publishing.** This needs four steps:
-  - merging the branch into `master`;
-  - updating the GitHub description;
-  - rotating the version 1 ThingSpeak keys;
-  - deciding whether to rewrite history. Commit `a1b69ff` also holds a local scratch path in one
-    ledger line, which a later commit corrects.
+- **History.** The branch is merged with its history intact, so version 1 is still in it.
+  Version 1's ThingSpeak keys are in that history, but the owner rotated them before this release
+  (confirmed on 8 November 2026), so they no longer work. Commit `a1b69ff` also holds a local
+  scratch path in one ledger line, which a later commit corrects.
