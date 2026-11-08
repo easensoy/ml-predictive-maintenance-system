@@ -65,3 +65,53 @@ How the published configuration was chosen:
 
 Because of all this, the published v2 results are development-exposed: treat their test scores
 as optimistic.
+
+## Cross-fitted pipeline, 2026-11-07 and 08
+
+The re-evaluation replaced the protocol above. Its rules, each enforced in code and checked by
+`python -m predmaint.audit`:
+
+- Training reads only the training engines and the test engines' sensor readings. The test
+  labels (`RUL_FD00x.txt`) are read by `python -m predmaint.evaluate` alone, which records each
+  time it runs in `experiment-ledger.jsonl`.
+- Training refuses to run from uncommitted sources unless told to, and records the commit it
+  ran from. The published runs were trained from a clean worktree of that commit.
+- Window length, early stopping and calibration never share engines: each fold's window and
+  stopping point come from inner-validation engines inside the other folds, and every
+  calibration score comes from the network that never saw that engine.
+- The architecture and optimiser settings were carried over unchanged from v2 development
+  (above), where they had not been tuned.
+
+The table below is generated from `experiment-ledger.jsonl` by `python -m predmaint.report`.
+Paths outside the repository are shortened to `scratch/<name>`. The first FD002 run was
+stopped by hand: four runs in parallel overfilled the 6 GB GPU and Windows paged its memory to
+system RAM. Nothing from it was written or evaluated, and FD002 was retrained alone from the
+same commit.
+
+<!-- ledger:start -->
+| When | Event | Subset | Code commit | Sources committed | Output | Test set viewed |
+|---|---|---|---|---|---|---|
+| 2026-11-07 21:08 | train | FD001 | `7a26b34` | no | scratch/smoke_p2 | no |
+| 2026-11-07 22:17 | train | FD001 | `a1b69ff` | yes | artifacts/FD001 | no |
+| 2026-11-07 22:18 | evaluate | FD001 | `a1b69ff` | – | artifacts/FD001 | yes |
+| 2026-11-07 22:55 | train | FD003 | `a1b69ff` | yes | artifacts/FD003 | no |
+| 2026-11-07 22:56 | evaluate | FD003 | `a1b69ff` | – | artifacts/FD003 | yes |
+| 2026-11-07 22:59 | train-aborted | FD002 | `a1b69ff` | yes | artifacts/FD002 | no |
+| 2026-11-07 23:28 | train | FD004 | `a1b69ff` | yes | artifacts/FD004 | no |
+| 2026-11-07 23:29 | evaluate | FD004 | `a1b69ff` | – | artifacts/FD004 | yes |
+| 2026-11-08 01:30 | train | FD002 | `a1b69ff` | yes | artifacts/FD002 | no |
+| 2026-11-08 01:35 | evaluate | FD002 | `a1b69ff` | – | artifacts/FD002 | yes |
+
+Window choice in the published runs, over every repeat and fold: how often each window won, and its mean inner-validation RMSE (cycles, every engine weighted equally).
+
+| Subset | Model | Times chosen (30 / 40 / 50 / 60) | Mean inner-validation RMSE (30 / 40 / 50 / 60) |
+|---|---|---|---|
+| FD001 | LSTM ensemble | 0 / 0 / 9 / 6 | 13.99 / 12.93 / 12.20 / 12.16 |
+| FD001 | LightGBM | 0 / 2 / 5 / 8 | 13.53 / 12.36 / 11.80 / 11.80 |
+| FD002 | LSTM ensemble | 0 / 0 / 2 / 13 | 15.40 / 13.99 / 13.26 / 12.82 |
+| FD002 | LightGBM | 0 / 0 / 1 / 14 | 15.41 / 13.77 / 12.92 / 12.53 |
+| FD003 | LSTM ensemble | 1 / 0 / 4 / 10 | 13.48 / 13.04 / 12.37 / 11.79 |
+| FD003 | LightGBM | 0 / 3 / 5 / 7 | 12.89 / 11.71 / 11.15 / 11.12 |
+| FD004 | LSTM ensemble | 0 / 0 / 6 / 9 | 15.35 / 14.53 / 14.12 / 13.82 |
+| FD004 | LightGBM | 0 / 0 / 5 / 10 | 15.03 / 14.18 / 13.61 / 13.39 |
+<!-- ledger:end -->
