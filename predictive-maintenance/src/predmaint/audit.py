@@ -10,15 +10,19 @@ For every run in ``artifacts/``:
    rebuilt from each network's raw test outputs (``test-members.csv``) and the stored
    conformity scores (``calibration-points.csv``), and the scores are rebuilt from their raw
    bounds.
-3. **Metrics.** Every test and out-of-fold metric in ``metrics.json`` is recomputed from the
-   prediction files.
+3. **Metrics.** Every test, out-of-fold and replay-holdout metric in ``metrics.json`` is
+   recomputed from the prediction files.
 4. **Manifest.** Every artifact present has the SHA-256 that ``manifest.json`` recorded when
    the run was evaluated, and every file this audit reads is listed there.
 5. **Product outputs.** The example API response in ``docs/`` reproduces a test-set
    prediction, and the state the dashboard screenshots show is the evaluated replay
    prediction for the engine and cycle the hero rule picks.
-6. **Documents.** Every generated block in README.md and MODEL_CARD.md equals the block
-   generated from the artifacts.
+6. **Documents.** Every generated block in README.md, MODEL_CARD.md, docs/evaluation.md and
+   docs/serving.md equals the block generated from the artifacts.
+
+These checks establish that the documents agree with the committed artifacts. They do not
+establish that the method is valid: the conditions behind the intervals, and the limits of each
+statistic, are argued in docs/evaluation.md.
 
 The test suite runs the same audit, so CI fails if any of these drifts.
 """
@@ -45,6 +49,7 @@ AUDITED_FILES = (
     "predictions/test-members.csv",
     "predictions/calibration-points.csv",
     "predictions/oof.csv.gz",
+    "predictions/replay-holdout.csv.gz",
 )
 DOCUMENTS = (
     PROJECT_ROOT.parent / "README.md",
@@ -58,6 +63,7 @@ CYCLE_TOLERANCE, PROBABILITY_TOLERANCE = 0.0051, 0.00006
 
 def load_run(run_dir: Path) -> dict[str, Any]:
     predictions = run_dir / "predictions"
+    replay = predictions / "replay-holdout.csv.gz"
     return {
         "dir": run_dir,
         "metrics": json.loads((run_dir / "metrics.json").read_text()),
@@ -65,6 +71,7 @@ def load_run(run_dir: Path) -> dict[str, Any]:
         "members": pd.read_csv(predictions / "test-members.csv"),
         "calibration": pd.read_csv(predictions / "calibration-points.csv"),
         "oof": pd.read_csv(predictions / "oof.csv.gz"),
+        "replay": pd.read_csv(replay) if replay.is_file() else None,
     }
 
 
@@ -190,6 +197,13 @@ def check_metrics(run: dict) -> list[str]:
             rows = oof[(oof["model"] == model) & (oof["repeat"] == int(repeat))]
             found = whole_life_metrics(rows, train_cfg, seed=int(repeat))
             problems += _compare(found, stored, f"out_of_fold.{model}.{repeat}")
+    replay = run.get("replay")
+    if replay is not None:
+        for model, block in m.get("replay_holdout", {}).items():
+            for repeat, stored in block["per_repeat"].items():
+                rows = replay[(replay["model"] == model) & (replay["repeat"] == int(repeat))]
+                found = whole_life_metrics(rows, train_cfg, seed=int(repeat))
+                problems += _compare(found, stored, f"replay_holdout.{model}.{repeat}")
     return problems
 
 
@@ -324,9 +338,11 @@ def main(argv: list[str] | None = None) -> int:
     for subset in SUBSETS:
         if (artifacts / subset / "metrics.json").is_file():
             run = load_run(artifacts / subset)
+            replay = run["replay"]
             print(
                 f"{subset}: {len(run['test'])} test predictions, {len(run['oof'])} out-of-fold "
-                f"predictions, {len(run['calibration'])} conformity scores and "
+                f"predictions, {0 if replay is None else len(replay)} replay-holdout predictions, "
+                f"{len(run['calibration'])} conformity scores and "
                 f"{len(manifest_files(run['dir']))} manifest hashes check out"
             )
     return 0
