@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Turbofan fleet health · predmaint {{ version }}</title>
-  <meta name="description" content="Live replay of NASA C-MAPSS turbofan engines with remaining-useful-life predictions, nominal 90% intervals and attributions.">
+  <meta name="description" content="Replay of held-out NASA C-MAPSS turbofan engines (simulated run-to-failure data) with remaining-useful-life predictions, nominal 90% intervals, failure alerts and attributions.">
   <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
   <script src="{{ url_for('static', filename='theme.js') }}"></script>
 </head>
@@ -13,7 +13,7 @@
     <header class="topbar">
       <div class="brand">
         <h1>Turbofan fleet health</h1>
-        <p class="subtitle">Live replay of NASA C-MAPSS <span id="subset-name">{{ subset }}</span> engines that no network or calibration step saw in training. The model runs on every new cycle.</p>
+        <p class="subtitle">Replay of simulated NASA C-MAPSS <span id="subset-name">{{ subset }}</span> engines that no network or calibration step saw in training: each tick feeds the model the next recorded cycle. Not field telemetry.</p>
       </div>
       <div class="topbar-actions">
         <span id="connection" class="connection" role="status" aria-live="polite">
@@ -42,7 +42,7 @@
         <p class="tile-caption" id="kpi-coverage-caption">Share of test engines</p>
       </article>
       <article class="tile">
-        <h2 class="tile-label">Alert precision–recall AUC</h2>
+        <h2 class="tile-label">Alert average precision</h2>
         <p class="tile-value"><span id="kpi-ap">–</span></p>
         <p class="tile-caption" id="kpi-ap-caption">Failure within the horizon</p>
       </article>
@@ -88,6 +88,7 @@
           <h2 id="detail-title">Engine –</h2>
           <span id="detail-status"></span>
           <p class="detail-meta" id="detail-meta"></p>
+          <p class="detail-source" id="detail-source"></p>
         </div>
 
         <figure class="chart-block">
@@ -130,7 +131,7 @@
           </figure>
         </div>
 
-        <figure class="chart-block">
+        <figure class="chart-block block-traces">
           <figcaption>
             <span class="fig-title">Top drivers, raw readings</span>
             <span class="fig-sub">The three sensors with the largest net effect, over this engine's life so far.</span>
