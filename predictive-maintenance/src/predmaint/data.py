@@ -248,24 +248,6 @@ def test_like_truncations(
     return points
 
 
-def split_units(
-    units: np.ndarray, seed: int = 42, val_fraction: float = 0.15, holdout_fraction: float = 0.15
-) -> dict[str, np.ndarray]:
-    """Split engine ids (never individual rows) into train / validation / holdout sets."""
-    units = np.unique(units)
-    rng = np.random.default_rng(seed)
-    shuffled = rng.permutation(units)
-    n_val = max(1, round(len(units) * val_fraction))
-    n_holdout = max(1, round(len(units) * holdout_fraction))
-    if n_val + n_holdout >= len(units):
-        raise DataError(f"Not enough units ({len(units)}) for a train/val/holdout split")
-    return {
-        "val": np.sort(shuffled[:n_val]),
-        "holdout": np.sort(shuffled[n_val : n_val + n_holdout]),
-        "train": np.sort(shuffled[n_val + n_holdout :]),
-    }
-
-
 def _check_subset(subset: str) -> str:
     if subset not in SUBSETS:
         raise DataError(f"Unknown subset {subset!r}; expected one of {SUBSETS}")

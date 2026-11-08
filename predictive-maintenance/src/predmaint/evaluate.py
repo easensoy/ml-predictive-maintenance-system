@@ -33,7 +33,7 @@ from predmaint.metrics import (
     rmse,
     wilson_interval,
 )
-from predmaint.train import LEDGER, append_ledger, git_state
+from predmaint.train import LEDGER, append_ledger, git_state, ledger_path
 
 N_BOOT = 2000
 BOOT_SEED = 7
@@ -179,7 +179,7 @@ def evaluate_run(run_dir: Path, settings: Settings, ledger: Path | None) -> dict
                 "event": "evaluate",
                 "at": result["evaluated_at"],
                 "subset": subset,
-                "out": str(run_dir),
+                "out": ledger_path(run_dir),
                 "git_commit": git["commit"] if git else None,
                 "test_viewed": True,
                 "summary": {
