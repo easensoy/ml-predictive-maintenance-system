@@ -54,7 +54,9 @@ def sliding_windows(rows: np.ndarray, window: int) -> np.ndarray:
         raise ValueError("rows must be a non-empty (T, F) array")
     padded = np.concatenate([np.repeat(rows[:1], window - 1, axis=0), rows], axis=0)
     view = np.lib.stride_tricks.sliding_window_view(padded, window, axis=0)  # (T, F, window)
-    return np.ascontiguousarray(view.transpose(0, 2, 1))
+    # Always a writable copy: for a one-row history the transposed view is already contiguous,
+    # and handing that read-only view to torch would warn.
+    return view.transpose(0, 2, 1).copy()
 
 
 def ewma(rows: np.ndarray, alpha: float) -> np.ndarray:
