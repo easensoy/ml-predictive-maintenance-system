@@ -161,6 +161,15 @@ def resolve_device(name: str) -> torch.device:
     return torch.device(name)
 
 
+def ledger_path(out_dir: Path) -> str:
+    """How the ledger names a run's output: relative to the project when inside it, otherwise
+    just the directory name (local paths stay out of the repository)."""
+    try:
+        return out_dir.resolve().relative_to(PROJECT_ROOT).as_posix()
+    except ValueError:
+        return f"scratch/{out_dir.name}"
+
+
 def append_ledger(path: Path, entry: dict) -> None:
     """Append one JSON line to the experiment ledger (one small write, so concurrent runs do not
     interleave)."""
@@ -887,7 +896,7 @@ def run(cfg: TrainConfig, settings: Settings, out_dir: Path, ledger: Path | None
                 "event": "train",
                 "at": metrics["created_at"],
                 "subset": cfg.subset,
-                "out": str(out_dir),
+                "out": ledger_path(out_dir),
                 "git_commit": git["commit"] if git else None,
                 "git_dirty": git["dirty"] if git else None,
                 "config": asdict(cfg),
