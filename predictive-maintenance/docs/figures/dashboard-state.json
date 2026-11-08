@@ -1,0 +1,22 @@
+{
+  "subset": "FD001",
+  "unit": 81,
+  "cycle": 207,
+  "total_cycles": 240,
+  "rul_true": 33,
+  "point": 31.7,
+  "lower": 18.2,
+  "upper": 51.4,
+  "open_ended": false,
+  "probability": 0.5137,
+  "status": "alert",
+  "interval": 0.9,
+  "horizon_cycles": 30,
+  "page": "/?engine=81&only=prediction&theme=light|dark",
+  "viewport_css_px": [
+    1000,
+    1200
+  ],
+  "device_scale_factor": 2,
+  "browser": "msedge"
+}
