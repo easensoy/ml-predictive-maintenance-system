@@ -20,8 +20,9 @@ def test_results_block_reads_metrics(artifacts_dir):
     assert [r[1] for r in rows] == ["LSTM", "LightGBM"]
     lstm = metrics["test"]["models"]["lstm"]["summary"]["rmse"]
     assert rows[0][2].strip("*").startswith(f"{lstm['mean']:.2f} ± {lstm['sd']:.2f}")
-    assert "paired bootstrap" in block
+    assert "paired engine-level bootstrap" in block
     assert "out of fold" in block
+    assert "replay holdout" in block
 
 
 def test_results_block_bolds_the_better_model_not_always_the_network(artifacts_dir):

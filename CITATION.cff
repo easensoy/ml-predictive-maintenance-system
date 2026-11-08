@@ -3,7 +3,7 @@ message: >-
   If you use this software, please cite it as below, and cite the C-MAPSS dataset
   (Saxena et al., 2008) that it is trained and evaluated on.
 type: software
-title: "predmaint: turbofan remaining-useful-life prediction with calibrated uncertainty and explanations"
+title: "predmaint: turbofan remaining-useful-life prediction with conformal intervals, failure alerts and attributions"
 version: 2.0.0
 license: MIT
 repository-code: "https://github.com/easensoy/ml-predictive-maintenance-system"

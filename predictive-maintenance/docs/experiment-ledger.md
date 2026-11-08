@@ -71,9 +71,12 @@ as optimistic.
 The re-evaluation replaced the protocol above. Its rules, each enforced in code and checked by
 `python -m predmaint.audit`:
 
-- Training reads only the training engines and the test engines' sensor readings. The test
-  labels (`RUL_FD00x.txt`) are read by `python -m predmaint.evaluate` alone, which records each
-  time it runs in `experiment-ledger.jsonl`.
+- Training reads only the training engines and the test engines' sensor readings: their last
+  windows, which it predicts without labels, and their trajectory lengths, from which the
+  calibration truncation points are drawn. The test labels (`RUL_FD00x.txt`) are read by
+  `python -m predmaint.evaluate` alone, which records each time it runs in
+  `experiment-ledger.jsonl`. The labels it reads are then stored in the committed prediction
+  files, and later reports, figures and audits read them there without a ledger entry.
 - Training refuses to run from uncommitted sources unless told to, and records the commit it
   ran from. The published runs were trained from a clean worktree of that commit.
 - Window length, early stopping and calibration never share engines: each fold's window and
@@ -86,7 +89,9 @@ The table below is generated from `experiment-ledger.jsonl` by `python -m predma
 Paths outside the repository are shortened to `scratch/<name>`. The first FD002 run was
 stopped by hand: four runs in parallel overfilled the 6 GB GPU and Windows paged its memory to
 system RAM. Nothing from it was written or evaluated, and FD002 was retrained alone from the
-same commit.
+same commit. A stopped run writes no ledger entry, so its `train-aborted` line was added by hand;
+every other line was written by the code, with local paths shortened before it was committed
+(`e77873b`).
 
 <!-- ledger:start -->
 | When | Event | Subset | Code commit | Sources committed | Output | Test set viewed |

@@ -705,15 +705,15 @@ def fig_uncertainty(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
     ax_cov.axvline(nominal, color=t["muted"], lw=1, linestyle=(0, (3, 3)), zorder=1)
     _rows(ax_cov, subsets)
     ax_cov.set_xlim(77, 100.5)
-    ax_cov.set_xlabel("Inside the interval (%): test engines, or cycles out of fold")
-    ax_cov.set_title(f"Coverage per subset (dashed: nominal {nominal:.0f}%)")
+    ax_cov.set_xlabel("Inside the interval (%): test engines, or engine-weighted out of fold")
+    ax_cov.set_title(f"Empirical coverage per subset (dashed: nominal {nominal:.0f}%)")
     for a in (ax_w, ax_open):
         a.tick_params(labelleft=False)
         a.grid(axis="y", visible=False)
         for i in range(1, len(subsets)):
             a.axhline(i - 0.5, color=plt.rcParams["grid.color"], linewidth=0.7, zorder=0)
-    ax_w.set_xlabel(f"Mean test width (cycles; open-ended\nintervals counted up to {cap})")
-    ax_w.set_title("Width: narrower is sharper")
+    ax_w.set_xlabel(f"Cycles, test engines; open-ended\nintervals truncated at {cap}")
+    ax_w.set_title("Mean width")
     ax_open.set_xticks([])
     ax_open.grid(False)
     for spine in ax_open.spines.values():
