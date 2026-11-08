@@ -195,6 +195,8 @@ def audit(artifacts: Path, *documents: Path) -> list[str]:
         run = load_run(run_dir)
         for check in (check_split_rules, check_intervals, check_metrics):
             problems += [f"{run_dir.name}: {p}" for p in check(run)]
+    from predmaint.report import BLOCKS, markers
+
     expected = results_block(artifacts)
     for document in documents:
         if readme_block(document) != expected:
@@ -202,6 +204,16 @@ def audit(artifacts: Path, *documents: Path) -> list[str]:
                 f"the results block in {document.name} differs from the one generated from "
                 "the artifacts; rerun `python -m predmaint.report`"
             )
+        text = document.read_text(encoding="utf-8")
+        for name, build in BLOCKS.items():
+            start, end = markers(name)
+            if start in text:
+                found = text.split(start, 1)[1].split(end, 1)[0].strip("\n")
+                if found != build(artifacts):
+                    problems.append(
+                        f"the {name} block in {document.name} differs from the one generated "
+                        "from the artifacts; rerun `python -m predmaint.report`"
+                    )
     return problems
 
 

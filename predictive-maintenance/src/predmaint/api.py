@@ -217,15 +217,21 @@ def create_app(settings: Settings | None = None, predictor: Predictor | None = N
             watching.pop(_sid(), None)
 
     def replay_loop(fleet: FleetReplay) -> None:
+        cursor = 0
         while True:
             # The stub says int, but Flask-SocketIO sleeps for any number of seconds.
             socketio.sleep(settings.replay_interval_s)  # type: ignore[arg-type]
             try:
                 socketio.emit("fleet_update", fleet.step())
                 with watching_lock:
-                    watched = set(watching.values())
-                for unit in watched:
+                    watched = sorted(set(watching.values()))
+                # Attributions are the slow part of a tick: refresh a few engines per tick, in
+                # turn, so many viewers cannot push the tick past its interval.
+                count = min(len(watched), settings.explain_per_tick)
+                for i in range(count):
+                    unit = watched[(cursor + i) % len(watched)]
                     socketio.emit("engine_update", fleet.detail(unit), to=f"engine:{unit}")
+                cursor = (cursor + count) % max(1, len(watched))
             except Exception:
                 log.exception("Replay tick failed")
 
