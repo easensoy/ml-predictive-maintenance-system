@@ -46,7 +46,12 @@ AUDITED_FILES = (
     "predictions/calibration-points.csv",
     "predictions/oof.csv.gz",
 )
-DOCUMENTS = (PROJECT_ROOT.parent / "README.md", PROJECT_ROOT.parent / "MODEL_CARD.md")
+DOCUMENTS = (
+    PROJECT_ROOT.parent / "README.md",
+    PROJECT_ROOT.parent / "MODEL_CARD.md",
+    PROJECT_ROOT / "docs" / "evaluation.md",
+    PROJECT_ROOT / "docs" / "serving.md",
+)
 # Values are stored rounded (cycles to 0.01, probabilities to 0.0001).
 CYCLE_TOLERANCE, PROBABILITY_TOLERANCE = 0.0051, 0.00006
 
@@ -262,19 +267,10 @@ def check_examples(artifacts: Path) -> list[str]:
     return problems
 
 
-def readme_block(document: Path) -> str:
-    from predmaint.report import END, START
-
-    text = document.read_text(encoding="utf-8")
-    if START not in text or END not in text:
-        raise ValueError(f"{document} has no {START} ... {END} block")
-    return text.split(START, 1)[1].split(END, 1)[0].strip("\n")
-
-
-def audit(artifacts: Path, *documents: Path) -> list[str]:
-    """Problems found in the runs under ``artifacts`` and in each document's results block."""
-    from predmaint.report import results_block
-
+def audit(artifacts: Path, *documents: Path, complete: bool = False) -> list[str]:
+    """Problems found in the runs under ``artifacts`` and in each document's generated blocks.
+    With ``complete``, every generated block must also appear in at least one document, so a
+    block whose markers were deleted cannot drop out of the check unnoticed."""
     runs = [artifacts / s for s in SUBSETS if (artifacts / s / "metrics.json").is_file()]
     if not runs:
         return [f"no trained runs in {artifacts}"]
@@ -286,23 +282,25 @@ def audit(artifacts: Path, *documents: Path) -> list[str]:
     problems += check_examples(artifacts)
     from predmaint.report import BLOCKS, markers
 
-    expected = results_block(artifacts)
+    found_anywhere = set()
     for document in documents:
-        if readme_block(document) != expected:
-            problems.append(
-                f"the results block in {document.name} differs from the one generated from "
-                "the artifacts; rerun `python -m predmaint.report`"
-            )
         text = document.read_text(encoding="utf-8")
         for name, build in BLOCKS.items():
             start, end = markers(name)
             if start in text:
+                found_anywhere.add(name)
                 found = text.split(start, 1)[1].split(end, 1)[0].strip("\n")
                 if found != build(artifacts):
                     problems.append(
                         f"the {name} block in {document.name} differs from the one generated "
                         "from the artifacts; rerun `python -m predmaint.report`"
                     )
+    if complete:
+        problems += [
+            f"no document has the generated {name} block"
+            for name in BLOCKS
+            if name not in found_anywhere
+        ]
     return problems
 
 
@@ -313,12 +311,12 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         nargs="*",
         default=list(DOCUMENTS),
-        help="files whose results block must match (default: README.md and MODEL_CARD.md)",
+        help="documents whose generated blocks must match (default: the four documents)",
     )
     parser.add_argument("--artifacts", type=Path, default=None)
     args = parser.parse_args(argv)
     artifacts = args.artifacts or Settings.from_env().artifacts_dir
-    problems = audit(artifacts, *args.docs)
+    problems = audit(artifacts, *args.docs, complete=args.docs == list(DOCUMENTS))
     for problem in problems:
         print(f"MISMATCH  {problem}")
     if problems:
