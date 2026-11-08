@@ -14,7 +14,10 @@ For every run in ``artifacts/``:
    prediction files.
 4. **Manifest.** Every artifact present has the SHA-256 that ``manifest.json`` recorded when
    the run was evaluated, and every file this audit reads is listed there.
-5. **Documents.** Every generated block in README.md and MODEL_CARD.md equals the block
+5. **Product outputs.** The example API response in ``docs/`` reproduces a test-set
+   prediction, and the state the dashboard screenshots show is the evaluated replay
+   prediction for the engine and cycle the hero rule picks.
+6. **Documents.** Every generated block in README.md and MODEL_CARD.md equals the block
    generated from the artifacts.
 
 The test suite runs the same audit, so CI fails if any of these drifts.
@@ -207,6 +210,58 @@ def check_manifest(run: dict) -> list[str]:
     return problems
 
 
+def check_examples(artifacts: Path) -> list[str]:
+    """The product outputs the README shows must be the evaluated predictions.
+
+    - ``docs/example-response.json`` must reproduce one test-set prediction of the served FD001
+      model.
+    - ``docs/figures/dashboard-state.json`` must name the engine and cycle that the hero rule picks,
+      with the prediction ``replay-holdout.csv.gz`` holds for them.
+
+    The files are looked for next to ``artifacts``: a copy of the artifacts elsewhere has none, and
+    nothing is checked.
+    """
+    from predmaint.report import example_files, hero_state, matching_test_engine
+
+    files = example_files(artifacts)
+    problems = []
+    if files["response"].is_file() and (artifacts / "FD001" / "metrics.json").is_file():
+        response = json.loads(files["response"].read_text())
+        if matching_test_engine(response, artifacts / "FD001") is None:
+            problems.append(
+                "docs/example-response.json matches no test prediction of the served FD001 model; "
+                "rerun `python -m predmaint.report`"
+            )
+    if files["dashboard"].is_file():
+        shown = json.loads(files["dashboard"].read_text())
+        run_dir = artifacts / shown["subset"]
+        if (run_dir / "metrics.json").is_file():
+            hero = hero_state(run_dir)
+            row = hero["row"]
+            expected = {
+                "unit": hero["unit"],
+                "cycle": hero["cycle"],
+                "rul_true": int(row["rul"]),
+                "open_ended": bool(row["open_ended"]),
+            }
+            for key, value in expected.items():
+                if shown[key] != value:
+                    problems.append(
+                        f"the dashboard screenshots show {key} {shown[key]}, but the replay "
+                        f"predictions give {value}; rerun `python -m predmaint.screenshots`"
+                    )
+            keys = ["point", "lower", "probability"] + ([] if row["open_ended"] else ["upper"])
+            for key in keys:
+                tolerance = PROBABILITY_TOLERANCE * 2 if key == "probability" else 0.051
+                if abs(shown[key] - float(row[key])) > tolerance:
+                    problems.append(
+                        f"the dashboard screenshots show {key} {shown[key]}, but "
+                        f"replay-holdout.csv.gz has {float(row[key])}; rerun "
+                        "`python -m predmaint.screenshots`"
+                    )
+    return problems
+
+
 def readme_block(document: Path) -> str:
     from predmaint.report import END, START
 
@@ -228,6 +283,7 @@ def audit(artifacts: Path, *documents: Path) -> list[str]:
         run = load_run(run_dir)
         for check in (check_split_rules, check_intervals, check_metrics, check_manifest):
             problems += [f"{run_dir.name}: {p}" for p in check(run)]
+    problems += check_examples(artifacts)
     from predmaint.report import BLOCKS, markers
 
     expected = results_block(artifacts)
