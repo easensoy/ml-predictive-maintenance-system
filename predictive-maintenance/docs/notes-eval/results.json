@@ -1,0 +1,98 @@
+{
+ "template": {
+  "cases": 150,
+  "pass_rate": {
+   "numeric_fidelity": 1.0,
+   "no_causal_claims": 1.0,
+   "cap_handling": 1.0,
+   "abstention": 1.0
+  },
+  "all_four": 1.0,
+  "by_kind": {
+   "normal": {
+    "numeric_fidelity": 1.0,
+    "no_causal_claims": 1.0,
+    "cap_handling": 1.0,
+    "abstention": 1.0,
+    "n": 90
+   },
+   "conflict-status": {
+    "numeric_fidelity": 1.0,
+    "no_causal_claims": 1.0,
+    "cap_handling": 1.0,
+    "abstention": 1.0,
+    "n": 10
+   },
+   "conflict-bounds": {
+    "numeric_fidelity": 1.0,
+    "no_causal_claims": 1.0,
+    "cap_handling": 1.0,
+    "abstention": 1.0,
+    "n": 5
+   },
+   "missing-point": {
+    "numeric_fidelity": 1.0,
+    "no_causal_claims": 1.0,
+    "cap_handling": 1.0,
+    "abstention": 1.0,
+    "n": 5
+   },
+   "missing-probability": {
+    "numeric_fidelity": 1.0,
+    "no_causal_claims": 1.0,
+    "cap_handling": 1.0,
+    "abstention": 1.0,
+    "n": 5
+   },
+   "missing-attributions": {
+    "numeric_fidelity": 1.0,
+    "no_causal_claims": 1.0,
+    "cap_handling": 1.0,
+    "abstention": 1.0,
+    "n": 5
+   },
+   "out-of-distribution": {
+    "numeric_fidelity": 1.0,
+    "no_causal_claims": 1.0,
+    "cap_handling": 1.0,
+    "abstention": 1.0,
+    "n": 5
+   },
+   "wide-interval": {
+    "numeric_fidelity": 1.0,
+    "no_causal_claims": 1.0,
+    "cap_handling": 1.0,
+    "abstention": 1.0,
+    "n": 5
+   },
+   "open-ended": {
+    "numeric_fidelity": 1.0,
+    "no_causal_claims": 1.0,
+    "cap_handling": 1.0,
+    "abstention": 1.0,
+    "n": 5
+   },
+   "low-coverage": {
+    "numeric_fidelity": 1.0,
+    "no_causal_claims": 1.0,
+    "cap_handling": 1.0,
+    "abstention": 1.0,
+    "n": 5
+   },
+   "at-threshold": {
+    "numeric_fidelity": 1.0,
+    "no_causal_claims": 1.0,
+    "cap_handling": 1.0,
+    "abstention": 1.0,
+    "n": 5
+   },
+   "decimals": {
+    "numeric_fidelity": 1.0,
+    "no_causal_claims": 1.0,
+    "cap_handling": 1.0,
+    "abstention": 1.0,
+    "n": 5
+   }
+  }
+ }
+}

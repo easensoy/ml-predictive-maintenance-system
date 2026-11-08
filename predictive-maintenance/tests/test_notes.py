@@ -1,0 +1,197 @@
+"""The maintenance-note harness: graders, the template baseline and the Claude client path.
+
+No test calls the API: the Claude path runs against a fake client that returns canned replies.
+"""
+
+import copy
+import json
+from types import SimpleNamespace
+
+import pytest
+
+from predmaint import notes
+
+
+def _record(**changes) -> dict:
+    record = {
+        "case_id": "001-normal",
+        "kind": "normal",
+        "engine": 17,
+        "subset": "FD001",
+        "cycle": 145,
+        "rul": {"point": 38.2, "lower": 22.4, "upper": 55.1, "open_ended": False, "capped_at": 125},
+        "failure_within_horizon": {"horizon_cycles": 30, "probability": 0.24, "threshold": 0.5},
+        "status": "watch",
+        "top_attributions": [
+            {"symbol": "Ps30", "description": "Static pressure", "contribution_cycles": -8.1},
+            {"symbol": "T50", "description": "LPT outlet temperature", "contribution_cycles": -4.2},
+        ],
+        "out_of_distribution": {"flag": False, "sensors": []},
+        "measured_coverage": 0.88,
+    }
+    for key, value in changes.items():
+        if isinstance(value, dict) and isinstance(record.get(key), dict):
+            record[key] = {**record[key], **value}
+        else:
+            record[key] = value
+    return record
+
+
+OPEN = {"rul": {"point": 121.0, "lower": 96.0, "upper": 125.0, "open_ended": True}}
+
+
+@pytest.mark.parametrize(
+    ("changes", "reason"),
+    [
+        ({}, None),
+        ({"out_of_distribution": {"flag": True, "sensors": ["sensor_11"]}}, "out_of_distribution"),
+        ({"rul": {"point": None}}, "missing_fields"),
+        ({"failure_within_horizon": {"probability": None}}, "missing_fields"),
+        ({"status": "alert"}, "conflicting_fields"),
+        ({"rul": {"lower": 40.0}}, "conflicting_fields"),
+        ({"rul": {"lower": 5.0, "upper": 100.0}}, "too_uncertain"),
+        ({"top_attributions": []}, None),
+        (OPEN | {"status": "healthy"}, None),
+    ],
+)
+def test_expected_behaviour(changes, reason):
+    assert notes.expected(_record(**changes))["reason"] == reason
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {},
+        {"out_of_distribution": {"flag": True, "sensors": ["sensor_11"]}},
+        {"status": "alert"},
+        OPEN | {"status": "healthy"},
+        {"top_attributions": []},
+        {"measured_coverage": 0.71},
+    ],
+)
+def test_template_passes_every_grader(changes):
+    record = _record(**changes)
+    graded = notes.grade(notes.template_note(record), record)
+    assert all(graded[p] for p in notes.PROPERTIES), graded
+
+
+def test_template_states_open_ended_intervals_as_a_lower_bound():
+    record = _record(**OPEN, status="healthy")
+    text = notes.template_note(record)["note"]
+    assert "at least 96 cycles" in text
+    assert "125" not in text
+
+
+def test_grader_catches_an_invented_number():
+    record = _record()
+    note = {"note": "Engine 17: about 38 cycles left, maybe 60.", "abstained": False}
+    graded = notes.grade(note, record)
+    assert not graded["numeric_fidelity"]
+    assert graded["unsupported_numbers"] == [60.0]
+
+
+def test_grader_catches_causal_claims():
+    note = {"note": "Ps30 is rising because the compressor is degrading.", "abstained": False}
+    graded = notes.grade(note, _record())
+    assert not graded["no_causal_claims"]
+
+
+def test_grader_catches_an_upper_bound_on_an_open_ended_interval():
+    record = _record(**OPEN, status="healthy")
+    note = {"note": "Engine 17: 121 cycles left, 96 to 125 cycles.", "abstained": False}
+    assert not notes.grade(note, record)["cap_handling"]
+
+
+def test_grader_catches_wrong_abstention():
+    record = _record(out_of_distribution={"flag": True, "sensors": ["sensor_11"]})
+    note = {"note": "Engine 17: 38 cycles left.", "abstained": False}
+    assert not notes.grade(note, record)["abstention"]
+
+
+def test_claude_request_uses_structured_output_and_server_side_fallback():
+    request = notes.claude_request(_record())
+    assert request["model"] == notes.MODEL
+    assert request["fallbacks"] == "default"
+    assert request["betas"] == ["server-side-fallback-2026-07-01"]
+    assert request["output_config"]["format"]["schema"] == notes.OUTPUT_SCHEMA
+    assert request["output_config"]["effort"] == "medium"
+    assert "temperature" not in request
+    payload = json.loads(request["messages"][0]["content"])
+    assert "case_id" not in payload
+    assert payload["rul"]["point"] == 38.2
+
+
+class FakeMessages:
+    """Stands in for client.beta.messages; replies come from a list of canned responses."""
+
+    def __init__(self, replies):
+        self.replies = list(replies)
+        self.requests = []
+
+    def create(self, **kwargs):
+        self.requests.append(kwargs)
+        stop_reason, text = self.replies.pop(0)
+        return SimpleNamespace(
+            model=kwargs["model"],
+            stop_reason=stop_reason,
+            content=[SimpleNamespace(type="text", text=text)],
+            usage=SimpleNamespace(input_tokens=600, output_tokens=90),
+        )
+
+
+def _client(*replies):
+    return SimpleNamespace(beta=SimpleNamespace(messages=FakeMessages(replies)))
+
+
+def test_claude_note_parses_structured_output_and_records_usage():
+    reply = json.dumps({"note": "Engine 17: 38 cycles left.", "abstained": False})
+    result = notes.claude_note(_client(("end_turn", reply)), _record())
+    assert result["note"] == "Engine 17: 38 cycles left."
+    assert result["abstained"] is False
+    assert (result["input_tokens"], result["output_tokens"]) == (600, 90)
+
+
+def test_claude_note_handles_refusals_and_malformed_replies():
+    refused = notes.claude_note(_client(("refusal", "")), _record())
+    assert refused["refused"] is True
+    assert refused["abstained"] is True
+    malformed = notes.claude_note(_client(("end_turn", "not json")), _record())
+    assert malformed["malformed"] is True
+
+
+def test_run_claude_records_every_call_and_summarises(tmp_path):
+    cases = [_record(case_id=f"{i:03d}-normal") for i in range(4)]
+    good = json.dumps(
+        {"note": "Engine 17 (FD001), cycle 145: 38 cycles left, 22 to 55.", "abstained": False}
+    )
+    client = _client(*[("end_turn", good)] * 6)
+    out = tmp_path / "responses.jsonl"
+    notes.run_claude(cases, out, client=client, repeat_cases=1, repeats=3)
+    recorded = notes.load_recorded(out)
+    assert sum(len(runs) for runs in recorded.values()) == 6
+    summary = notes.claude_summary(cases, recorded)
+    assert summary["calls"] == 6
+    assert summary["repeatability"]["cases"] == 1
+    assert summary["repeatability"]["same_abstention"] == 1.0
+    assert summary["cost_usd"]["per_note"] == pytest.approx((600 * 4 + 90 * 20) / 1e6)
+    assert summary["evaluation"]["cases"] == 4
+
+
+def test_make_client_explains_what_is_missing(monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    with pytest.raises(SystemExit, match="ANTHROPIC_API_KEY"):
+        notes.make_client()
+
+
+def test_build_cases_mixes_real_and_adversarial_records(artifacts_dir):
+    cases = notes.build_cases(artifacts_dir / "FD001", normal=10, adversarial=24)
+    kinds = {c["kind"] for c in cases}
+    assert len(cases) == 34
+    assert {"normal", "out-of-distribution", "conflict-status", "open-ended"} <= kinds
+    assert len({c["case_id"] for c in cases}) == len(cases)
+    again = notes.build_cases(artifacts_dir / "FD001", normal=10, adversarial=24)
+    assert again == cases  # frozen: the same model gives the same cases
+    for case in cases:
+        record = copy.deepcopy(case)
+        graded = notes.grade(notes.template_note(record), record)
+        assert graded["abstention"], case["case_id"]
