@@ -193,20 +193,41 @@ def evaluate_run(run_dir: Path, settings: Settings, ledger: Path | None) -> dict
     return result
 
 
+# Git stores text files with LF line endings and a Windows checkout writes them with CRLF, so a
+# hash of the raw bytes would depend on the machine. Text artifacts are hashed with LF endings.
+TEXT_SUFFIXES = frozenset({".json", ".csv", ".md", ".txt"})
+# attribution-checks.json is written later, by predmaint.attribution_checks, not by the run.
+NOT_IN_MANIFEST = frozenset({"manifest.json", "attribution-checks.json"})
+HASHING = "SHA-256 of each file, with .json, .csv, .md and .txt files read with LF line endings"
+
+
+def artifact_sha256(path: Path) -> str:
+    """SHA-256 of one artifact file, the same on every checkout."""
+    data = path.read_bytes()
+    if path.suffix in TEXT_SUFFIXES:
+        data = data.replace(b"\r\n", b"\n")
+    return hashlib.sha256(data).hexdigest()
+
+
+def manifest_files(run_dir: Path) -> dict[str, str]:
+    """The hash of every file the run wrote, by path relative to the run directory."""
+    return {
+        p.relative_to(run_dir).as_posix(): artifact_sha256(p)
+        for p in sorted(run_dir.rglob("*"))
+        if p.is_file() and p.name not in NOT_IN_MANIFEST
+    }
+
+
 def write_manifest(run_dir: Path, metrics: dict) -> None:
     """Hashes of every artifact, with the code, data and environment that produced them."""
-    files = {
-        p.relative_to(run_dir).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
-        for p in sorted(run_dir.rglob("*"))
-        if p.is_file() and p.name != "manifest.json"
-    }
     (run_dir / "manifest.json").write_text(
         json.dumps(
             {
                 "subset": metrics["subset"],
                 "provenance": metrics["provenance"],
                 "evaluated_with": metrics["test"]["git"] if metrics.get("test") else None,
-                "files_sha256": files,
+                "hashing": HASHING,
+                "files_sha256": manifest_files(run_dir),
             },
             indent=1,
         )

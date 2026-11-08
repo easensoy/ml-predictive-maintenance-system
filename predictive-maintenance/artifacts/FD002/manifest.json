@@ -35,17 +35,18 @@
   "dirty": false,
   "changed": []
  },
+ "hashing": "SHA-256 of each file, with .json, .csv, .md and .txt files read with LF line endings",
  "files_sha256": {
-  "calibration.json": "571f28be5243a6050eae71723ed7654f66f531a9a98e2495c69ff59edeb5c386",
-  "contract.json": "57817fcb926eb64e14a83f6f450ca60a50efaf7bd0a9acd83f9ca1597ef87b55",
+  "calibration.json": "379e9c757b8fdaa31c2cb40db2e77b38f353ee4a5d3c174a1b2d33684ecc053d",
+  "contract.json": "9d6765b8b59a3e74a801c62f33743efc3b1196cde972b46c61d4459e8c84e0e2",
   "history.json": "12fee08a1a59fe013e568f5f9f4ec2db7c93606dcb557a75342db4927b220ee9",
-  "metrics.json": "2fd0bf84948faad382c6c985c12c591fe19e39c256995f43f62837af19c25af3",
+  "metrics.json": "7fe89c46e41021128c1aa3aed5024a6316a7b46847220b21d91d521b1d4dcff3",
   "model.pt": "d16a70d3238289a34354868ea5d3db94d2c143e08f1fba1ea26d1f39334d0fdc",
-  "predictions/calibration-points.csv": "9181d2b71b01f8d9649f3190f234425f66e03c631f2a60db44a7c89764e074f0",
+  "predictions/calibration-points.csv": "467c88148b7386f155e1771bb42e74a920c09110ee5b4fe48b703b0fe5dacf14",
   "predictions/oof.csv.gz": "bcad7c11fa14ff08ac01cf6b89fd1bc208b8d2902b400984d1b421e248538caf",
   "predictions/replay-holdout.csv.gz": "5d549270079d781fb558ac8e2569ab21805939d53561cad0d0ff8ac001b24d7d",
-  "predictions/test-members.csv": "2e25be63481eca67daf4e475451c98018fdb8f24e334e22dc545c1eb10e0cccf",
-  "predictions/test.csv": "6cb09023ed6947f769c9a87cc5b7e2d0f3311d11f03aff93fa3eb07612638f31",
-  "replay.csv": "fa74deb0a70500f4929bdb322d69cc73220dd1d52f8b637bb9a0bac41955c498"
+  "predictions/test-members.csv": "ef4de1cc9ba530689ab62b406e1261c96509d66e05d1fecfde5191cd6afa60ea",
+  "predictions/test.csv": "b2a86c5d6e541c01b33b1c8bd4769b06c9e5c73ded8b6805c3f36e28aa40f0f1",
+  "replay.csv": "9b2200b4f576f1db325e811f219b01573221ace50ebd7374358111b9c7fd1964"
  }
 }

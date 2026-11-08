@@ -12,8 +12,10 @@ For every run in ``artifacts/``:
    bounds.
 3. **Metrics.** Every test and out-of-fold metric in ``metrics.json`` is recomputed from the
    prediction files.
-4. **Documents.** The results block in README.md and MODEL_CARD.md equals the block generated
-   from the artifacts.
+4. **Manifest.** Every artifact present has the SHA-256 that ``manifest.json`` recorded when
+   the run was evaluated, and every file this audit reads is listed there.
+5. **Documents.** Every generated block in README.md and MODEL_CARD.md equals the block
+   generated from the artifacts.
 
 The test suite runs the same audit, so CI fails if any of these drifts.
 """
@@ -29,10 +31,18 @@ import pandas as pd
 
 from predmaint.calibration import cqr_scores, cv_plus_interval, finalize_interval, probability
 from predmaint.config import PROJECT_ROOT, Settings
-from predmaint.evaluate import paired_differences, repeat_metrics
+from predmaint.evaluate import manifest_files, paired_differences, repeat_metrics
 from predmaint.train import TrainConfig, whole_life_metrics
 
 SUBSETS = ("FD001", "FD002", "FD003", "FD004")
+# The files the audit recomputes from: their hashes must be in the manifest.
+AUDITED_FILES = (
+    "metrics.json",
+    "predictions/test.csv",
+    "predictions/test-members.csv",
+    "predictions/calibration-points.csv",
+    "predictions/oof.csv.gz",
+)
 DOCUMENTS = (PROJECT_ROOT.parent / "README.md", PROJECT_ROOT.parent / "MODEL_CARD.md")
 # Values are stored rounded (cycles to 0.01, probabilities to 0.0001).
 CYCLE_TOLERANCE, PROBABILITY_TOLERANCE = 0.0051, 0.00006
@@ -41,6 +51,7 @@ CYCLE_TOLERANCE, PROBABILITY_TOLERANCE = 0.0051, 0.00006
 def load_run(run_dir: Path) -> dict[str, Any]:
     predictions = run_dir / "predictions"
     return {
+        "dir": run_dir,
         "metrics": json.loads((run_dir / "metrics.json").read_text()),
         "test": pd.read_csv(predictions / "test.csv"),
         "members": pd.read_csv(predictions / "test-members.csv"),
@@ -174,6 +185,28 @@ def check_metrics(run: dict) -> list[str]:
     return problems
 
 
+def check_manifest(run: dict) -> list[str]:
+    """Every artifact present matches the hash recorded in manifest.json when the run was
+    evaluated, and every file this audit reads is covered. A listed file may be absent: the
+    networks and replay rows of the subsets that are not served are not committed."""
+    path = run["dir"] / "manifest.json"
+    if not path.is_file():
+        return ["no manifest.json"]
+    recorded = json.loads(path.read_text())["files_sha256"]
+    present = manifest_files(run["dir"])
+    problems = [
+        f"{name} is not in manifest.json"
+        for name in sorted(set(AUDITED_FILES) | set(present))
+        if name not in recorded
+    ]
+    problems += [
+        f"{name} differs from its SHA-256 in manifest.json"
+        for name, digest in present.items()
+        if name in recorded and recorded[name] != digest
+    ]
+    return problems
+
+
 def readme_block(document: Path) -> str:
     from predmaint.report import END, START
 
@@ -193,7 +226,7 @@ def audit(artifacts: Path, *documents: Path) -> list[str]:
     problems = []
     for run_dir in runs:
         run = load_run(run_dir)
-        for check in (check_split_rules, check_intervals, check_metrics):
+        for check in (check_split_rules, check_intervals, check_metrics, check_manifest):
             problems += [f"{run_dir.name}: {p}" for p in check(run)]
     from predmaint.report import BLOCKS, markers
 
@@ -239,7 +272,8 @@ def main(argv: list[str] | None = None) -> int:
             run = load_run(artifacts / subset)
             print(
                 f"{subset}: {len(run['test'])} test predictions, {len(run['oof'])} out-of-fold "
-                f"predictions and {len(run['calibration'])} conformity scores check out"
+                f"predictions, {len(run['calibration'])} conformity scores and "
+                f"{len(manifest_files(run['dir']))} manifest hashes check out"
             )
     return 0
 
