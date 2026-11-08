@@ -685,3 +685,18 @@ a {
 .only-detail .layout {
   grid-template-columns: 1fr;
 }
+
+/* The provenance line under an engine's title: replayed, simulated data. */
+.detail-source {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* &only=prediction: the engine's prediction and alert, without attributions or traces. */
+.only-prediction .two-col,
+.only-prediction .block-traces,
+.only-prediction .table-view {
+  display: none;
+}
