@@ -30,8 +30,9 @@ the same coverage, and an alert that switches itself off again far less often.
 
 Every number on this page is generated from the committed artifacts by `python -m
 predmaint.report`. `python -m predmaint.audit` recomputes each one from the per-engine
-predictions, rebuilds the intervals from the networks' raw outputs, and fails if anything
-differs. Three kinds of number appear, each labelled:
+predictions, rebuilds the intervals from the networks' raw outputs, checks every artifact
+against the SHA-256 recorded when its run was evaluated, and fails if anything differs. Three
+kinds of number appear, each labelled:
 
 - **Test:** NASA's official test sets, one prediction per engine at its last recorded cycle,
   scored once by `predmaint.evaluate`.
