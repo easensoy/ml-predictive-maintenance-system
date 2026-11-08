@@ -12,6 +12,7 @@ import pytest
 
 from predmaint.audit import audit
 from predmaint.config import PROJECT_ROOT
+from predmaint.evaluate import artifact_sha256
 from predmaint.report import END, START, update_readme
 
 REPO_ARTIFACTS = PROJECT_ROOT / "artifacts"
@@ -83,3 +84,28 @@ def test_audit_catches_a_hand_edited_readme(audited):
     text = readme.read_text(encoding="utf-8")
     readme.write_text(text.replace("| FD001 (", "| FD001  (", 1), encoding="utf-8")
     assert any("README" in p for p in audit(artifacts, readme))
+
+
+def test_manifest_hashes_do_not_depend_on_line_endings(tmp_path):
+    lf, crlf = tmp_path / "lf.json", tmp_path / "crlf.json"
+    lf.write_bytes(b'{\n "a": 1\n}\n')
+    crlf.write_bytes(b'{\r\n "a": 1\r\n}\r\n')
+    assert artifact_sha256(lf) == artifact_sha256(crlf)
+    # Binary files are hashed as they are.
+    raw, converted = tmp_path / "raw.pt", tmp_path / "converted.pt"
+    raw.write_bytes(b"\x00\r\n\x01")
+    converted.write_bytes(b"\x00\n\x01")
+    assert artifact_sha256(raw) != artifact_sha256(converted)
+
+
+def test_audit_catches_an_artifact_that_differs_from_its_manifest(audited):
+    artifacts, readme = audited
+    path = artifacts / "FD001" / "history.json"
+    path.write_text(path.read_text().replace("1", "2", 1))
+    assert any("history.json differs" in p for p in audit(artifacts, readme))
+
+
+def test_audit_allows_a_listed_artifact_that_is_not_committed(audited):
+    artifacts, readme = audited
+    (artifacts / "FD001" / "replay.csv").unlink()
+    assert audit(artifacts, readme) == []
