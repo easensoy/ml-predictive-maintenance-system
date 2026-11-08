@@ -14,6 +14,9 @@ GitHub README no text is smaller than about 11 pixels. Each colour has one meani
 - orange: the alert and the 30-cycle alert horizon;
 - the red/blue diverging pair with a grey midpoint: attributions.
 
+Each title states the figure's finding and is computed from the artifacts, so it cannot
+drift from the data; how to read a figure is in the caption next to it in the README.
+
 The dashboard screenshots are not drawn here: ``python -m predmaint.screenshots`` captures them.
 """
 
@@ -130,12 +133,21 @@ def _style(t: dict) -> None:
     )
 
 
-def _header(fig, t: dict, title: str, subtitle: str) -> float:
-    """Title and subtitle in the top margin; returns the figure fraction just below them.
-    The subtitle is wrapped to the figure width."""
+def _fit(fig, text, width: float = 0.976, smallest: float = 9.5) -> None:
+    """Shrink a title until it fits the figure width, so a data-driven title is never clipped."""
+    renderer = fig.canvas.get_renderer()
+    while (
+        text.get_fontsize() > smallest
+        and text.get_window_extent(renderer).width > width * fig.bbox.width
+    ):
+        text.set_fontsize(text.get_fontsize() - 0.25)
+
+
+def _header(fig, t: dict, title: str, subtitle: str = "") -> float:
+    """A finding-led title, and at most a short context line, in the top margin; returns the
+    figure fraction just below them. Method details belong in the caption next to the figure."""
     h = fig.get_figheight()
-    subtitle = textwrap.fill(" ".join(subtitle.split()), SUBTITLE_CHARS)
-    fig.text(
+    heading = fig.text(
         0.012,
         1 - 0.07 / h,
         title,
@@ -145,6 +157,10 @@ def _header(fig, t: dict, title: str, subtitle: str) -> float:
         weight="semibold",
         color=t["text"],
     )
+    _fit(fig, heading)
+    if not subtitle:
+        return 1 - 0.38 / h
+    subtitle = textwrap.fill(" ".join(subtitle.split()), SUBTITLE_CHARS)
     fig.text(
         0.012,
         1 - 0.34 / h,
@@ -156,6 +172,15 @@ def _header(fig, t: dict, title: str, subtitle: str) -> float:
         linespacing=1.35,
     )
     return 1 - (0.34 + 0.16 * (subtitle.count("\n") + 1) + 0.06) / h
+
+
+def _span_text(values: list[float], spec: str, unit: str = "") -> str:
+    low, high = format(min(values), spec), format(max(values), spec)
+    return f"{low}{unit}" if low == high else f"{low}–{high}{unit}"
+
+
+def _identity_handles(t: dict) -> list:
+    return [Patch(color=t["series"][MODEL_SLOT[m]], lw=0) for m in MODELS]
 
 
 def _legend(fig, handles: list, labels: list[str], top: float, ncols: int) -> float:
@@ -206,21 +231,6 @@ def _rows(ax, subsets: list[str]) -> None:
         ax.axhline(i - 0.5, color=plt.rcParams["grid.color"], linewidth=0.7, zorder=0)
 
 
-def _model_handles(t: dict, filled: bool = True) -> list:
-    return [
-        Line2D(
-            [],
-            [],
-            marker="o",
-            linestyle="",
-            markersize=6,
-            markerfacecolor=t["series"][MODEL_SLOT[m]] if filled else "none",
-            markeredgecolor=t["series"][MODEL_SLOT[m]],
-        )
-        for m in MODELS
-    ]
-
-
 # --------------------------------------------------------------------------------------------
 # Hero
 
@@ -239,38 +249,39 @@ def fig_hero(focus: dict, t: dict, out_dir: Path, theme: str) -> Path:
     inside = covered(lower, upper, open_ended, truth)
     below = ~inside & (truth < lower)
     alert = first_alert(g, threshold)
-    replay_engines = len(focus["metrics"]["data"]["replay_engines"])
+    n_miss = int((~inside).sum())
     top = cap + 38
 
-    fig = plt.figure(figsize=(WIDTH, 4.75))
+    if alert is not None:
+        title = (
+            f"Held-out engine {unit}: alert {int(alert['rul'])} cycles before failure; "
+            f"interval missed {n_miss} of {len(cycle)} cycles"
+        )
+    else:
+        title = f"Held-out engine {unit}: no alert; interval missed {n_miss} of {len(cycle)} cycles"
+    fig = plt.figure(figsize=(WIDTH, 4.45))
     y = _header(
         fig,
         t,
-        "One held-out engine, cycle by cycle: prediction, nominal 90% interval and alert",
-        f"{focus['metrics']['subset']} replay engine {unit}, one of {replay_engines} training "
-        "engines held out of all training and calibration and predicted by the served networks.\n"
-        "Chosen by a fixed rule: among replay engines whose interval misses at least once, the "
-        "one with the median first-alert lead time.",
+        title,
+        f"{focus['metrics']['subset']} engine never seen in training or calibration, predicted "
+        "cycle by cycle by the served LSTM. Picked by a fixed rule, not by eye.",
     )
     handles = [
         Line2D([], [], color=t["series"][0], lw=2),
         Patch(color=t["series"][0], alpha=t["band"], lw=0),
         Line2D([], [], color=t["truth"], lw=1.6),
         Line2D([], [], color=t["truth"], lw=1.2, linestyle=(0, (4, 2.5))),
-        Line2D([], [], color=t["text"], marker="x", linestyle="", markersize=5, mew=1.2),
-        Line2D([], [], color=t["alert"], lw=1.4),
     ]
     labels = [
         "Predicted RUL",
         "Nominal 90% interval",
-        f"True RUL, capped at {cap} (the target)",
+        f"True RUL capped at {cap} (the target)",
         "Actual remaining life",
-        "Truth outside the interval",
-        "First alert",
     ]
-    y = _legend(fig, handles, labels, y, ncols=3)
+    y = _legend(fig, handles, labels, y, ncols=len(handles))
     grid = fig.add_gridspec(
-        2, 1, height_ratios=[3.4, 1], hspace=0.14, left=0.082, right=0.985, top=y, bottom=0.1
+        2, 1, height_ratios=[3.4, 1], hspace=0.14, left=0.082, right=0.985, top=y, bottom=0.105
     )
     ax = fig.add_subplot(grid[0])
     axp = fig.add_subplot(grid[1], sharex=ax)
@@ -334,7 +345,6 @@ def fig_hero(focus: dict, t: dict, out_dir: Path, theme: str) -> Path:
         )
     ax.text(3, horizon - 2, f"last {horizon} cycles", fontsize=7.5, color=t["muted"], va="top")
     lines = []
-    n_miss = int((~inside).sum())
     if n_miss:
         span = cycle[~inside]
         if below[~inside].all():
@@ -344,7 +354,7 @@ def fig_hero(focus: dict, t: dict, out_dir: Path, theme: str) -> Path:
         else:
             where = "outside the interval"
         lines.append(
-            f"Truth {where} on {n_miss} of {len(cycle)} cycles ({span.min()}–{span.max()})"
+            f"\u00d7 truth {where} on {n_miss} of {len(cycle)} cycles ({span.min()}–{span.max()})"
         )
     else:
         lines.append(f"Truth inside the interval on all {len(cycle)} cycles")
@@ -353,11 +363,22 @@ def fig_hero(focus: dict, t: dict, out_dir: Path, theme: str) -> Path:
         after = prob[cycle >= a_cycle] >= threshold
         flaps = int(np.sum(after[:-1] & ~after[1:]))
         lines.append(
-            f"First alert {lead} cycles before failure; "
-            + ("it stays on" if flaps == 0 else f"it switches off {flaps} times")
+            "After the first alert it stays on to failure"
+            if flaps == 0
+            else f"After the first alert it switches off {flaps} times"
         )
         for a in (ax, axp):
             a.axvline(a_cycle, color=t["alert"], lw=1.3, zorder=6)
+        ax.text(
+            a_cycle - 2,
+            top - 3,
+            f"first alert\n{lead} cycles left",
+            ha="right",
+            va="top",
+            fontsize=7.5,
+            color=t["alert"],
+            linespacing=1.25,
+        )
     else:
         lines.append("The alert never fires")
     ax.text(
@@ -413,37 +434,55 @@ def fig_hero(focus: dict, t: dict, out_dir: Path, theme: str) -> Path:
 # Accuracy
 
 
+def _rmse_title(subsets: list[str], means: dict, diffs: dict) -> str:
+    lgbm_lower = [s for s in subsets if means[s]["lightgbm"] < means[s]["lstm"]]
+    clear = [s for s in subsets if diffs[s]["ci_low"] > 0 or diffs[s]["ci_high"] < 0]
+    if 2 * len(lgbm_lower) >= len(subsets):
+        head = f"LightGBM's test RMSE is lower on {len(lgbm_lower)} of {len(subsets)} subsets"
+    else:
+        head = (
+            f"The LSTM's test RMSE is lower on {len(subsets) - len(lgbm_lower)} of "
+            f"{len(subsets)} subsets"
+        )
+    if not clear:
+        return f"{head}; no 95% interval of the difference excludes 0"
+    if len(clear) == 1:
+        return f"{head}; only {clear[0]}'s 95% interval excludes 0"
+    return f"{head}; the 95% intervals exclude 0 on {', '.join(clear)}"
+
+
 def fig_comparison(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
     subsets = list(runs)
     stats = {s: single_models(runs[s]["dir"]) for s in subsets}
     diffs = {s: runs[s]["metrics"]["test"]["lstm_minus_lightgbm"]["rmse"] for s in subsets}
-    fig = plt.figure(figsize=(WIDTH, 1.95 + 0.58 * len(subsets)))
-    y = _header(
-        fig,
-        t,
-        "Test RMSE of the served five-model averages and of their single fold models",
-        "Each model family is served as the average of five fold models, each trained without "
-        "one cross-fitting fold. Open circles: those single models "
-        "(5 folds \u00d7 3 repeats); their "
-        "spread is how much one model varies, not the uncertainty of the average. Right: the "
-        "paired difference, with a 95% bootstrap interval over test engines.",
-    )
-    handles = [*_model_handles(t, True), *_model_handles(t, False)]
-    labels = [
-        "LSTM, five-network average (one per repeat)",
-        "LightGBM, five-model average (one per repeat)",
-        "LSTM, single network",
-        "LightGBM, single model",
+    means = {s: {m: float(np.mean(stats[s][m]["averages"])) for m in MODELS} for s in subsets}
+    fig = plt.figure(figsize=(WIDTH, 1.3 + 0.6 * len(subsets)))
+    y = _header(fig, t, _rmse_title(subsets, means, diffs))
+    neutral = t["text2"]
+    handles = [
+        *_identity_handles(t),
+        Line2D([], [], marker="o", linestyle="", markersize=6, color=neutral),
+        Line2D(
+            [],
+            [],
+            marker="o",
+            linestyle="",
+            markersize=5.5,
+            markerfacecolor="none",
+            markeredgecolor=neutral,
+        ),
     ]
-    y = _legend(
-        fig,
-        [handles[0], handles[2], handles[1], handles[3]],
-        [labels[0], labels[2], labels[1], labels[3]],
-        y,
-        ncols=2,
-    )
+    labels = ["LSTM", "LightGBM", "Five-fold ensemble, one per repeat", "Single fold model"]
+    y = _legend(fig, handles, labels, y, ncols=len(handles))
     grid = fig.add_gridspec(
-        1, 2, width_ratios=[2.2, 1], wspace=0.06, left=0.075, right=0.985, top=y, bottom=0.19
+        1,
+        2,
+        width_ratios=[2.2, 1],
+        wspace=0.06,
+        left=0.075,
+        right=0.985,
+        top=y - 0.04,
+        bottom=0.58 / fig.get_figheight(),
     )
     ax = fig.add_subplot(grid[0])
     axd = fig.add_subplot(grid[1], sharey=ax)
@@ -451,8 +490,7 @@ def fig_comparison(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
     values = [v for s in subsets for m in MODELS for v in stats[s][m]["singles"]]
     low, high = min(values) - 0.35, max(values) + 1.15
     for i, s in enumerate(subsets):
-        means = {m: float(np.mean(stats[s][m]["averages"])) for m in MODELS}
-        best = min(means, key=lambda m: means[m])
+        best = min(means[s], key=lambda m: means[s][m])
         for m in MODELS:
             row = i + OFFSET[m]
             colour = t["series"][MODEL_SLOT[m]]
@@ -479,7 +517,7 @@ def fig_comparison(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
             ax.text(
                 high - 0.05,
                 row,
-                f"{MODEL_LABEL[m]} {means[m]:.2f}",
+                f"{MODEL_LABEL[m]} {means[s][m]:.2f}",
                 ha="right",
                 va="center",
                 fontsize=8,
@@ -488,9 +526,9 @@ def fig_comparison(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
             )
     ax.set_xlim(low, high)
     _rows(ax, subsets)
-    ax.set_xlabel("Test RMSE (cycles, against the capped truth); mean of the averages on the right")
+    ax.set_xlabel("Test RMSE (cycles; truth capped at 125). Right: mean of the three ensembles")
     ax.set_title(
-        "Lower is better; the better mean is in bold",
+        "Lower is better; the lower mean is in bold",
         fontsize=8.5,
         weight="normal",
         color=t["text2"],
@@ -518,7 +556,7 @@ def fig_comparison(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
     axd.text(
         0.02,
         1.01,
-        "← LSTM better",
+        "← LSTM lower",
         transform=axd.transAxes,
         fontsize=7.5,
         color=t["muted"],
@@ -527,7 +565,7 @@ def fig_comparison(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
     axd.text(
         0.98,
         1.01,
-        "LightGBM better →",
+        "LightGBM lower →",
         transform=axd.transAxes,
         fontsize=7.5,
         color=t["muted"],
@@ -538,12 +576,27 @@ def fig_comparison(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
     axd.grid(axis="y", visible=False)
     for i in range(1, len(subsets)):
         axd.axhline(i - 0.5, color=plt.rcParams["grid.color"], linewidth=0.7, zorder=0)
-    axd.set_xlabel("LSTM minus LightGBM (cycles)\nfilled: the interval excludes 0")
+    axd.set_xlabel("LSTM minus LightGBM, 95% paired\nbootstrap (filled: excludes 0)")
     return _save(fig, out_dir, "comparison", theme)
 
 
 # --------------------------------------------------------------------------------------------
 # Uncertainty
+
+
+def _coverage_title(runs: dict, by_rul: pd.DataFrame, nominal: float) -> str:
+    coverage = [
+        100 * runs[s]["metrics"]["test"]["models"][m]["summary"]["coverage"]["mean"]
+        for s in runs
+        for m in MODELS
+    ]
+    worst = by_rul.iloc[int(np.argmin(by_rul["coverage"].to_numpy()))]
+    head = f"Test coverage is {_span_text(coverage, '.0f', '%')} at nominal {nominal:.0f}%"
+    if 100 * worst["coverage"] >= nominal:
+        return f"{head} on every subset and at every remaining life"
+    return (
+        f"{head}, but {100 * worst['coverage']:.0f}% for engines {worst['bin']} cycles from failure"
+    )
 
 
 def fig_uncertainty(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
@@ -555,22 +608,12 @@ def fig_uncertainty(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
     widths = {s: width_stats(runs[s]["dir"]) for s in subsets}
     repeats = len(first["config"]["repeats"])
 
-    fig = plt.figure(figsize=(WIDTH, 6.0))
-    y = _header(
-        fig,
-        t,
-        f"Nominal {nominal:.0f}% intervals: measured coverage and width",
-        f"Target: RUL capped at {cap} cycles. An interval that reaches the cap is open-ended "
-        "(“at least its lower end”), so it covers the capped target exactly when it\ncovers the "
-        f"actual remaining life. CV+ guarantees at least {100 - 2 * (100 - nominal):.0f}% for "
-        f"engines exchangeable with the training engines; {nominal:.0f}% is the nominal level, "
-        "not a guarantee.",
-    )
+    fig = plt.figure(figsize=(WIDTH, 5.5))
+    y = _header(fig, t, _coverage_title(runs, by_rul, nominal))
     neutral = t["text2"]
     handles = [
-        Patch(color=t["series"][0]),
-        Patch(color=t["series"][2]),
-        Line2D([], [], marker="o", linestyle="", color=neutral, markersize=6),
+        *_identity_handles(t),
+        Line2D([], [], marker="o", linestyle="-", color=neutral, markersize=5.5, lw=1.3),
         Line2D(
             [],
             [],
@@ -578,30 +621,31 @@ def fig_uncertainty(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
             linestyle="",
             markerfacecolor="none",
             markeredgecolor=neutral,
-            markersize=5.5,
+            markersize=5,
         ),
     ]
     labels = [
         "LSTM",
         "LightGBM",
-        f"Test sets: one prediction per engine (95% Wilson interval; mean of {repeats} repeats)",
-        "Out of fold: every cycle of every cross-fitted engine, engines weighted equally",
+        "Test sets, with 95% Wilson interval",
+        "Out of fold, whole lives",
     ]
-    y = _legend(fig, handles, labels, y, ncols=2)
+    y = _legend(fig, handles, labels, y, ncols=len(handles))
     grid = fig.add_gridspec(
         2,
-        2,
+        3,
         height_ratios=[1.12, 1],
-        width_ratios=[1.35, 1],
-        hspace=0.56,
+        width_ratios=[1.3, 1, 0.34],
+        hspace=0.62,
         wspace=0.08,
         left=0.075,
         right=0.985,
-        top=y,
-        bottom=0.115,
+        top=y - 0.035,
+        bottom=0.125,
     )
     ax_cov = fig.add_subplot(grid[0, 0])
     ax_w = fig.add_subplot(grid[0, 1], sharey=ax_cov)
+    ax_open = fig.add_subplot(grid[0, 2], sharey=ax_cov)
     ax_rul = fig.add_subplot(grid[1, :])
 
     for i, s in enumerate(subsets):
@@ -648,27 +692,33 @@ def fig_uncertainty(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
                 elinewidth=1.3,
                 capsize=0,
             )
-    for a in (ax_cov,):
-        a.axvline(nominal, color=t["muted"], lw=1, linestyle=(0, (3, 3)), zorder=1)
-        a.text(
-            nominal - 0.3,
-            -0.62,
-            f"nominal {nominal:.0f}%",
-            ha="right",
-            va="bottom",
-            fontsize=7.5,
-            color=t["muted"],
-        )
+            ax_open.text(
+                0.5,
+                row,
+                f"{100 * summary['open_ended_share']['mean']:.0f}%",
+                ha="center",
+                va="center",
+                fontsize=8,
+                color=t["text"],
+                transform=ax_open.get_yaxis_transform(),
+            )
+    ax_cov.axvline(nominal, color=t["muted"], lw=1, linestyle=(0, (3, 3)), zorder=1)
     _rows(ax_cov, subsets)
     ax_cov.set_xlim(77, 100.5)
-    ax_cov.set_xlabel("Engines (test) or cycles (out of fold) inside the interval (%)")
-    ax_cov.set_title("Coverage per subset")
-    ax_w.tick_params(labelleft=False)
-    ax_w.grid(axis="y", visible=False)
-    for i in range(1, len(subsets)):
-        ax_w.axhline(i - 0.5, color=plt.rcParams["grid.color"], linewidth=0.7, zorder=0)
-    ax_w.set_xlabel(f"Mean test interval width (cycles; open-ended up to {cap})")
+    ax_cov.set_xlabel("Inside the interval (%): test engines, or cycles out of fold")
+    ax_cov.set_title(f"Coverage per subset (dashed: nominal {nominal:.0f}%)")
+    for a in (ax_w, ax_open):
+        a.tick_params(labelleft=False)
+        a.grid(axis="y", visible=False)
+        for i in range(1, len(subsets)):
+            a.axhline(i - 0.5, color=plt.rcParams["grid.color"], linewidth=0.7, zorder=0)
+    ax_w.set_xlabel(f"Mean test width (cycles; open-ended\nintervals counted up to {cap})")
     ax_w.set_title("Width: narrower is sharper")
+    ax_open.set_xticks([])
+    ax_open.grid(False)
+    for spine in ax_open.spines.values():
+        spine.set_visible(False)
+    ax_open.set_title("Open-ended", fontsize=8.5)
 
     x = np.arange(len(RUL_LABELS))
     counts = by_rul.drop_duplicates("bin").set_index("bin")["engines"]
@@ -714,7 +764,7 @@ def fig_uncertainty(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
     ax_rul.set_ylabel("Test engines inside (%)")
     ax_rul.set_xlabel("True RUL at the last observed cycle (cycles), all four test sets pooled")
     ax_rul.grid(axis="x", visible=False)
-    ax_rul.set_title(f"Coverage by true remaining life (test; mean of {repeats} repeats)")
+    ax_rul.set_title(f"Coverage by true remaining life (test sets, mean of {repeats} repeats)")
     return _save(fig, out_dir, "uncertainty", theme)
 
 
@@ -722,51 +772,72 @@ def fig_uncertainty(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
 # Alerts
 
 
+def _alert_title(subsets: list[str], flaps: dict) -> str:
+    more = [s for s in subsets if flaps[s]["lightgbm"]["mean"] > flaps[s]["lstm"]["mean"]]
+    if len(more) == len(subsets):
+        return (
+            "LightGBM's alert switches off before failure more often than the LSTM's, "
+            "on every subset"
+        )
+    if not more:
+        return "The LSTM's alert switches off before failure at least as often as LightGBM's"
+    return (
+        f"LightGBM's alert switches off before failure more often on {len(more)} of "
+        f"{len(subsets)} subsets"
+    )
+
+
 def fig_alerts(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
     subsets = list(runs)
     first = next(iter(runs.values()))
     horizon = first["metrics"]["config"]["alert_cycles"]
     repeat = str(first["served_repeat"])
+    repeats = len(first["metrics"]["config"]["repeats"])
     clip = 120
+    flaps = {
+        s: {
+            m: runs[s]["metrics"]["out_of_fold"][m]["summary"]["alert.flaps_per_engine"]
+            for m in MODELS
+        }
+        for s in subsets
+    }
+    medians = [
+        runs[s]["metrics"]["out_of_fold"][m]["per_repeat"][repeat]["alert"]["lead_median"]
+        for s in subsets
+        for m in MODELS
+    ]
+    medians = [v for v in medians if v is not None]
 
-    fig = plt.figure(figsize=(WIDTH, 6.5))
-    y = _header(
-        fig,
-        t,
-        f"The alert: ranking, timing and calibration of P(failure within {horizon} cycles)",
-        "Average precision (test sets) measures ranking only; a random score gets the base rate. "
-        "Timing and reliability: every cycle of every cross-fitted engine,\nout of fold, served "
-        "repeat. Cycles of one engine are dependent, so the tables' ECE intervals resample whole "
-        "engines.",
-    )
+    fig = plt.figure(figsize=(WIDTH, 1.25 + 0.66 * len(subsets)))
+    y = _header(fig, t, _alert_title(subsets, flaps))
     handles = [
-        Patch(color=t["series"][0]),
-        Patch(color=t["series"][2]),
-        Line2D([], [], color=t["muted"], marker="|", linestyle="", markersize=11, mew=1.8),
+        *_identity_handles(t),
+        Line2D([], [], color=t["text"], marker="|", linestyle="", markersize=10, mew=1.6),
         Line2D([], [], color=t["alert"], lw=1.3),
     ]
-    labels = ["LSTM", "LightGBM", "Base rate", f"{horizon}-cycle horizon"]
-    y = _legend(fig, handles, labels, y, ncols=4)
-    outer = fig.add_gridspec(
-        2, 1, height_ratios=[1.3, 1], hspace=0.42, left=0.075, right=0.985, top=y, bottom=0.075
+    labels = ["LSTM", "LightGBM", "Median", f"{horizon}-cycle horizon"]
+    y = _legend(fig, handles, labels, y, ncols=len(handles))
+    grid = fig.add_gridspec(
+        1,
+        3,
+        width_ratios=[1.95, 1.0, 0.62],
+        wspace=0.07,
+        left=0.075,
+        right=0.985,
+        top=y - 0.05,
+        bottom=0.62 / fig.get_figheight(),
     )
-    upper = outer[0].subgridspec(1, 3, width_ratios=[0.74, 1.8, 0.9], wspace=0.06)
-    ax_ap = fig.add_subplot(upper[0])
-    ax_lead = fig.add_subplot(upper[1], sharey=ax_ap)
-    ax_tab = fig.add_subplot(upper[2], sharey=ax_ap)
-    lower = outer[1].subgridspec(2, len(subsets), height_ratios=[3, 1.05], hspace=0.12, wspace=0.16)
+    ax_lead = fig.add_subplot(grid[0])
+    ax_flap = fig.add_subplot(grid[1], sharey=ax_lead)
+    ax_tab = fig.add_subplot(grid[2], sharey=ax_lead)
 
     rng = np.random.default_rng(1)
+    flap_max = max(f["mean"] + (f["sd"] or 0) for per in flaps.values() for f in per.values())
     for i, s in enumerate(subsets):
         m = runs[s]["metrics"]
-        engines = m["data"]["test_engines"]
-        positives = m["test"]["models"]["lstm"]["per_repeat"]["0"]["alert_positives"]
-        ax_ap.plot(positives / engines, i, marker="|", color=t["muted"], markersize=13, mew=1.8)
         for model in MODELS:
             row = i + OFFSET[model]
             colour = t["series"][MODEL_SLOT[model]]
-            ap = m["test"]["models"][model]["summary"]["alert_ap"]["mean"]
-            ax_ap.plot(ap, row, "o", color=colour, markersize=5.5, markeredgecolor=t["surface"])
             alert = m["out_of_fold"][model]["per_repeat"][repeat]
             leads = np.array(
                 [u["lead_time"] for u in alert["alert_per_unit"] if u["lead_time"] is not None],
@@ -809,9 +880,29 @@ def fig_alerts(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
                     lw=1.6,
                     zorder=4,
                 )
+            f = flaps[s][model]
+            ax_flap.errorbar(
+                f["mean"],
+                row,
+                xerr=f["sd"] or 0,
+                fmt="o",
+                markersize=5.5,
+                color=colour,
+                markeredgecolor=t["surface"],
+                elinewidth=1.3,
+                capsize=0,
+                zorder=3,
+            )
+            ax_flap.text(
+                f["mean"] + (f["sd"] or 0) + 0.025 * flap_max,
+                row,
+                f"{f['mean']:.2f}",
+                va="center",
+                fontsize=7.5,
+                color=t["text2"],
+            )
             a = alert["alert"]
-            counts = (a["units"], a["missed"], a["early"], a["early_twice_horizon"])
-            for col, value in enumerate(counts):
+            for col, value in enumerate((a["units"], a["missed"], a["early_twice_horizon"])):
                 ax_tab.text(
                     col,
                     row,
@@ -821,32 +912,99 @@ def fig_alerts(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
                     fontsize=8,
                     color=t["text2"] if col == 0 else t["text"],
                 )
-    _rows(ax_ap, subsets)
-    ax_ap.set_xlim(0, 1.04)
-    ax_ap.set_xticks([0, 0.5, 1], ["0", "0.5", "1"])
-    ax_ap.set_title("Average precision")
-    ax_ap.set_xlabel("Test sets")
+    _rows(ax_lead, subsets)
     ax_lead.axvline(horizon, color=t["alert"], lw=1.2, zorder=1)
     ax_lead.set_xlim(0, clip + 4)
-    ax_lead.tick_params(labelleft=False)
-    ax_lead.grid(axis="y", visible=False)
-    ax_lead.set_title("When the alert first fires (one dot per engine; bar: median)")
-    ax_lead.set_xlabel(f"Cycles left at the first alert (later than {clip}: arrow, with values)")
-    for a in (ax_lead, ax_tab):
+    ax_lead.set_title(
+        f"First alert: median {_span_text(medians, '.0f')} cycles before failure", fontsize=9
+    )
+    ax_lead.set_xlabel(f"Cycles left at the first alert, one dot per engine (> {clip}: arrow)")
+    for a in (ax_flap, ax_tab):
+        a.tick_params(labelleft=False)
+        a.grid(axis="y", visible=False)
         for i in range(1, len(subsets)):
             a.axhline(i - 0.5, color=plt.rcParams["grid.color"], linewidth=0.7, zorder=0)
-    ax_tab.set_xlim(-0.6, 3.5)
-    ax_tab.set_xticks([0, 1, 2, 3], ["n", "missed", f"> {horizon}", f"> {2 * horizon}"])
+    ax_flap.set_xlim(0, flap_max * 1.35)
+    ax_flap.set_title("Switch-offs before failure", fontsize=9)
+    ax_flap.set_xlabel(f"Per engine (mean ± sd, {repeats} repeats)")
+    ax_tab.set_xlim(-0.6, 2.6)
+    ax_tab.set_xticks([0, 1, 2], ["n", "missed", f"> {2 * horizon}"])
     ax_tab.xaxis.set_ticks_position("top")
-    ax_tab.tick_params(labelleft=False, labeltop=True, labelbottom=False)
+    ax_tab.tick_params(labeltop=True, labelbottom=False)
     ax_tab.grid(False)
     for spine in ax_tab.spines.values():
         spine.set_visible(False)
     ax_tab.set_xlabel(
-        f"n: engines. > {horizon}, > {2 * horizon}: first\nalert more than {horizon} or "
-        f"{2 * horizon} cycles\nbefore failure",
-        fontsize=7.5,
+        f"> {2 * horizon}: first alert with\nmore than {2 * horizon} cycles left", fontsize=7.5
     )
+    return _save(fig, out_dir, "alerts", theme)
+
+
+def fig_alert_calibration(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
+    subsets = list(runs)
+    first = next(iter(runs.values()))
+    horizon = first["metrics"]["config"]["alert_cycles"]
+    repeat = str(first["served_repeat"])
+    aps = [
+        runs[s]["metrics"]["test"]["models"][m]["summary"]["alert_ap"]["mean"]
+        for s in subsets
+        for m in MODELS
+    ]
+    rates = [
+        100
+        * runs[s]["metrics"]["test"]["models"]["lstm"]["per_repeat"]["0"]["alert_positives"]
+        / runs[s]["metrics"]["data"]["test_engines"]
+        for s in subsets
+    ]
+
+    fig = plt.figure(figsize=(WIDTH, 4.6))
+    y = _header(
+        fig,
+        t,
+        f"Alert ranking: average precision {_span_text(aps, '.3f')} against base rates of "
+        f"{_span_text(rates, '.0f', '%')}",
+        f"Left: test sets, P(failure within {horizon} cycles) at each engine's last observed "
+        "cycle. "
+        "Right: reliability out of fold over whole lives (served repeat), with cycles per bin; "
+        "cycles of one engine are dependent.",
+    )
+    handles = [
+        *_identity_handles(t),
+        Line2D([], [], color=t["muted"], marker="|", linestyle="", markersize=11, mew=1.8),
+    ]
+    y = _legend(fig, handles, ["LSTM", "LightGBM", "Base rate"], y, ncols=3)
+    outer = fig.add_gridspec(
+        1,
+        2,
+        width_ratios=[0.55, 3.2],
+        wspace=0.24,
+        left=0.075,
+        right=0.985,
+        top=y - 0.05,
+        bottom=0.11,
+    )
+    ax_ap = fig.add_subplot(outer[0])
+    lower = outer[1].subgridspec(2, len(subsets), height_ratios=[3, 1.05], hspace=0.12, wspace=0.16)
+    for i, s in enumerate(subsets):
+        m = runs[s]["metrics"]
+        engines = m["data"]["test_engines"]
+        positives = m["test"]["models"]["lstm"]["per_repeat"]["0"]["alert_positives"]
+        ax_ap.plot(positives / engines, i, marker="|", color=t["muted"], markersize=13, mew=1.8)
+        for model in MODELS:
+            ap = m["test"]["models"][model]["summary"]["alert_ap"]["mean"]
+            ax_ap.plot(
+                ap,
+                i + OFFSET[model],
+                "o",
+                color=t["series"][MODEL_SLOT[model]],
+                markersize=5.5,
+                markeredgecolor=t["surface"],
+            )
+    _rows(ax_ap, subsets)
+    ax_ap.set_xlim(0, 1.04)
+    ax_ap.set_xticks([0, 0.5, 1], ["0", "0.5", "1"])
+    ax_ap.set_title("Average precision", fontsize=9)
+    ax_ap.set_xlabel("Test sets")
 
     for j, s in enumerate(subsets):
         ax_r = fig.add_subplot(lower[0, j])
@@ -897,7 +1055,7 @@ def fig_alerts(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
         else:
             ax_c.tick_params(labelleft=False)
         ax_c.set_xlabel("Predicted probability", fontsize=7.5)
-    return _save(fig, out_dir, "alerts", theme)
+    return _save(fig, out_dir, "alert-calibration", theme)
 
 
 # --------------------------------------------------------------------------------------------
@@ -914,9 +1072,6 @@ def fig_attribution(run: dict, t: dict, out_dir: Path, theme: str) -> Path:
     history = engine[engine["cycle"] <= cycle]
     window = contract.window_from_readings(history)
     attributions = predictor.explain(window)
-    response = predictor.predict_readings(history, explain=True)
-    rul = response["rul"]
-    baseline = response["explanation"]["baseline_rul_cycles"]
     symbols = [SENSOR_INFO[s][0] for s in contract.sensors]
     cycles = history["cycle"].to_numpy()[-contract.window :]
     if len(cycles) < contract.window:  # padded window: the padded rows repeat the first cycle
@@ -925,25 +1080,24 @@ def fig_attribution(run: dict, t: dict, out_dir: Path, theme: str) -> Path:
     shortest = member_windows[0]
     long_members = sum(w > shortest for w in member_windows)
 
-    fig = plt.figure(figsize=(WIDTH, 4.4))
+    totals = attributions.sum(axis=0)
+    ranked = np.argsort(-np.abs(totals))
+    lead = [symbols[i] for i in ranked[:3]]
+    signs = np.sign(totals[ranked[:3]])
+    verb = (
+        "lower the predicted RUL most"
+        if (signs < 0).all()
+        else "raise the predicted RUL most"
+        if (signs > 0).all()
+        else "move the predicted RUL most"
+    )
+    fig = plt.figure(figsize=(WIDTH, 4.05))
     y = _header(
         fig,
         t,
-        f"What the prediction for engine {unit} at cycle {cycle} depends on",
-        f"{run['metrics']['subset']} replay engine {unit} at its first alert: true RUL "
-        f"{int(history['rul'].iloc[-1])}, predicted {rul['point']:.0f} (nominal 90% interval "
-        f"{rul['summary']}). Integrated gradients of the five-network average in cycles of "
-        "predicted RUL, against a baseline window with every scaled reading at its training "
-        f"mean (predicted {baseline:.0f} cycles); the "
-        f"{contract.window} \u00d7 {len(symbols)} values sum to the prediction minus that "
-        "baseline. "
-        + (
-            f"Left of the dashed line: cycles only the {long_members} networks with a "
-            f"{contract.window}-cycle window read. "
-            if long_members and shortest < contract.window
-            else ""
-        )
-        + "What the model uses, not a physical cause.",
+        f"Engine {unit} at its first alert: the {lead[0]}, {lead[1]} and {lead[2]} readings {verb}",
+        "Integrated gradients of the served LSTM against a regime-mean baseline, in cycles of "
+        "predicted RUL: what the model uses, not a cause.",
     )
     grid = fig.add_gridspec(
         1,
@@ -952,7 +1106,7 @@ def fig_attribution(run: dict, t: dict, out_dir: Path, theme: str) -> Path:
         wspace=0.22,
         left=0.075,
         right=0.985,
-        top=y - 0.06,
+        top=y - 0.07,
         bottom=0.12,
     )
     ax_heat = fig.add_subplot(grid[0])
@@ -995,8 +1149,7 @@ def fig_attribution(run: dict, t: dict, out_dir: Path, theme: str) -> Path:
         fontsize=8,
     )
 
-    totals = attributions.sum(axis=0)
-    order = np.argsort(-np.abs(totals))[:10][::-1]
+    order = ranked[:10][::-1]
     colours = [t["div"][0] if v < 0 else t["div"][2] for v in totals[order]]
     ax_bar.barh(range(len(order)), totals[order], color=colours, height=0.6)
     ax_bar.set_yticks(range(len(order)), [symbols[i] for i in order], fontsize=7.5)
@@ -1098,8 +1251,8 @@ def fig_lives(run: dict, t: dict, out_dir: Path, theme: str, n: int = 4) -> Path
         "engine",
         f"The shortest, longest and two evenly spaced lives of {lead['units']} cross-fitted "
         f"engines (served repeat). Over all of them: median first alert {lead['lead_median']:.0f} "
-        f"cycles before failure,\n{lead['missed']} missed, {lead['early']} more than {horizon} "
-        "cycles early.",
+        f"cycles before failure,\n{lead['missed']} missed, {lead['early']} with more than "
+        f"{horizon} cycles left.",
     )
     handles = [
         Line2D([], [], color=t["series"][0], lw=1.8),
@@ -1252,6 +1405,7 @@ def main(argv: list[str] | None = None) -> int:
             fig_comparison(runs, t, args.out, theme),
             fig_uncertainty(runs, t, args.out, theme),
             fig_alerts(runs, t, args.out, theme),
+            fig_alert_calibration(runs, t, args.out, theme),
             fig_test_sets(runs, t, args.out, theme),
             fig_lives(focus, t, args.out, theme),
         ]
