@@ -885,7 +885,24 @@ def main(argv: list[str] | None = None) -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("command", choices=["cases", "eval"])
-    parser.add_argument("--claude", action="store_true", help="also call Claude (needs a key)")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
+        "--claude",
+        action="store_true",
+        help="also call Claude for this configuration's calls that are not recorded yet "
+        "(needs a key and --max-spend-usd)",
+    )
+    mode.add_argument(
+        "--regrade",
+        action="store_true",
+        help="grade only this configuration's recorded responses; makes no call",
+    )
+    parser.add_argument(
+        "--max-spend-usd",
+        type=float,
+        help="spending limit for one --claude run: it refuses to start when the worst-case cost "
+        "of its calls exceeds this, and stops before the recorded spend could pass it",
+    )
     parser.add_argument("--subset", default="FD001")
     parser.add_argument("--out", type=Path, default=EVAL_DIR)
     args = parser.parse_args(argv)
