@@ -596,6 +596,12 @@ def recorded_for(cases: list[dict], run: RunConfig, path: Path) -> dict[str, lis
     return recorded
 
 
+def _configuration(row: dict) -> str:
+    if "cache_key" not in row:
+        return f"{row.get('model', MODEL)}, settings not recorded"
+    return f"{row['requested_model']}, effort {row['effort']}, max_tokens {row['max_tokens']}"
+
+
 def claude_summary(cases: list[dict], recorded: dict[str, list[dict]]) -> dict:
     first = {case_id: runs[0] for case_id, runs in recorded.items()}
     rows = [r for runs in recorded.values() for r in runs]
@@ -613,6 +619,7 @@ def claude_summary(cases: list[dict], recorded: dict[str, list[dict]]) -> dict:
     same_numbers = [len({tuple(NUMBER.findall(r["note"])) for r in runs}) == 1 for runs in repeated]
     return {
         "calls": len(rows),
+        "configurations": sorted({_configuration(r) for r in rows}),
         "latency_s": {
             "median": statistics.median(latencies),
             "p95": float(np.percentile(latencies, 95)),
