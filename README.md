@@ -55,7 +55,7 @@ than ranked against these.
 | FD003&nbsp;(100) | 13.22&nbsp;/&nbsp;**12.03** | +1.19&nbsp;(-0.50&nbsp;to&nbsp;+3.25) | 95%&nbsp;/&nbsp;95% | 42%&nbsp;/&nbsp;57% | **37.6**&nbsp;/&nbsp;58.0 | **0.11**&nbsp;/&nbsp;0.33 |
 | FD004&nbsp;(248) | **12.82**&nbsp;/&nbsp;13.11 | -0.30&nbsp;(-1.04&nbsp;to&nbsp;+0.46) | 96%&nbsp;/&nbsp;94% | 50%&nbsp;/&nbsp;62% | **43.1**&nbsp;/&nbsp;56.0 | **0.12**&nbsp;/&nbsp;0.49 |
 
-Each cell is LSTM / LightGBM, the mean over 3 repeats; bold marks the lower value where lower is better. The test columns score the official test endpoints: one prediction per test engine, at its last observed cycle, from each repeat's five-fold ensemble. RMSE is against the true RUL capped at 125 cycles. Coverage is the empirical, marginal share of test engines whose capped RUL lies in the nominal 90% interval, an open-ended interval counting as [lower, ∞); the next column gives the share of such intervals. Width truncates open-ended intervals at the cap, a summary defined after the test labels were read; the evaluation notes give two other width statistics. The CI is a paired engine-level bootstrap interval. Switch-offs are counted out of fold, over every cycle of every cross-fitted training engine, for single fold models.
+Each cell is LSTM / LightGBM, the mean over 3 repeats; bold marks the lower value where lower is better. Test columns score the official test endpoints; coverage reads an open-ended interval as [lower, ∞), and width truncates it at the 125-cycle cap (a summary defined after the test labels were read). Switch-offs are counted out of fold, for single fold models.
 
 **Where each model is better**
 
