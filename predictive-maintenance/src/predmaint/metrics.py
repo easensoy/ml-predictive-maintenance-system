@@ -3,6 +3,16 @@
 import numpy as np
 import pandas as pd
 
+# The paired bootstrap over test engines: number of draws and seed, shared by every difference.
+N_BOOT = 2000
+BOOT_SEED = 7
+
+
+def by_engine(test: pd.DataFrame, model: str, column: str) -> np.ndarray:
+    """(repeats, engines) array of one column of a test table, engines in unit order."""
+    wide = test[test["model"] == model].pivot(index="repeat", columns="unit", values=column)
+    return wide.sort_index().sort_index(axis=1).to_numpy(float)
+
 
 def rmse(prediction: np.ndarray, target: np.ndarray) -> float:
     return float(np.sqrt(np.mean((np.asarray(prediction) - np.asarray(target)) ** 2)))
