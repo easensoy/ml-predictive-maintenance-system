@@ -16,13 +16,9 @@ An LSTM on raw sensor windows and LightGBM on per-sensor window statistics predi
 <sub>A replay-holdout engine, excluded from training, preprocessing, model selection and calibration, predicted at every cycle by the deployed LSTM ensemble. A fixed rule chose it: among replay engines whose interval misses the capped truth at least once, the one with the median first-alert lead time.</sub>
 
 <!-- findings:start -->
-- **Point accuracy.** LightGBM's test RMSE is lower on 3 of 4 subsets, but the paired LSTM − LightGBM difference excludes zero only on FD002: +1.06 cycles (95% CI +0.26 to +1.93).
-- **Intervals.** Pooled over 707 test engines, empirical coverage of the nominal 90% intervals is 95.8% (LSTM) and 95.0% (LightGBM), with 39 to 62% of intervals open-ended; the LSTM's intervals are narrower on all 4 subsets under each of three width statistics, at similar coverage.
-- **Alert dynamics.** Out of fold, both alerts first fire a median 30 to 31 cycles before failure, but LightGBM's switches off again before failure 0.33 to 0.49 times per engine against 0.02 to 0.15 for the LSTM; the LSTM alone misses engines (1.7 of 224 FD004 engines per repeat).
-
-**Populations and definitions.** Accuracy and intervals are scored on the official test endpoints: one prediction per test engine, at its last observed cycle, from each repeat's five-fold ensemble, averaged over 3 repeats. The 95% CIs are paired engine-level bootstrap intervals; they exclude repeat variability and are not corrected for the 16 comparisons. Coverage is marginal: by true RUL it falls to 91% (LSTM, 76–100 cycles left) and 81% (LightGBM, 51–75 cycles left). The LSTM's intervals are narrower by 2 to 20 cycles with open-ended intervals truncated at the 125-cycle cap, by 7 to 39 on engines where both intervals are closed, and by 6 to 35 over each model's own closed intervals, the only one of the three statistics defined before the test labels were read.
-
-Alert dynamics are scored out of fold: every cycle of every cross-fitted training engine, predicted by the single fold model that never saw it. Of the first alerts, 48% (LSTM) and 47% (LightGBM) come with more than 30 cycles left, false alarms at that moment by the label's definition. A switch-off can end such an early alert; counting only switch-offs in the last 30 cycles gives 0.16 to 0.24 (LightGBM) against 0.01 to 0.07 (LSTM), and with the five-fold ensembles on the held-out replay engines, 0.17 to 0.31 against 0.00 to 0.13.
+- **Point accuracy.** LightGBM's test RMSE is lower on 3 of 4 subsets, but the paired difference excludes zero only on FD002: +1.06 cycles (95% CI +0.26 to +1.93).
+- **Intervals.** Pooled over 707 test engines, coverage of the nominal 90% intervals is 95.8% (LSTM) and 95.0% (LightGBM), with 39–62% open-ended; the LSTM's intervals are narrower on every subset under all three width statistics.
+- **Alert dynamics.** Out of fold, both alerts first fire a median 30–31 cycles before failure; LightGBM's switches off again 0.33–0.49 times per engine against the LSTM's 0.02–0.15, but only the LSTM misses engines.
 <!-- findings:end -->
 
 The official test sets were also seen during an earlier development round, so none of these
