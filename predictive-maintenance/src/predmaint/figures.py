@@ -1610,16 +1610,52 @@ def fig_attribution_checks(ctx: Context, t: dict) -> Figure | None:
         handletextpad=0.4,
         borderaxespad=0,
     )
-    ax_rho.set_yticks(yy, [label for _, label in labels])
-    ax_rho.set_xlim(-0.2, 1)
-    ax_rho.axvline(0, color=t["axis"], lw=0.8)
-    ax_rho.set_ylim(len(labels) - 0.5, -0.5)
-    ax_rho.set_xlabel(
-        "Rank correlation with the served model's maps (median, 10th–90th percentile over windows)"
+
+    # Where the ranking fails: integrated gradients against random order and input deviation.
+    comparisons = (
+        ("random", "deletion", "Integrated gradients minus random order"),
+        ("input_deviation", "deletion", "Integrated gradients minus |input − reference|"),
     )
-    ax_rho.set_title("How much the maps change", fontsize=9)
-    ax_rho.grid(axis="y", visible=False)
-    return _save(fig, out_dir, "attribution-checks", theme)
+    x = np.arange(len(stages))
+    for col, (other, kind, title) in enumerate(comparisons):
+        ax = fig.add_subplot(lower[0, col])
+        excess = (windows[f"{kind}_auc_ig"] - windows[f"{kind}_auc_{other}"]).to_numpy(float)
+        stage_of = windows["rul"].to_numpy()
+        limit = 1.0
+        for i, stage in enumerate(stages):
+            mask = stage_of == stage
+            values = excess[mask]
+            worse = values > 0
+            shown = np.clip(values, -limit, limit)
+            clipped = np.abs(values) > limit
+            xs = i + rng.uniform(-0.16, 0.16, mask.sum())
+            for chosen, colour, size in ((~worse, t["muted"], 11), (worse, t["fail"], 14)):
+                plain, cut = chosen & ~clipped, chosen & clipped
+                ax.scatter(xs[plain], shown[plain], s=size, color=colour, lw=0, zorder=3)
+                ax.scatter(
+                    xs[cut], shown[cut], s=size + 6, marker="^", color=colour, lw=0, zorder=3
+                )
+            ax.text(
+                i,
+                limit * 1.08,
+                f"worse in {int(worse.sum())}/{int(mask.sum())}",
+                ha="center",
+                va="bottom",
+                fontsize=7,
+                color=t["fail"] if worse.sum() * 2 > mask.sum() else t["text2"],
+                weight="semibold" if worse.sum() * 2 > mask.sum() else "normal",
+            )
+        ax.axhline(0, color=t["axis"], lw=0.8)
+        ax.set_ylim(-limit * 1.05, limit * 1.3)
+        ax.set_xticks(x, [f"{s}" for s in stages])
+        ax.set_xlabel("Cycles before failure")
+        if col == 0:
+            ax.set_ylabel("Deletion area difference\n(above 0: IG worse)")
+        else:
+            ax.tick_params(labelleft=False)
+        ax.set_title(title, fontsize=8, weight="normal", color=t["text2"], pad=14)
+        ax.grid(axis="x", visible=False)
+    return fig
 
 
 def main(argv: list[str] | None = None) -> int:
