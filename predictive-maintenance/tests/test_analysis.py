@@ -58,6 +58,12 @@ def test_benchmark_reports_latency_and_hardware(artifacts_dir):
         "engine_detail_repeated_state",
     }
     assert report["latency"]["predict_without_explanation"]["median_ms"] > 0
+    # The cached repeat skips integrated gradients; the attribution timing recomputes it.
+    latency = report["latency"]
+    assert (
+        latency["engine_detail_repeated_state"]["median_ms"]
+        < latency["engine_detail_with_attribution"]["median_ms"]
+    )
     assert report["hardware"]["logical_cpus"]
 
 
