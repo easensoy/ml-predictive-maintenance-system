@@ -23,6 +23,9 @@ predictive-maintenance/artifacts/*/*
 !predictive-maintenance/artifacts/*/predictions/
 !predictive-maintenance/artifacts/FD001/**
 
+# Local caches and figure drafts (`python -m predmaint.figures --draft`)
+predictive-maintenance/.cache/
+
 # Misc
 *.db
 *.log
