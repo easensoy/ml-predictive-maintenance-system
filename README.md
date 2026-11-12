@@ -308,10 +308,6 @@ the protocol, not the exact numbers.
   and the earliest, latest and missed alerts.
 - [Model card](MODEL_CARD.md): intended and out-of-scope uses, data and caveats.
 - [Serving](predictive-maintenance/docs/serving.md): the API, latency, Docker and architecture.
-- [Maintenance-note harness](predictive-maintenance/docs/notes-eval/README.md): an optional,
-  unused evaluation harness for language-model-written maintenance notes. Only its deterministic
-  template baseline has been graded; no model call has been made, so no model fidelity,
-  abstention, latency or cost result exists.
 
 ## Data, licence and history
 
