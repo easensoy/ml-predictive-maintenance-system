@@ -934,6 +934,34 @@ def fig_uncertainty(ctx: Context, t: dict) -> Figure:
         color=t["muted"],
     )
 
+    # Aggregate (marginal) coverage per subset, with 95% Wilson intervals over engines.
+    for i, s in enumerate(subsets):
+        m_all = ctx.runs[s]["metrics"]["test"]["models"]
+        for m in MODELS:
+            colour = t["series"][MODEL_SLOT[m]]
+            summary = m_all[m]["summary"]
+            rate = 100 * summary["coverage"]["mean"]
+            low, high = (100 * v for v in summary["coverage_wilson_at_mean"])
+            row = i + OFFSET[m]
+            ax_sub.plot([low, high], [row, row], color=colour, lw=1.3, zorder=2)
+            ax_sub.scatter(
+                [rate],
+                [row],
+                s=MODEL_SIZE[m],
+                marker=MODEL_MARKER[m],
+                color=colour,
+                edgecolors=t["surface"],
+                linewidths=0.7,
+                zorder=3,
+            )
+    ax_sub.axvline(nominal, color=t["muted"], lw=0.8, linestyle=(0, (3, 3)))
+    _rows(ax_sub, subsets)
+    ax_sub.set_xlim(82, 100.5)
+    ax_sub.set_title(
+        "Per subset, 95% Wilson interval", fontsize=8, weight="normal", color=t["text2"]
+    )
+    ax_sub.set_xlabel("Inside the interval (%)")
+
     ax_rul.set_title(f"Coverage by true remaining life (test sets, mean of {repeats} repeats)")
     return _save(fig, out_dir, "uncertainty", theme)
 
