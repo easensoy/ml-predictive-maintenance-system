@@ -174,7 +174,7 @@ def main(argv: list[str] | None = None) -> int:
     args.out.mkdir(parents=True, exist_ok=True)
     for theme in ("light", "dark"):
         out = args.out / f"dashboard-{theme}.png"
-        capture(browser, f"{base}/?engine={unit}&only=prediction&theme={theme}", out)
+        capture(browser, f"{base}/?engine={unit}&only=fleet&theme={theme}", out)
         print(out)
     detail = _get(f"{base}/api/engines/{unit}")
     info = _get(f"{base}/api/model-info")
@@ -195,7 +195,7 @@ def main(argv: list[str] | None = None) -> int:
         "status": shown["status"],
         "interval": info["interval"],
         "horizon_cycles": info["alert_cycles"],
-        "page": f"/?engine={unit}&only=prediction&theme=light|dark",
+        "page": f"/?engine={unit}&only=fleet&theme=light|dark",
         "viewport_css_px": list(VIEWPORT),
         "device_scale_factor": SCALE,
         "browser": Path(browser).stem,
