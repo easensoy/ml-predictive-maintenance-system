@@ -8,11 +8,12 @@ with its nominal interval and failure probability, at one replay tick. That tria
 engines is what the dashboard adds to the README's single-engine figures.
 
 Nothing advances the replay while it is captured: the server runs without its replay loop, and
-the engine and cycle come from the rule the hero figure uses (``report.hero_state``: the FD001
-replay engine chosen by ``report.hero_engine``, at the cycle its alert first fires). The light and
-dark images therefore show the same engine at the same cycle. That state is written next to them
-as ``dashboard-state.json``; ``predmaint.audit`` checks it against the evaluated predictions in
-``replay-holdout.csv.gz``, and ``predmaint.report`` describes it under the screenshot.
+the tick is fixed by the rule the hero figure uses (``report.hero_state``: the FD001 replay
+engine chosen by ``report.hero_engine``, sought to the cycle its alert first fires; the other
+engines stay at their seeded starting cycles). Its row is highlighted. The light and dark images
+show the same state, which is written next to them as ``dashboard-state.json``, every displayed
+row included; ``predmaint.audit`` checks each row against the evaluated predictions in
+``replay-holdout.csv.gz``, and ``predmaint.report`` describes the state under the screenshot.
 
 The page loads ECharts and the Socket.IO client from jsDelivr, so capturing needs a network
 connection. This is a documentation tool: CI does not run it.
