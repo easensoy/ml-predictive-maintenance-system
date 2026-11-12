@@ -179,7 +179,8 @@ def test_worst_case_bound_prices_the_whole_output_ceiling_and_a_fallback():
 
 
 class FakeMessages:
-    """Stands in for client.beta.messages; replies come from a list of canned responses."""
+    """Stands in for client.beta.messages; replies come from a list of canned responses, each
+    (stop_reason, text) or (stop_reason, text, usage)."""
 
     def __init__(self, replies):
         self.replies = list(replies)
@@ -187,17 +188,30 @@ class FakeMessages:
 
     def create(self, **kwargs):
         self.requests.append(kwargs)
-        stop_reason, text = self.replies.pop(0)
+        stop_reason, text, *usage = self.replies.pop(0)
         return SimpleNamespace(
             model=kwargs["model"],
             stop_reason=stop_reason,
             content=[SimpleNamespace(type="text", text=text)],
-            usage=SimpleNamespace(input_tokens=600, output_tokens=90),
+            usage=usage[0] if usage else SimpleNamespace(input_tokens=600, output_tokens=90),
         )
 
 
 def _client(*replies):
     return SimpleNamespace(beta=SimpleNamespace(messages=FakeMessages(replies)))
+
+
+GOOD = json.dumps(
+    {"note": "Engine 17 (FD001), cycle 145: 38 cycles left, 22 to 55.", "abstained": False}
+)
+
+
+def _cases(n):
+    return [_record(case_id=f"{i:03d}-normal") for i in range(n)]
+
+
+def _bound(cases, run):
+    return sum(notes.call_bound_usd(call["request"]) for call in notes.plan_calls(cases, run))
 
 
 def test_claude_note_parses_structured_output_and_records_usage():
