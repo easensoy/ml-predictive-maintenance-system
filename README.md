@@ -215,10 +215,10 @@ The [attribution checks](predictive-maintenance/docs/evaluation.md#attribution-c
 maps on held-out FD001 engines at four stages of life. In the median window, deleting readings
 in attribution order moves the prediction toward the reference faster than random order or a
 re-initialised network's order. But ranking readings by their distance from the reference alone
-does about as well, the medians hide a tail of windows where attribution order is worse than
-random, and the maps change with the reference. Completeness holds by construction and says
-nothing about faithfulness. The maps describe what the prediction is sensitive to, relative to
-the regime mean; they do not explain why an engine degrades.
+does about as well, the mean over windows is no better than random order, attribution order loses
+to random in most windows far from failure, and the maps change with the reference. Completeness
+holds by construction and says nothing about faithfulness. The maps describe what the prediction
+is sensitive to, relative to the regime mean; they do not explain why an engine degrades.
 
 ## Failure analysis
 
