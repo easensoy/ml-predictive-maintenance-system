@@ -220,6 +220,8 @@ def test_claude_note_parses_structured_output_and_records_usage():
     assert result["note"] == "Engine 17: 38 cycles left."
     assert result["abstained"] is False
     assert (result["input_tokens"], result["output_tokens"]) == (600, 90)
+    assert result["cache_key"] == _key()
+    assert notes.response_cost_usd(result) == pytest.approx((600 * 4 + 90 * 20) / 1e6)
 
 
 def test_claude_note_handles_refusals_and_malformed_replies():
