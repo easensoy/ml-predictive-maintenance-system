@@ -242,6 +242,11 @@ the earliest, latest and missed alerts, engine by engine.
   <img alt="The dashboard's fleet table at one replay tick: for each replayed FD001 engine, its status, current cycle, predicted RUL with its nominal 90% interval (open-ended rows read at least the lower end), the true RUL and the probability of failure within 30 cycles; the engine whose alert has just fired is highlighted." src="predictive-maintenance/docs/figures/dashboard-light.png">
 </picture>
 
+The dashboard's job is triage across a fleet, which no figure above shows: which engines need
+attention now. Each row is one replayed engine at the same tick, with its status (healthy, watch,
+alert or failed, as defined under the table), its predicted RUL and nominal interval, and its
+probability of failure within 30 cycles.
+
 <!-- dashboard:start -->
 Both captures show the same replay state: FD001 replay engine 81 at cycle 207 of 240, the cycle at which its alert first fires (the hero figure shows its whole life). The dashboard predicts 32 cycles (nominal 90% interval 18 to 51) and a 51% probability of failure within 30 cycles; the true RUL, known because the simulated engine ran to failure, is 33. These are the numbers in that engine's row of `replay-holdout.csv.gz`, which `predmaint.audit` checks.
 <!-- dashboard:end -->
