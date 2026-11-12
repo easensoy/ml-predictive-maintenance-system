@@ -3,6 +3,10 @@
     python -m predmaint.screenshots                  # needs Edge, Chrome or Chromium installed
     python -m predmaint.screenshots --browser PATH
 
+The capture shows the fleet table: every replayed engine's status, current cycle, predicted RUL
+with its nominal interval and failure probability, at one replay tick. That triage view across
+engines is what the dashboard adds to the README's single-engine figures.
+
 Nothing advances the replay while it is captured: the server runs without its replay loop, and
 the engine and cycle come from the rule the hero figure uses (``report.hero_state``: the FD001
 replay engine chosen by ``report.hero_engine``, at the cycle its alert first fires). The light and
