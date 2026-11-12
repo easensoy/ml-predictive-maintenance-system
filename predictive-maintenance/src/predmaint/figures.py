@@ -1148,7 +1148,8 @@ def fig_alerts(ctx: Context, t: dict) -> Figure:
     return fig
 
 
-def fig_alert_calibration(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
+def fig_alert_calibration(ctx: Context, t: dict) -> Figure:
+    runs = ctx.runs
     subsets = list(runs)
     first = next(iter(runs.values()))
     horizon = first["metrics"]["config"]["alert_cycles"]
@@ -1263,7 +1264,7 @@ def fig_alert_calibration(runs: dict, t: dict, out_dir: Path, theme: str) -> Pat
         else:
             ax_c.tick_params(labelleft=False)
         ax_c.set_xlabel("Predicted probability", fontsize=7.5)
-    return _save(fig, out_dir, "alert-calibration", theme)
+    return fig
 
 
 # --------------------------------------------------------------------------------------------
