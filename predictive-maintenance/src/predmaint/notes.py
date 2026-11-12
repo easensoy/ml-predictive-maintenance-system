@@ -328,6 +328,18 @@ def cache_key(request: dict, case_id: str, repetition: int) -> str:
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
 
+def plan_calls(cases: list[dict], run: RunConfig) -> list[dict]:
+    """Every call the configuration needs, in order: each case once, and the first
+    ``repeat_cases`` cases ``repeats`` times."""
+    calls: list[dict] = []
+    for i, case in enumerate(cases[: run.max_cases]):
+        request = claude_request(case, run.effort, run.model, run.max_tokens)
+        for repetition in range(run.repeats if i < run.repeat_cases else 1):
+            key = cache_key(request, case["case_id"], repetition)
+            calls.append({"case": case, "repetition": repetition, "request": request, "key": key})
+    return calls
+
+
 def claude_note(client: Any, record: dict, effort: str = "medium") -> dict:
     """One Claude note, with its latency, token usage and stop reason."""
     started = time.perf_counter()
