@@ -527,21 +527,21 @@ def fig_hero(ctx: Context, t: dict) -> Figure:
     if alert is not None:
         a_cycle, lead = int(alert["cycle"]), int(alert["rul"])
         for a in (ax, axp):
-            a.axvline(a_cycle, color=t["alert"], lw=1.3, zorder=6)
+            a.axvline(a_cycle, color=t["alert"], lw=1.2, zorder=6)
         ax.text(
             a_cycle - 2,
             top - 3,
             f"first alert\n{lead} cycles left",
             ha="right",
             va="top",
-            fontsize=7.5,
             color=t["alert"],
-            linespacing=1.25,
+            linespacing=1.2,
+            **small,
         )
     ax.set_xlim(cycle.min(), cycle.max())
     ax.set_ylim(0, top)
     ax.set_yticks([0, 25, 50, 75, 100, 125])
-    ax.set_ylabel("Remaining useful life\n(cycles)")
+    ax.set_ylabel("RUL (cycles)")
     ax.grid(axis="x", visible=False)
     ax.tick_params(labelbottom=False)
 
@@ -569,7 +569,7 @@ def fig_hero(ctx: Context, t: dict) -> Figure:
     )
     axp.set_ylim(0, 1.05)
     axp.set_yticks([0, 0.5, 1], ["0", "0.5", "1"])
-    axp.set_ylabel(f"P(failure\nwithin {horizon})")
+    axp.set_ylabel(f"P(fail ≤ {horizon})")
     axp.set_xlabel("Cycle")
     axp.grid(axis="x", visible=False)
     return fig
