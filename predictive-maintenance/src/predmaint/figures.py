@@ -888,6 +888,52 @@ def fig_uncertainty(ctx: Context, t: dict) -> Figure:
         color=t["text2"],
     )
     ax_rul.grid(axis="x", visible=False)
+    ax_rul.tick_params(labelbottom=False)
+
+    # Open-ended prevalence in the same bands: why coverage far from failure is nearly certain.
+    for m in MODELS:
+        colour = t["series"][MODEL_SLOT[m]]
+        share_by_bin = open_share[open_share["model"] == m].set_index("bin")["share"]
+        test = pd.concat([run["test"] for run in ctx.runs.values()])
+        overall = float(test[test["model"] == m].groupby("repeat")["open_ended"].mean().mean())
+        shares = [100 * overall] + [100 * float(share_by_bin.get(b, 0.0)) for b in RUL_LABELS]
+        ax_open.bar(
+            x + (-0.13 if m == "lstm" else 0.13),
+            shares,
+            width=0.24,
+            color=colour,
+            alpha=0.85 if m == "lstm" else 0.75,
+            hatch=None if m == "lstm" else "////",
+            edgecolor=t["surface"],
+            lw=0.4,
+        )
+    ax_open.set_ylim(0, 100)
+    ax_open.set_yticks([0, 50, 100])
+    ax_open.set_ylabel("Open-ended (%)")
+    ax_open.set_xticks(x, ["All engines", *[f"{b}" for b in RUL_LABELS]])
+    ax_open.set_xlabel("True RUL (cycles)")
+    ax_open.grid(axis="x", visible=False)
+    counts = by_rul.drop_duplicates("bin").set_index("bin")["engines"]
+    for i, label in enumerate(columns[1:], start=1):
+        ax_open.text(
+            x[i],
+            103,
+            f"n={counts.get(label, 0)}",
+            ha="center",
+            va="bottom",
+            fontsize=7,
+            color=t["muted"],
+        )
+    ax_open.text(
+        x[0],
+        103,
+        f"n={pooled['lstm']['engines']}",
+        ha="center",
+        va="bottom",
+        fontsize=7,
+        color=t["muted"],
+    )
+
     ax_rul.set_title(f"Coverage by true remaining life (test sets, mean of {repeats} repeats)")
     return _save(fig, out_dir, "uncertainty", theme)
 
