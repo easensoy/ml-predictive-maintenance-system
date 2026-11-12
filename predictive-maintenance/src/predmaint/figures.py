@@ -1492,37 +1492,33 @@ ORDERINGS = (
     ("random", "Random order (mean of 20)"),
 )
 
-def fig_attribution_checks(focus: dict, t: dict, out_dir: Path, theme: str) -> Path | None:
-    path = focus["dir"] / "attribution-checks.json"
-    if not path.is_file():
+
+def fig_attribution_checks(ctx: Context, t: dict) -> Figure | None:
+    """Every window's deletion and insertion area for each ranking, with the median and the mean
+    of the recorded per-window values, and where integrated gradients ranks worse than random
+    order or plain input deviation, by stage of life."""
+    focus = ctx.focus
+    if focus is None or not (focus.dir / "attribution-checks.json").is_file():
         return None
-    report = json.loads(path.read_text())
-    curves, s = report["curves"], report["summary"]
-    x = 100 * np.asarray(curves["fractions"])
-    fig = plt.figure(figsize=(WIDTH, 5.6))
+    report = ctx.memo(
+        "attribution_checks",
+        lambda: json.loads((focus.dir / "attribution-checks.json").read_text()),
+    )
+    windows = pd.DataFrame(report["per_window"])
+    n = len(windows)
+    stages = sorted(windows["rul"].unique(), reverse=True)
+    colours = {
+        "ig": t["series"][0],
+        "input_deviation": t["text2"],
+        "randomised_ig": t["muted"],
+        "random": t["muted"],
+    }
+    fig = plt.figure(figsize=(WIDTH, 4.9))
     y = _header(
         fig,
         t,
-        "Sanity checks on the attributions",
-        f"{report['windows']} windows from {report['engines']} held-out engines at "
-        f"{', '.join(map(str, report['stages_cycles_left']))} cycles before failure, served "
-        f"five-network average. Completeness gap: median "
-        f"{s['completeness_gap_cycles']['median']:.2f} cycles.",
-    )
-    styles: tuple[tuple[str, str, str, Any, float], ...] = (
-        ("ig", "Integrated gradients", t["series"][0], "-", 1.9),
-        ("input_deviation", "|input − baseline| alone", t["series"][1], "-", 1.3),
-        ("randomised_ig", "Integrated gradients, randomised weights", t["series"][2], "-", 1.3),
-        ("random", "Random order (mean of 20)", t["muted"], (0, (4, 3)), 1.3),
-    )
-    handles = [Line2D([], [], color=c, lw=w, linestyle=st) for _, _, c, st, w in styles]
-    y = _legend(fig, handles, [label for _, label, *_ in styles], y, ncols=2)
-    split = y - (y - 0.1) * 0.56
-    grid = fig.add_gridspec(1, 2, wspace=0.12, left=0.1, right=0.985, top=y, bottom=split)
-    ax_del = fig.add_subplot(grid[0, 0])
-    ax_ins = fig.add_subplot(grid[0, 1], sharey=ax_del)
-    ax_rho = fig.add_subplot(
-        fig.add_gridspec(1, 1, left=0.34, right=0.985, top=split - 0.12, bottom=0.1)[0]
+        f"Attribution checks: {n} windows from {report['engines']} held-out "
+        f"{report['model']} engines, served ensemble",
     )
     for ax, key, title in (
         (ax_del, "deletion", "Deletion: highest-ranked readings removed first"),
