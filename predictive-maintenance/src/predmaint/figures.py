@@ -1485,6 +1485,12 @@ def fig_lives(ctx: Context, t: dict, n: int = 4) -> Figure:
     return fig
 
 
+ORDERINGS = (
+    ("ig", "Integrated gradients"),
+    ("input_deviation", "|input − reference|"),
+    ("randomised_ig", "IG, re-initialised net"),
+    ("random", "Random order (mean of 20)"),
+)
 
 def fig_attribution_checks(focus: dict, t: dict, out_dir: Path, theme: str) -> Path | None:
     path = focus["dir"] / "attribution-checks.json"
