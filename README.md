@@ -251,9 +251,9 @@ probability of failure within 30 cycles.
 Both captures show one replay tick of the FD001 fleet: the tick at which engine 81's alert first fires, at cycle 207 of 240 (its row is highlighted; the hero figure shows its whole life). Of the 10 replayed engines, 1 is in alert, 2 are on watch and 7 are healthy. Engine 81 is predicted at 32 cycles (nominal 90% interval 18 to 51) with a 51% probability of failure within 30 cycles; its true RUL, known because the simulated engine ran to failure, is 33. Every row is the evaluated prediction in `replay-holdout.csv.gz` for that engine and cycle, which `predmaint.audit` checks.
 <!-- dashboard:end -->
 
-The dashboard replays simulated C-MAPSS engines from the replay holdout, one recorded cycle per
-tick; it is not a live feed or field telemetry. Run it with `uv run python -m predmaint.serve`.
-The REST API, a real example response, serving latency, Docker and the architecture are in
+The replay feeds simulated C-MAPSS engines one recorded cycle per tick; it is not a live feed or
+field telemetry. Run it with `uv run python -m predmaint.serve`. The REST API, a real example
+response, serving latency, Docker and the architecture are in
 [`docs/serving.md`](predictive-maintenance/docs/serving.md).
 
 ## Reproduce
