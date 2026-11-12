@@ -8,6 +8,10 @@ integrated gradients, one replay tick for the whole fleet, and one engine-detail
 attribution heatmap the dashboard shows for a watched engine). Inference runs on the CPU, as it
 does in the Docker image. The results set how many watched engines the replay re-explains per
 tick (see ``Settings.explain_per_tick``).
+
+The predictor reuses an attribution map when the same window is explained again. The
+attribution timings clear that cache before every timed call, so they measure the computation;
+``engine_detail_repeated_state`` measures the reuse separately.
 """
 
 import argparse
