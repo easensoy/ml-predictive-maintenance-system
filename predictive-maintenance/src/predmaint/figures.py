@@ -962,8 +962,31 @@ def fig_uncertainty(ctx: Context, t: dict) -> Figure:
     )
     ax_sub.set_xlabel("Inside the interval (%)")
 
-    ax_rul.set_title(f"Coverage by true remaining life (test sets, mean of {repeats} repeats)")
-    return _save(fig, out_dir, "uncertainty", theme)
+    # Width only where it is finite: engines on which both models' intervals are closed.
+    for i, s in enumerate(subsets):
+        closed = ctx.closed(s)
+        for m in MODELS:
+            colour = t["series"][MODEL_SLOT[m]]
+            row = i + OFFSET[m]
+            ax_w.plot([0, closed[m]], [row, row], color=colour, lw=2.2, solid_capstyle="butt")
+            ax_w.scatter(
+                [closed[m]],
+                [row],
+                s=MODEL_SIZE[m] * 0.8,
+                marker=MODEL_MARKER[m],
+                color=colour,
+                zorder=3,
+            )
+    _rows(ax_w, subsets)
+    ax_w.set_yticks(
+        range(len(subsets)), [f"{s} · n={ctx.closed(s)['engines']:.0f}" for s in subsets]
+    )
+    ax_w.set_xlim(0, None)
+    ax_w.set_title(
+        "Width where both intervals are closed", fontsize=8, weight="normal", color=t["text2"]
+    )
+    ax_w.set_xlabel(f"Mean width (cycles); open-ended excluded, cap {cap}")
+    return fig
 
 
 # --------------------------------------------------------------------------------------------
