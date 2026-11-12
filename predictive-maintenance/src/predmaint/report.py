@@ -614,18 +614,17 @@ def _dash(values: list[float], spec: str) -> str:
 
 
 def headline_block(artifacts: Path) -> str:
-    """The two-sentence abstract under the README title: the task and the controlled
-    comparison, then the principal result."""
+    """The README abstract, at most 80 words: the controlled comparison, then the principal
+    result. Definitions and qualifications are in the reading block below the table."""
     f = _findings(artifacts)
     if f is None:
         return "_No evaluated runs yet._"
     n, k, clear = f["n"], len(f["lgbm_lower"]), f["significant"]
     task = (
-        "This repository compares an LSTM sequence model with LightGBM on per-sensor window "
-        "statistics for remaining-useful-life (RUL) prediction on NASA's simulated C-MAPSS "
-        "turbofan data, under one engine-disjoint cross-fitting protocol, and evaluates the "
-        f"point estimate, a nominal {f['nominal']:.0f}% prediction interval and a "
-        f"{f['horizon']}-cycle failure alert separately."
+        "An LSTM on raw sensor windows and LightGBM on per-sensor window statistics predict "
+        "remaining useful life on NASA's simulated C-MAPSS turbofans under one engine-disjoint "
+        f"cross-fitting protocol, scored separately on point error, nominal {f['nominal']:.0f}% "
+        f"intervals and a {f['horizon']}-cycle alert."
     )
     where = (
         f"the paired engine-level bootstrap interval excludes zero only on {clear[0]}"
