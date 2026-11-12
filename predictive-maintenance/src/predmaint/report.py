@@ -635,28 +635,22 @@ def headline_block(artifacts: Path) -> str:
     )
     if 2 * k >= n:
         accuracy = (
-            "LightGBM's point predictions are at least as accurate (lower test RMSE on "
-            f"{k} of {n} subsets; {where})"
+            f"LightGBM is at least as accurate (lower test RMSE on {k} of {n} subsets; {where})"
         )
     else:
-        accuracy = (
-            "The LSTM's point predictions are more accurate (lower test RMSE on "
-            f"{n - k} of {n} subsets; {where})"
-        )
+        accuracy = f"The LSTM is more accurate (lower test RMSE on {n - k} of {n} subsets; {where})"
     lstm = []
     if all(v > 0 for margins in _width_margins(f).values() for v in margins):
         similar = not any(_significant(d["coverage"]) for d in f["differences"].values())
-        lstm.append("narrower intervals" + (" at similar empirical coverage" if similar else ""))
+        lstm.append("narrower intervals" + (" at similar coverage" if similar else ""))
     if all(a < b for a, b in zip(f["flaps"]["lstm"], f["flaps"]["lightgbm"], strict=True)):
         missing = _missing(f)
         only = bool(missing["lstm"]) and not missing["lightgbm"]
         lstm.append(
-            "an alert that, out of fold, switches off before failure less often"
-            + (" but is the only one to miss engines" if only else "")
+            "an out-of-fold alert that switches off less often"
+            + (" but misses engines" if only else "")
         )
-    return f"{task} {accuracy}" + (
-        f", whereas the LSTM gives {' and '.join(lstm)}." if lstm else "."
-    )
+    return f"{task} {accuracy}" + (f"; the LSTM gives {' and '.join(lstm)}." if lstm else ".")
 
 
 def _miss_counts(f: dict[str, Any], model: str) -> str:
