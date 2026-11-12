@@ -606,14 +606,9 @@ def claude_summary(cases: list[dict], recorded: dict[str, list[dict]]) -> dict:
     first = {case_id: runs[0] for case_id, runs in recorded.items()}
     rows = [r for runs in recorded.values() for r in runs]
     latencies = [r["latency_s"] for r in rows]
-    cost = (
-        sum(
-            r["input_tokens"] * PRICE_PER_MTOK["input"]
-            + r["output_tokens"] * PRICE_PER_MTOK["output"]
-            for r in rows
-        )
-        / 1e6
-    )
+    priced = [c for c in (response_cost_usd(r) for r in rows) if c is not None]
+    cost = sum(priced)
+    output_tokens = [r["output_tokens"] for r in rows]
     repeated = [runs for runs in recorded.values() if len(runs) > 1]
     same_decision = [len({r["abstained"] for r in runs}) == 1 for runs in repeated]
     same_numbers = [len({tuple(NUMBER.findall(r["note"])) for r in runs}) == 1 for runs in repeated]
@@ -624,7 +619,12 @@ def claude_summary(cases: list[dict], recorded: dict[str, list[dict]]) -> dict:
             "median": statistics.median(latencies),
             "p95": float(np.percentile(latencies, 95)),
         },
-        "cost_usd": {"total": cost, "per_note": cost / len(rows)},
+        "cost_usd": {
+            "total": cost,
+            "per_note": cost / len(priced) if priced else None,
+            "unpriced_calls": len(rows) - len(priced),
+        },
+        "output_tokens": {"median": statistics.median(output_tokens), "max": max(output_tokens)},
         "repeatability": {
             "cases": len(repeated),
             "same_abstention": float(np.mean(same_decision)) if repeated else None,
@@ -632,6 +632,7 @@ def claude_summary(cases: list[dict], recorded: dict[str, list[dict]]) -> dict:
         },
         "refusals": sum(bool(r.get("refused")) for r in rows),
         "malformed": sum(bool(r.get("malformed")) for r in rows),
+        "truncated": sum(bool(r.get("truncated")) for r in rows),
         "notes": first,
         "evaluation": evaluate(cases, first),
     }
