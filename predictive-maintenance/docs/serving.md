@@ -44,8 +44,7 @@ curl -s -X POST http://127.0.0.1:5000/api/predict \
      -d @docs/example-request.json
 ```
 
-The response below is the real one, written by `python -m predmaint.report` through the Flask
-route:
+The response below is the real one, produced through the Flask route:
 
 <!-- api-example:start -->
 ```json
