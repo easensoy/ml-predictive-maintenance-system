@@ -203,8 +203,9 @@ they appear:
   and later);
 - the width with both intervals closed, switch-offs in the last 30 cycles, and the test engines'
   share with 125 or more cycles left in the guarantee table (`8be907d`);
-- in this revision: the correlation of observed length with total life and the coverage on test
-  engines with fewer than 125 cycles left, both in the guarantee section;
+- the correlation of observed length with total life and the coverage on test engines with fewer
+  than 125 cycles left, both in the guarantee section, and the share of open-ended intervals by
+  band of true RUL in the uncertainty figure (added after release 220ab9b);
 - every figure, all drawn after the evaluation event.
 
 ## Full results
