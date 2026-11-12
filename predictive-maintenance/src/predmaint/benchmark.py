@@ -96,7 +96,9 @@ def run(model_dir: Path, repeats: int) -> dict:
             lambda: predictor.predict_readings(history, explain=False), repeats
         ),
         "predict_with_integrated_gradients": _time(
-            lambda: predictor.predict_readings(history, explain=True), repeats
+            lambda: predictor.predict_readings(history, explain=True),
+            repeats,
+            before=predictor.clear_explanations,
         ),
         "replay_tick_whole_fleet": _time(fleet.step, repeats),
         "engine_detail_with_attribution": _time(lambda: fleet.detail(fleet.units[0]), repeats),
