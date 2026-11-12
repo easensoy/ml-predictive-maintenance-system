@@ -66,10 +66,10 @@ Each cell is LSTM / LightGBM, the mean over 3 repeats; bold marks the lower valu
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="predictive-maintenance/docs/figures/comparison-dark.png">
-  <img alt="Test RMSE per subset for the single fold models and the five-fold ensembles of the LSTM and LightGBM, and the paired LSTM-minus-LightGBM difference with 95% bootstrap intervals." src="predictive-maintenance/docs/figures/comparison-light.png">
+  <img alt="Paired LSTM-minus-LightGBM differences in test RMSE with 95% engine-bootstrap intervals per subset, and each model's test RMSE: the mean of three repeat ensembles and each repeat." src="predictive-maintenance/docs/figures/comparison-light.png">
 </picture>
 
-<sub>Filled dots are the three five-fold ensembles, one per repeat; their spread is repeat variability on fixed test engines. Open circles are the single fold models, five per repeat; they show what averaging contributes and are not an error bar on the ensemble. The right panel is the paired difference with its 95% engine-level bootstrap interval, which reflects which engines are in the test set, not repeat variability.</sub>
+<sub>Left, the principal comparison: the paired difference with its 95% engine-bootstrap interval, filled where the interval excludes zero. Right, each model's RMSE: large markers are the mean of the three repeat ensembles, small ones each repeat. Single fold models are in the evaluation notes.</sub>
 
 The [full results](predictive-maintenance/docs/evaluation.md#full-results) add the PHM08 score,
 RMSE against the uncapped RUL, every paired difference, alert calibration, and whole-life
