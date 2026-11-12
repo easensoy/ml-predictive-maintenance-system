@@ -138,6 +138,9 @@ class Predictor:
         )
         self._scores = np.asarray(self.calibration["scores"], np.float64)
         self._score_member = np.asarray(self.calibration["score_member"], np.int64)
+        self._reference_point: float | None = None
+        self._explanations: OrderedDict[bytes, np.ndarray] = OrderedDict()
+        self._explanations_lock = threading.Lock()
 
     @property
     def alert_threshold(self) -> float:
