@@ -369,6 +369,16 @@ def test_offline_regrade_needs_no_client_and_reads_old_lines(tmp_path):
         notes.main(["eval", "--regrade", "--effort", "high", "--out", str(tmp_path)])
 
 
+def test_claude_run_needs_a_spending_limit(tmp_path, capsys):
+    (tmp_path / "cases.json").write_text(json.dumps(_cases(1)), encoding="utf-8")
+    with pytest.raises(SystemExit) as exc:
+        notes.main(["eval", "--claude", "--out", str(tmp_path)])
+    assert exc.value.code == 2
+    assert "--max-spend-usd" in capsys.readouterr().err
+    with pytest.raises(SystemExit, match="Refusing to start"):
+        notes.main(["eval", "--claude", "--max-spend-usd", "0.01", "--out", str(tmp_path)])
+
+
 def test_make_client_explains_what_is_missing(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     with pytest.raises(SystemExit, match="ANTHROPIC_API_KEY"):
