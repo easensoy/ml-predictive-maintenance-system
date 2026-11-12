@@ -440,9 +440,14 @@ def claude_note(
         "model": served,
         "stop_reason": response.stop_reason,
         "latency_s": round(time.perf_counter() - started, 3),
-        "input_tokens": response.usage.input_tokens,
-        "output_tokens": response.usage.output_tokens,
+        # The answering attempt's counts; "attempts" holds every billed attempt.
+        "input_tokens": usage.input_tokens,
+        "output_tokens": usage.output_tokens,
+        "thinking_tokens": _field(_field(usage, "output_tokens_details"), "thinking_tokens"),
+        "attempts": billed_attempts(usage, model, served),
     }
+    if response.stop_reason == "max_tokens":
+        result["truncated"] = True
     if response.stop_reason == "refusal":
         return result | {"note": "", "abstained": True, "refused": True}
     text = next((b.text for b in response.content if b.type == "text"), "")
