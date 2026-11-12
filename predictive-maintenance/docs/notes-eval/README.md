@@ -38,7 +38,7 @@ served FD001 model and its replay engines, which no network trained on:
 ## Running it
 
 ```bash
-uv run python -m predmaint.notes eval            # template only; writes results.md and results.json
+uv run python -m predmaint.notes eval            # template and any recorded responses; writes results.md and results.json
 ```
 
 The model side needs the optional dependencies and an API key in `ANTHROPIC_API_KEY` (read from
