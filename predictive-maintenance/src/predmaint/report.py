@@ -802,27 +802,13 @@ def findings_block(artifacts: Path) -> str:
         )
     pooled = f["pooled"]
     engines = next(iter(pooled.values()))["engines"]
-    open_share = [100 * f["mean"][(s, m, "open_ended_share")] for s in subsets for m in NAMES]
-    margins = _width_margins(f)
+    shares = [100 * f["mean"][(s, m, "open_ended_share")] for s in f["subsets"] for m in NAMES]
+    narrower = all(v > 0 for values in _width_margins(f).values() for v in values)
     intervals = (
-        f"Pooled over {engines} test engines, empirical coverage of the nominal "
-        f"{f['nominal']:.0f}% intervals is "
+        f"Pooled over {engines} test engines, coverage of the nominal {f['nominal']:.0f}% "
+        "intervals is "
         + " and ".join(f"{100 * p['coverage']:.1f}% ({NAMES[m]})" for m, p in pooled.items())
-        + f", with {_span(open_share, '.0f')}% of intervals open-ended"
-    )
-    if all(v > 0 for values in margins.values() for v in values):
-        similar = not any(_significant(d["coverage"]) for d in f["differences"].values())
-        intervals += (
-            f"; the LSTM's intervals are narrower on all {n} subsets under each of three width "
-            "statistics" + (", at similar coverage" if similar else "")
-        )
-    intervals += "."
-
-    flaps = f["flaps"]
-    calmer = all(a < b for a, b in zip(flaps["lstm"], flaps["lightgbm"], strict=True))
-    alert_text = (
-        f"Out of fold, both alerts first fire a median {_span(f['lead'], '.0f')} cycles before "
-        "failure, "
+        + f", with {_dash(shares, '.0f')}% open-ended"
         + (
             "but LightGBM's switches off again before failure "
             f"{_span(flaps['lightgbm'], '.2f')} times per engine against "
