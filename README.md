@@ -259,7 +259,7 @@ response, serving latency, Docker and the architecture are in
 ## Reproduce
 
 From `predictive-maintenance/`, with [uv](https://docs.astral.sh/uv/) (tested with 0.13.7) and
-Python 3.15, which uv can install.
+Python 3.15, which uv can install. None of these commands needs a download or a GPU unless noted.
 
 **Check the published results.** These commands are read-only, need no download and no GPU, and
 are what CI runs:
