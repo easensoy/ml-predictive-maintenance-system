@@ -91,6 +91,36 @@ missing ones could cost, so it also shows the bound before anything is spent. Li
 before cache keys existed are still read and graded by plain `eval`; they match no key, so
 `--regrade` leaves them out and a `--claude` run makes those calls again.
 
+## Cost controls
+
+- **A worst-case bound before any call.** For each call not yet recorded, the bound takes the
+  input tokens, over-counted as one token per UTF-8 byte of the system prompt, output format and
+  record plus 1,000 for framing, and the full `max_tokens` of output, at the requested model's
+  prices. A server-side fallback can bill both the declined attempt and the fallback attempt, so
+  each call also carries a second attempt of the same size at the dearest price in
+  `PRICE_PER_MTOK`. The run refuses to start when the sum exceeds `--max-spend-usd`; the refusal
+  and `--regrade` both print the figure.
+- **A stop during the run.** The spend is added up from each response's usage counts, and the run
+  stops before any call whose worst case could take it past the limit. It also stops at once if
+  an attempt ran on a model with no price, since the spend can then no longer be tracked.
+- **Billing from usage, not from `max_tokens`.** `max_tokens` is a ceiling on each reply,
+  thinking included. It sets the bound, but a call is billed for the tokens it used: the spend
+  comes from `usage.input_tokens` and `usage.output_tokens` (which includes thinking) and, when a
+  fallback ran, from every entry of `usage.iterations` at that attempt's model's price, because
+  the top-level counts then cover only the attempt that answered. Refusals in categories that
+  are not billed are counted anyway, and no request sets `cache_control`, so cache counts should
+  be zero; any that appear are priced at the top of their documented range. The tracked spend can
+  therefore only over-count.
+- **Prices.** `PRICE_PER_MTOK` holds only the verified prices below. A model without a price is
+  refused, because its cost cannot be bounded.
+- **The output budget was not lowered.** `max_tokens` stays at 16,000, about the documented
+  default for non-streaming requests. Thinking is always on for Claude Opus 5.5 and counts toward
+  the ceiling, and the documentation gives no figure for how much it thinks at `medium` on a task
+  like this, so a smaller ceiling could cut replies off. Each response records `output_tokens` and
+  `thinking_tokens`, and the report gives the largest reply, so a pilot run (`--max-cases`) can
+  show whether a lower `--max-tokens` is safe. A reply cut off at the ceiling is recorded as
+  truncated and graded as a failure.
+
 
 ## Status
 
