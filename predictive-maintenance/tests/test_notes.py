@@ -300,6 +300,22 @@ def test_unpriced_model_is_refused(tmp_path):
         )
 
 
+def test_run_stops_once_the_recorded_spend_reaches_the_limit(tmp_path):
+    cases, run = _cases(4), notes.RunConfig(repeat_cases=0)
+    limit = _bound(cases, run)
+    # far more input than the bound allows for, as if the token estimate were badly wrong
+    huge = SimpleNamespace(input_tokens=1_000_000, output_tokens=90)
+    client = _client(*[("end_turn", GOOD, huge)] * 4)
+    status = notes.run_claude(
+        cases, tmp_path / "r.jsonl", client=client, run=run, max_spend_usd=limit
+    )
+    assert status["made"] == 1
+    assert status["spent_usd"] == pytest.approx((1_000_000 * 4 + 90 * 20) / 1e6)
+    assert status["spent_usd"] > limit
+    assert "stopped before call 2" in status["stopped"]
+    assert len(client.beta.messages.requests) == 1
+
+
 def test_make_client_explains_what_is_missing(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     with pytest.raises(SystemExit, match="ANTHROPIC_API_KEY"):
