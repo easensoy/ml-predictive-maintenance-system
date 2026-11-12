@@ -1,6 +1,7 @@
 """The maintenance-note harness: graders, the template baseline and the Claude client path.
 
-No test calls the API: the Claude path runs against a fake client that returns canned replies.
+No test calls the API: the Claude path runs against a fake client that returns canned replies,
+and building a real client fails in every test.
 """
 
 import copy
@@ -10,6 +11,16 @@ from types import SimpleNamespace
 import pytest
 
 from predmaint import notes
+
+REAL_MAKE_CLIENT = notes.make_client
+
+
+@pytest.fixture(autouse=True)
+def _no_real_client(monkeypatch):
+    def refuse():
+        raise AssertionError("a test tried to build a real API client")
+
+    monkeypatch.setattr(notes, "make_client", refuse)
 
 
 def _record(**changes) -> dict:
@@ -180,7 +191,7 @@ def test_run_claude_records_every_call_and_summarises(tmp_path):
 def test_make_client_explains_what_is_missing(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     with pytest.raises(SystemExit, match="ANTHROPIC_API_KEY"):
-        notes.make_client()
+        REAL_MAKE_CLIENT()
 
 
 def test_build_cases_mixes_real_and_adversarial_records(artifacts_dir):
