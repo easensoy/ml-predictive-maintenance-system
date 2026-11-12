@@ -420,6 +420,7 @@ def fig_hero(ctx: Context, t: dict) -> Figure:
     cycle = g["cycle"].to_numpy()
     actual = g["rul"].to_numpy()
     truth = np.minimum(actual, cap)
+    point = g["point"].to_numpy()
     lower, upper = g["lower"].to_numpy(), g["upper"].to_numpy()
     open_ended = g["open_ended"].to_numpy(bool)
     prob = g["probability"].to_numpy()
@@ -464,27 +465,27 @@ def fig_hero(ctx: Context, t: dict) -> Figure:
             lw=0,
             step="mid",
         )
-    ax.axhline(cap, color=t["muted"], lw=0.8, linestyle=(0, (1, 2.5)), zorder=1)
-    ax.plot(cycle, truth, color=t["truth"], lw=1.6, zorder=3)
-    above_cap = actual >= cap
-    ax.plot(
-        cycle[above_cap],
-        actual[above_cap],
-        color=t["truth"],
-        lw=1.2,
-        linestyle=(0, (4, 2.5)),
-        zorder=3,
-    )
-    ax.plot(cycle, g["point"], color=t["series"][0], lw=1.9, zorder=4)
-    ax.scatter(
-        cycle[~inside],
-        truth[~inside],
-        marker="x",
-        s=22,
-        linewidths=1.2,
-        color=t["text"],
-        zorder=5,
-    )
+    ax.axhline(cap, color=t["muted"], lw=0.7, linestyle=(0, (1, 2.5)), zorder=1)
+    ax.plot(cycle, truth, color=t["truth"], lw=1.5, zorder=3)
+    above = actual >= cap
+    ax.plot(cycle[above], actual[above], color=t["truth"], lw=1.1, linestyle=(0, (4, 2.5)))
+    ax.plot(cycle, point, color=blue, lw=1.8, zorder=4)
+
+    small: dict[str, Any] = {"fontsize": 7.5, "zorder": 8}
+    if open_ended.any():
+        first_open = cycle[open_ended][0]
+        ax.text(
+            first_open + 2,
+            cap + 25,
+            "open-ended: at least the lower end",
+            color=t["text2"],
+            **small,
+        )
+    if actual.max() > top:
+        # Beside the dashed line where it enters the plot: right of where it crosses the label's
+        # lower edge, so the text never sits on the line.
+        crossing = cycle[np.argmin(np.abs(actual - (top - 11)))]
+        ax.text(crossing + 3, top - 2, "actual RUL", color=t["text2"], va="top", **small)
     ax.text(
         cycle.max(),
         cap + 2,
