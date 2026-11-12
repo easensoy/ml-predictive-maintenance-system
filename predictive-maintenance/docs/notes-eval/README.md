@@ -67,6 +67,30 @@ the model loses to the template) could be regenerated offline.
 | `--repeats` | `3` | calls for each of those cases |
 | `--max-cases` | every case | only the first N cases, for a pilot run |
 
+### Resuming and grading offline
+
+Every request has a cache key: a SHA-256 of the whole request (model, system prompt, output
+schema, the record's JSON, effort, `max_tokens`, beta header and fallback setting), the case ID
+and the repetition index. Each line of `claude-responses.jsonl` stores its key. Rerunning the same
+command makes only the calls whose keys are not recorded yet, so a run that stopped at its limit,
+or was interrupted, carries on where it left off, and raising `--repeats` or `--max-cases` makes
+only the new calls. Changing anything that goes into a request (model, effort, `max_tokens`, the
+prompt, the schema or a case) gives new keys, so those calls are made again.
+
+Grading needs no API call, key or `notes` dependency:
+
+```bash
+uv run python -m predmaint.notes eval                           # every recorded response
+uv run python -m predmaint.notes eval --regrade                 # the default configuration's responses only
+uv run python -m predmaint.notes eval --regrade --effort high   # another configuration's
+```
+
+`--regrade` takes the same settings as `--claude`, picks the recorded lines whose keys that
+configuration produces, and prints how many of its planned calls are recorded and the most the
+missing ones could cost, so it also shows the bound before anything is spent. Lines written
+before cache keys existed are still read and graded by plain `eval`; they match no key, so
+`--regrade` leaves them out and a `--claude` run makes those calls again.
+
 
 ## Status
 
