@@ -30,3 +30,17 @@ def test_a_figure_key_changes_with_its_inputs_theme_and_resolution(tmp_path, art
     test.loc[0, "point"] += 1
     test.to_csv(path, index=False)
     assert hero == figure_key(_context(artifacts), "hero", "light", RELEASE_DPI)
+
+
+def test_changed_only_skips_current_images_and_redraws_edited_ones(tmp_path, artifacts_dir):
+    out, manifest = tmp_path / "figures", tmp_path / "manifest.json"
+    image = out / "uncertainty-light.png"
+
+    def draw(changed_only: bool) -> list:
+        ctx = _context(artifacts_dir)
+        return render(ctx, ["uncertainty"], ["light"], out, 60, changed_only, manifest)
+
+    assert draw(False) == [image]
+    assert draw(True) == []
+    image.write_bytes(b"edited by hand")
+    assert draw(True) == [image]
