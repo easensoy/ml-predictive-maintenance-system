@@ -106,8 +106,11 @@ THEMES = {
     },
 }
 WIDTH = 8.0  # inches
-DPI = 240
+RELEASE_DPI = 240
+DRAFT_DPI = 110
 NOTE_CHARS = 150  # characters per note line at 7.5 pt across the 8-inch width
+CACHE = PROJECT_ROOT / ".cache"
+DRAFTS = CACHE / "figure-drafts"
 MODELS = ("lstm", "lightgbm")
 MODEL_LABEL = {"lstm": "LSTM", "lightgbm": "LightGBM"}
 MODEL_SLOT = {"lstm": 0, "lightgbm": 2}
