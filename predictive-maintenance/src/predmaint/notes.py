@@ -60,6 +60,19 @@ PRICE_PER_MTOK = {
     "claude-opus-5": {"input": 5.00, "output": 25.00},
     "claude-opus-4-8": {"input": 5.00, "output": 25.00},
 }
+# Cache writes bill at 1.25x (5-minute) or 2x (1-hour) base input and cache reads at a fraction of
+# it. No request here sets cache_control, so both counts should stay zero; they are priced at the
+# top of those ranges so that the tracked spend can only over-count.
+CACHE_WRITE_FACTOR, CACHE_READ_FACTOR = 2.0, 1.0
+# Added to one token per byte of the prompt for message framing and anything the API adds around
+# it: an assumed allowance, not a documented figure.
+FRAMING_TOKENS = 1_000
+TOKEN_FIELDS = (
+    "input_tokens",
+    "output_tokens",
+    "cache_creation_input_tokens",
+    "cache_read_input_tokens",
+)
 MAX_WIDTH = 80  # cycles: a wider closed interval is too uncertain to plan maintenance on
 WORDS = 80
 ABSTAIN_MARKER = "no maintenance estimate"
