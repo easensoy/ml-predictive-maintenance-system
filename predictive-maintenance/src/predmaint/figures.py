@@ -114,8 +114,10 @@ DRAFTS = CACHE / "figure-drafts"
 MODELS = ("lstm", "lightgbm")
 MODEL_LABEL = {"lstm": "LSTM", "lightgbm": "LightGBM"}
 MODEL_SLOT = {"lstm": 0, "lightgbm": 2}
-OFFSET = {"lstm": -0.19, "lightgbm": 0.19}  # LSTM row above LightGBM row in every subset
-SUBTITLE_CHARS = 138  # characters per subtitle line at 8.5 pt across the 8-inch width
+MODEL_MARKER = {"lstm": "o", "lightgbm": "D"}
+MODEL_SIZE = {"lstm": 30, "lightgbm": 22}  # equal visual weight for a circle and a diamond
+MODEL_DASH: dict[str, Any] = {"lstm": "-", "lightgbm": (0, (4, 2))}
+OFFSET = {"lstm": -0.17, "lightgbm": 0.17}  # LSTM row above LightGBM row in every subset
 
 
 def _style(t: dict) -> None:
