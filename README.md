@@ -267,12 +267,9 @@ Python 3.15, which uv can install. None of these commands needs a download or a 
 | Render every figure for release (both themes, 240 dpi, `docs/figures/`) | `uv run python -m predmaint.figures` |
 | Validate every published value against the committed predictions | `uv run python -m predmaint.audit` |
 
-```bash
-uv sync
-uv run python -m predmaint.audit                  # recompute every table, interval and generated block
-uv run python -m predmaint.figures --out /tmp/f   # rebuild every figure from the committed predictions
-uv run pytest                                     # synthetic-data tests, plus the audit
-```
+`python -m predmaint.figures --list` names the figures, and `--changed` re-renders only figures
+whose inputs, source code or settings changed since their last render. CI runs `uv sync`, the
+audit, `pytest` and a full figure render into a temporary folder.
 
 **Regenerate the documents.** These rewrite files in `docs/` and the generated blocks in the
 README, the model card, the evaluation notes and the serving page:
