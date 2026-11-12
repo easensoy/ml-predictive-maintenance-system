@@ -18,10 +18,10 @@ watched engine's prediction, its nominal 90% interval (open-ended at the 125-cyc
 alert and the integrated-gradients attribution. The engines are simulated C-MAPSS engines, and
 the replay is not a live feed or field telemetry.
 
-Deep links: `?engine=<unit>` opens one engine, `&only=detail` shows just its panel, and
-`&only=prediction` just its prediction, as in the README screenshot. `python -m
-predmaint.screenshots` reproduces both screenshot themes from a fixed replay state, which the audit
-checks against the evaluated predictions.
+Deep links: `?engine=<unit>` opens one engine and highlights its fleet row, `&only=detail` shows
+just its panel, `&only=prediction` just its prediction, and `&only=fleet` just the fleet table,
+as in the README screenshot. `python -m predmaint.screenshots` reproduces both screenshot themes
+from a fixed replay state; the audit checks every row shown against the evaluated predictions.
 
 ## API
 
