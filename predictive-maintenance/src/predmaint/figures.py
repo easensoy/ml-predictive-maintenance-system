@@ -450,21 +450,18 @@ def fig_hero(ctx: Context, t: dict) -> Figure:
     ax = fig.add_subplot(grid[0])
     axp = fig.add_subplot(grid[1], sharex=ax)
 
-    ax.axhspan(0, horizon, color=t["zone"], alpha=0.09, lw=0, zorder=0)
-    ax.fill_between(
-        cycle, lower, np.minimum(upper, cap), color=t["series"][0], alpha=t["band"], lw=0
-    )
-    # Open-ended: the interval has no upper end. A fading band above the cap says "and more".
-    for start, stop, alpha in ((0, 11, 0.65 * t["band"]), (11, 22, 0.3 * t["band"])):
+    ax.axhspan(0, horizon, color=t["zone"], alpha=0.07, lw=0, zorder=0)
+    ax.fill_between(cycle, lower, np.minimum(upper, cap), color=blue, alpha=t["band"], lw=0)
+    # Open-ended: no upper end. The band fades out above the cap instead of stopping at it.
+    for start, stop, share in ((0, 8, 0.75), (8, 16, 0.45), (16, 24, 0.2)):
         ax.fill_between(
             cycle,
             cap + start,
             cap + stop,
             where=open_ended,
-            color=t["series"][0],
-            alpha=alpha,
+            color=blue,
+            alpha=share * t["band"],
             lw=0,
-            interpolate=False,
             step="mid",
         )
     ax.axhline(cap, color=t["muted"], lw=0.8, linestyle=(0, (1, 2.5)), zorder=1)
