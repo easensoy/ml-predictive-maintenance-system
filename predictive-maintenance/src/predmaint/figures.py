@@ -1658,6 +1658,31 @@ def fig_attribution_checks(ctx: Context, t: dict) -> Figure | None:
     return fig
 
 
+# --------------------------------------------------------------------------------------------
+# Rendering: selection, draft and release resolution, and skipping figures that are current
+
+Draw = Callable[[Context, dict], Figure | None]
+TABLES = ("metrics.json", "predictions/test.csv", "predictions/test-members.csv")
+# Each figure: how to draw it, which subsets it reads ("focus" or "all") and which files of each.
+FIGURES: dict[str, tuple[Draw, str, tuple[str, ...]]] = {
+    "hero": (fig_hero, "focus", ("metrics.json", "predictions/replay-holdout.csv.gz")),
+    "comparison": (fig_comparison, "all", TABLES),
+    "uncertainty": (fig_uncertainty, "all", ("metrics.json", "predictions/test.csv")),
+    "alerts": (fig_alerts, "all", ("metrics.json", "predictions/oof.csv.gz")),
+    "alert-calibration": (
+        fig_alert_calibration,
+        "all",
+        ("metrics.json", "predictions/test.csv", "predictions/oof.csv.gz"),
+    ),
+    "attribution": (fig_attribution, "focus", ATTRIBUTION_INPUTS),
+    "attribution-checks": (fig_attribution_checks, "focus", ("attribution-checks.json",)),
+    "comparison-folds": (fig_comparison_folds, "all", TABLES),
+    "test-sets": (fig_test_sets, "all", ("metrics.json", "predictions/test.csv")),
+    "lives": (fig_lives, "focus", ("metrics.json", "predictions/oof.csv.gz")),
+}
+MANIFEST = CACHE / "figures-manifest.json"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m predmaint.figures",
