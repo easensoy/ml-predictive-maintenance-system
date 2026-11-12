@@ -224,11 +224,6 @@ def _legend(fig, handles: list, labels: list[str], top: float, ncols: int) -> fl
     return top - (0.18 * rows + 0.1) / fig.get_figheight()
 
 
-def _save(fig, out_dir: Path, name: str, theme: str) -> Path:
-    path = out_dir / f"{name}-{theme}.png"
-    fig.savefig(path, dpi=DPI)
-    plt.close(fig)
-    return path
 def _rows(ax, subsets: list[str]) -> None:
     """One row per subset, FD001 on top, with the two models' sub-rows inside it."""
     ax.set_yticks(range(len(subsets)), subsets)
@@ -1712,6 +1707,56 @@ def figure_key(ctx: Context, name: str, theme: str, dpi: int) -> str:
         },
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+
+
+def _read_manifest(path: Path) -> dict:
+    try:
+        return json.loads(path.read_text())
+    except OSError, ValueError:
+        return {}
+
+
+def render(
+    ctx: Context,
+    names: list[str],
+    themes: list[str],
+    out: Path,
+    dpi: int,
+    changed_only: bool = False,
+    manifest_path: Path = MANIFEST,
+) -> list[Path]:
+    """Draw the named figures in each theme into ``out``. With ``changed_only``, a figure whose
+    key and image both match the manifest's record of the last render is left as it is."""
+    out.mkdir(parents=True, exist_ok=True)
+    manifest = _read_manifest(manifest_path)
+    written = []
+    for theme in themes:
+        t = THEMES[theme]
+        _style(t)
+        for name in names:
+            path = out / f"{name}-{theme}.png"
+            record = manifest.get(str(path.resolve()), {})
+            key = figure_key(ctx, name, theme, dpi)
+            if (
+                changed_only
+                and record.get("key") == key
+                and path.is_file()
+                and record.get("image") == _sha256(path)
+            ):
+                print(f"   current  {path}")
+                continue
+            started = time.perf_counter()
+            fig = FIGURES[name][0](ctx, t)
+            if fig is None:
+                continue
+            fig.savefig(path, dpi=dpi)
+            plt.close(fig)
+            manifest[str(path.resolve())] = {"key": key, "image": _sha256(path)}
+            written.append(path)
+            print(f"{time.perf_counter() - started:6.2f} s  {path}")
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(json.dumps(manifest, indent=1, sort_keys=True))
+    return written
 
 
 def main(argv: list[str] | None = None) -> int:
