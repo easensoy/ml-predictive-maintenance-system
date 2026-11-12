@@ -259,17 +259,19 @@ def test_spend_counts_every_billed_attempt_of_a_fallback():
 
 
 def test_run_claude_records_every_call_and_summarises(tmp_path):
-    cases = [_record(case_id=f"{i:03d}-normal") for i in range(4)]
-    good = json.dumps(
-        {"note": "Engine 17 (FD001), cycle 145: 38 cycles left, 22 to 55.", "abstained": False}
-    )
-    client = _client(*[("end_turn", good)] * 6)
+    cases = _cases(4)
+    client = _client(*[("end_turn", GOOD)] * 6)
     out = tmp_path / "responses.jsonl"
-    notes.run_claude(cases, out, client=client, repeat_cases=1, repeats=3)
+    run = notes.RunConfig(repeat_cases=1, repeats=3)
+    status = notes.run_claude(cases, out, client=client, run=run, max_spend_usd=100)
+    assert (status["made"], status["stopped"]) == (6, None)
+    assert status["spent_usd"] == pytest.approx(6 * (600 * 4 + 90 * 20) / 1e6)
     recorded = notes.load_recorded(out)
     assert sum(len(runs) for runs in recorded.values()) == 6
+    assert [r["repetition"] for r in recorded["000-normal"]] == [0, 1, 2]
     summary = notes.claude_summary(cases, recorded)
     assert summary["calls"] == 6
+    assert summary["configurations"] == ["claude-opus-5-5, effort medium, max_tokens 16000"]
     assert summary["repeatability"]["cases"] == 1
     assert summary["repeatability"]["same_abstention"] == 1.0
     assert summary["cost_usd"]["per_note"] == pytest.approx((600 * 4 + 90 * 20) / 1e6)
