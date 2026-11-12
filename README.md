@@ -191,8 +191,8 @@ The alert is evaluated in four respects, each on a stated population:
   missed engines (no alert while at least one cycle is left), and first alerts with more than 30
   or 60 cycles left.
 - **Temporal stability.** Out of fold: switch-offs, the alert turning off again before failure.
-  Some end alerts that began early, so the findings also count only the switch-offs in the last
-  30 cycles.
+  Some end alerts that began early, so the reading notes above also count only the switch-offs in
+  the last 30 cycles.
 
 The dot strip and counts show the first repeat; switch-offs are means over three repeats. Fewer
 switch-offs alone do not make an alert more useful: the costs of early, late and missed alerts
