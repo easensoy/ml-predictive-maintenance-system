@@ -903,6 +903,34 @@ def main(argv: list[str] | None = None) -> int:
         help="spending limit for one --claude run: it refuses to start when the worst-case cost "
         "of its calls exceeds this, and stops before the recorded spend could pass it",
     )
+    parser.add_argument(
+        "--model", default=MODEL, help="must have a price in PRICE_PER_MTOK (default %(default)s)"
+    )
+    parser.add_argument(
+        "--effort",
+        default=EFFORT,
+        choices=EFFORTS,
+        help="output_config.effort (default %(default)s)",
+    )
+    parser.add_argument(
+        "--max-tokens",
+        type=int,
+        default=MAX_TOKENS,
+        help="ceiling on each reply's thinking plus text, not the billed amount "
+        "(default %(default)s)",
+    )
+    parser.add_argument(
+        "--repeat-cases",
+        type=int,
+        default=REPEAT_CASES,
+        help="how many of the first cases are called more than once (default %(default)s)",
+    )
+    parser.add_argument(
+        "--repeats", type=int, default=REPEATS, help="calls per repeated case (default %(default)s)"
+    )
+    parser.add_argument(
+        "--max-cases", type=int, help="use only the first N cases, for example for a pilot run"
+    )
     parser.add_argument("--subset", default="FD001")
     parser.add_argument("--out", type=Path, default=EVAL_DIR)
     args = parser.parse_args(argv)
