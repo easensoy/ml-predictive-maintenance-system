@@ -13,7 +13,7 @@ An LSTM on raw sensor windows and LightGBM on per-sensor window statistics predi
   <img alt="One held-out engine over its whole life: the predicted remaining useful life with its nominal 90% interval, open-ended above the 125-cycle cap; the capped target and the actual remaining life; the cycles where the truth leaves the interval; and the probability of failure within 30 cycles crossing the alert threshold." src="predictive-maintenance/docs/figures/hero-light.png">
 </picture>
 
-<sub>A replay-holdout engine, excluded from training, preprocessing, model selection and calibration, predicted at every cycle by the deployed LSTM ensemble. A rule fixed in code selected it: among the replay engines whose interval misses the capped truth at least once, the one with the median first-alert lead time. The solid line is the target, RUL capped at 125 cycles; the dashed line is the actual RUL. Where the interval's upper end reaches the cap, the interval is open-ended, [lower, ∞).</sub>
+<sub>A replay-holdout engine, excluded from training, preprocessing, model selection and calibration, predicted at every cycle by the deployed LSTM ensemble. A fixed rule chose it: among replay engines whose interval misses the capped truth at least once, the one with the median first-alert lead time.</sub>
 
 <!-- findings:start -->
 - **Point accuracy.** LightGBM's test RMSE is lower on 3 of 4 subsets, but the paired LSTM − LightGBM difference excludes zero only on FD002: +1.06 cycles (95% CI +0.26 to +1.93).
