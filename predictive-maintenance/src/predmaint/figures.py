@@ -425,7 +425,6 @@ def fig_hero(ctx: Context, t: dict) -> Figure:
     open_ended = g["open_ended"].to_numpy(bool)
     prob = g["probability"].to_numpy()
     inside = covered(lower, upper, open_ended, truth)
-    below = ~inside & (truth < lower)
     alert = first_alert(g, threshold)
     top = cap + 36
     blue = t["series"][0]
@@ -494,15 +493,36 @@ def fig_hero(ctx: Context, t: dict) -> Figure:
         va="top",
         **small,
     )
-    open_cycles = cycle[open_ended]
-    if len(open_cycles):
-        ax.text(
-            open_cycles[0] + 2,
-            cap + 13,
-            "open-ended: “at least the lower end”",
+
+    missed = ~inside
+    if missed.any():
+        ax.scatter(
+            cycle[missed],
+            truth[missed],
+            marker="x",
+            s=20,
+            linewidths=1.2,
+            color=t["fail"],
+            zorder=6,
+        )
+        side = "above" if (truth[missed] > upper[missed]).all() else "outside"
+        last = cycle[missed].max()
+        ax.annotate(
+            f"truth {side} the interval\non {int(missed.sum())} of {len(cycle)} cycles",
+            xy=(last + 1, truth[missed][-1]),
+            xytext=(last + 9, truth[missed][-1] + 14),
+            color=t["fail"],
             fontsize=7.5,
-            color=t["text2"],
             va="bottom",
+            linespacing=1.2,
+            arrowprops={
+                "arrowstyle": "-",
+                "color": t["fail"],
+                "lw": 0.8,
+                "shrinkA": 0,
+                "shrinkB": 2,
+            },
+            zorder=8,
         )
     if alert is not None:
         a_cycle, lead = int(alert["cycle"]), int(alert["rul"])
