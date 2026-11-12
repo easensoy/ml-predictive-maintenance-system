@@ -1,7 +1,10 @@
 """Load trained artifacts and turn engine readings into calibrated, explained predictions."""
 
+import hashlib
 import json
 import math
+import threading
+from collections import OrderedDict
 from pathlib import Path
 
 import numpy as np
@@ -15,6 +18,10 @@ from predmaint.model import CHECKPOINT_FORMAT, Ensemble, RULNet, integrated_grad
 
 ARTIFACT_FILES = ("model.pt", "contract.json", "calibration.json", "metrics.json")
 CALIBRATION_FORMAT = 2
+# Attribution maps kept per predictor, keyed by the exact bytes of the window: the replay asks
+# again for an engine whose window has not moved (a new watcher, a refresh, a failed engine
+# waiting to restart), and integrated gradients dominates the cost of serving one.
+EXPLANATION_CACHE_SIZE = 64
 RETRAIN_HINT = (
     "Retrain with `python -m predmaint.train`, or check out the git commit recorded in the "
     "run's metrics.json"
