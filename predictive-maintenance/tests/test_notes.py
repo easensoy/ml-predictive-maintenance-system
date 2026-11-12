@@ -166,6 +166,18 @@ def test_cache_key_changes_with_model_prompt_schema_record_and_budget(monkeypatc
     assert len(set(changed.values())) == len(changed)
 
 
+def test_worst_case_bound_prices_the_whole_output_ceiling_and_a_fallback():
+    request = notes.claude_request(_record())
+    tokens_in = notes.input_token_bound(request)
+    assert tokens_in > len(request["system"]) + len(request["messages"][0]["content"])
+    # claude-opus-5-5 at $4 / $20 per million, plus a fallback attempt at the dearest listed
+    # price, $5 / $25, each with the full 16,000-token output ceiling
+    expected = (tokens_in * 4 + 16000 * 20 + tokens_in * 5 + 16000 * 25) / 1e6
+    assert notes.call_bound_usd(request) == pytest.approx(expected)
+    smaller = notes.claude_request(_record(), max_tokens=2000)
+    assert notes.call_bound_usd(smaller) < notes.call_bound_usd(request)
+
+
 class FakeMessages:
     """Stands in for client.beta.messages; replies come from a list of canned responses."""
 
