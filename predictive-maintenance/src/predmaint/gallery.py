@@ -17,7 +17,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from predmaint.audit import SUBSETS
 from predmaint.calibration import covered
 from predmaint.config import PROJECT_ROOT, SUBSETS, Settings
 
