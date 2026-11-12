@@ -292,16 +292,19 @@ class RunConfig:
     max_cases: int | None = None
 
 
-def claude_request(record: dict, effort: str = "medium") -> dict[str, Any]:
+def claude_request(
+    record: dict, effort: str = EFFORT, model: str = MODEL, max_tokens: int = MAX_TOKENS
+) -> dict[str, Any]:
     """The request sent for one record (separate, so tests can check it without a key).
 
-    Structured output guarantees the reply parses; the server-side fallback re-runs a declined
-    request on a fallback model instead of returning the refusal."""
+    Structured output constrains the reply to the schema; the server-side fallback re-runs a
+    declined request on a fallback model instead of returning the refusal. max_tokens caps
+    thinking plus reply: it is the most a reply can be billed for, not what it is billed."""
     payload = {k: v for k, v in record.items() if k not in {"case_id", "kind"}}
     return {
-        "model": MODEL,
-        "max_tokens": 16000,
-        "betas": ["server-side-fallback-2026-07-01"],
+        "model": model,
+        "max_tokens": max_tokens,
+        "betas": [FALLBACK_BETA],
         "fallbacks": "default",
         "system": SYSTEM_PROMPT,
         "output_config": {
