@@ -275,8 +275,7 @@ audit, `pytest` and a full figure render into a temporary folder.
 README, the model card, the evaluation notes and the serving page:
 
 ```bash
-uv run python -m predmaint.report        # findings, tables and the API example
-uv run python -m predmaint.figures       # docs/figures
+uv run python -m predmaint.report        # abstract, findings, tables and the API example
 uv run python -m predmaint.gallery       # docs/failure-cases.md
 uv run python -m predmaint.screenshots   # dashboard images; needs Edge, Chrome or Chromium
 ```
