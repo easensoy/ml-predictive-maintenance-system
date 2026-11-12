@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 <!-- headline:start -->
-This repository compares an LSTM sequence model with LightGBM on per-sensor window statistics for remaining-useful-life (RUL) prediction on NASA's simulated C-MAPSS turbofan data, under one engine-disjoint cross-fitting protocol, and evaluates the point estimate, a nominal 90% prediction interval and a 30-cycle failure alert separately. LightGBM's point predictions are at least as accurate (lower test RMSE on 3 of 4 subsets; the paired engine-level bootstrap interval excludes zero only on FD002), whereas the LSTM gives narrower intervals at similar empirical coverage and an alert that, out of fold, switches off before failure less often but is the only one to miss engines.
+An LSTM on raw sensor windows and LightGBM on per-sensor window statistics predict remaining useful life on NASA's simulated C-MAPSS turbofans under one engine-disjoint cross-fitting protocol, scored separately on point error, nominal 90% intervals and a 30-cycle alert. LightGBM is at least as accurate (lower test RMSE on 3 of 4 subsets; paired 95% interval excludes zero only on FD002); the LSTM gives narrower intervals at similar coverage and an out-of-fold alert that switches off less often but misses engines.
 <!-- headline:end -->
 
 <picture>
