@@ -809,16 +809,31 @@ def write_report(cases: list[dict], template: dict, claude: dict | None, out_dir
         )
         lines.append(f"| {kind} | {k['n']} | {100 * all_four:.0f}% |")
     if claude:
-        r = claude["repeatability"]
+        r, cost = claude["repeatability"], claude["cost_usd"]
+        spend = "no cost figure, since no reply came from a priced model"
+        if cost["per_note"] is not None:
+            spend = f"about ${cost['per_note']:.4f} per call at listed prices, from usage counts"
+            if cost["unpriced_calls"]:
+                spend += f" ({cost['unpriced_calls']} calls on unpriced models left out)"
         lines += [
             "",
-            f"Claude ({MODEL}): {claude['calls']} calls, median latency "
-            f"{claude['latency_s']['median']:.1f} s (p95 {claude['latency_s']['p95']:.1f} s), "
-            f"about ${claude['cost_usd']['per_note']:.4f} per note at list prices; "
-            f"{claude['refusals']} refusals and {claude['malformed']} malformed replies. On "
-            f"{r['cases']} cases run three times, the abstention decision was the same "
+            f"Claude ({'; '.join(claude['configurations'])}): {claude['calls']} calls, median "
+            f"latency {claude['latency_s']['median']:.1f} s (p95 {claude['latency_s']['p95']:.1f} "
+            f"s), {spend}; {claude['refusals']} refusals, {claude['malformed']} malformed replies "
+            f"and {claude['truncated']} cut off at max_tokens (largest reply "
+            f"{claude['output_tokens']['max']} output tokens, thinking included). On {r['cases']} "
+            "cases run more than once, the abstention decision was the same "
             f"{100 * (r['same_abstention'] or 0):.0f}% of the time and the numbers "
             f"{100 * (r['same_numbers'] or 0):.0f}%.",
+        ]
+        if len(claude["configurations"]) > 1:
+            lines += [
+                "",
+                "These responses come from more than one configuration; "
+                "`python -m predmaint.notes eval --regrade` with one configuration's settings "
+                "grades it alone.",
+            ]
+        lines += [
             "",
             "## Cases where Claude loses to the template",
             "",
