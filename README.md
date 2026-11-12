@@ -261,8 +261,11 @@ response, serving latency, Docker and the architecture are in
 From `predictive-maintenance/`, with [uv](https://docs.astral.sh/uv/) (tested with 0.13.7) and
 Python 3.15, which uv can install. None of these commands needs a download or a GPU unless noted.
 
-**Check the published results.** These commands are read-only, need no download and no GPU, and
-are what CI runs:
+| Task | Command |
+|---|---|
+| Preview one figure (light theme, 110 dpi, written to `.cache/figure-drafts/`) | `uv run python -m predmaint.figures uncertainty --draft` |
+| Render every figure for release (both themes, 240 dpi, `docs/figures/`) | `uv run python -m predmaint.figures` |
+| Validate every published value against the committed predictions | `uv run python -m predmaint.audit` |
 
 ```bash
 uv sync
