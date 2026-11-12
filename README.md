@@ -235,11 +235,11 @@ is sensitive to, relative to the regime mean; they do not explain why an engine 
 The [failure-case gallery](predictive-maintenance/docs/failure-cases.md) lists the worst misses and
 the earliest, latest and missed alerts, engine by engine.
 
-## Serving
+## Dashboard
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="predictive-maintenance/docs/figures/dashboard-dark.png">
-  <img alt="Dashboard panel for the hero engine at the cycle its alert first fires: predicted RUL with its nominal 90% interval against the true RUL, and the probability of failure within 30 cycles crossing the alert threshold." src="predictive-maintenance/docs/figures/dashboard-light.png">
+  <img alt="The dashboard's fleet table at one replay tick: for each replayed FD001 engine, its status, current cycle, predicted RUL with its nominal 90% interval (open-ended rows read at least the lower end), the true RUL and the probability of failure within 30 cycles; the engine whose alert has just fired is highlighted." src="predictive-maintenance/docs/figures/dashboard-light.png">
 </picture>
 
 <!-- dashboard:start -->
