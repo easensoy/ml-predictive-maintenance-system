@@ -579,21 +579,48 @@ def fig_hero(ctx: Context, t: dict) -> Figure:
 # Accuracy
 
 
-def _rmse_title(subsets: list[str], means: dict, diffs: dict) -> str:
-    lgbm_lower = [s for s in subsets if means[s]["lightgbm"] < means[s]["lstm"]]
-    clear = [s for s in subsets if diffs[s]["ci_low"] > 0 or diffs[s]["ci_high"] < 0]
-    if 2 * len(lgbm_lower) >= len(subsets):
-        head = f"LightGBM's test RMSE is lower on {len(lgbm_lower)} of {len(subsets)} subsets"
-    else:
-        head = (
-            f"The LSTM's test RMSE is lower on {len(subsets) - len(lgbm_lower)} of "
-            f"{len(subsets)} subsets"
+def _difference_rows(ax, t: dict, subsets: list[str], diffs: dict, label: bool = True) -> None:
+    """Paired LSTM-minus-LightGBM differences with their 95% intervals, one row per subset; a
+    filled marker where the interval excludes zero."""
+    for i, s in enumerate(subsets):
+        d = diffs[s]
+        clear = d["ci_low"] > 0 or d["ci_high"] < 0
+        ax.plot([d["ci_low"], d["ci_high"]], [i, i], color=t["text2"], lw=1.6, zorder=2)
+        ax.scatter(
+            [d["difference"]],
+            [i],
+            s=46,
+            marker="o",
+            color=t["text"] if clear else t["surface"],
+            edgecolors=t["text"],
+            linewidths=1.2,
+            zorder=3,
         )
-    if not clear:
-        return f"{head}; no 95% interval of the difference excludes 0"
-    if len(clear) == 1:
-        return f"{head}; only {clear[0]}'s 95% interval excludes 0"
-    return f"{head}; the 95% intervals exclude 0 on {', '.join(clear)}"
+        if label:
+            ax.text(
+                1.0,
+                i,
+                f"{d['difference']:+.2f}  [{d['ci_low']:+.2f}, {d['ci_high']:+.2f}]",
+                transform=ax.get_yaxis_transform(),
+                ha="left",
+                va="center",
+                fontsize=7.5,
+                color=t["text"] if clear else t["text2"],
+                weight="semibold" if clear else "normal",
+            )
+    ax.axvline(0, color=t["muted"], lw=0.8, zorder=1)
+    span = max(abs(diffs[s][k]) for s in subsets for k in ("ci_low", "ci_high")) * 1.12
+    ax.set_xlim(-span, span)
+    ax.text(0.01, 1.02, "← LSTM lower", transform=ax.transAxes, fontsize=7.5, color=t["muted"])
+    ax.text(
+        0.99,
+        1.02,
+        "LightGBM lower →",
+        transform=ax.transAxes,
+        fontsize=7.5,
+        color=t["muted"],
+        ha="right",
+    )
 
 
 def fig_comparison(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
