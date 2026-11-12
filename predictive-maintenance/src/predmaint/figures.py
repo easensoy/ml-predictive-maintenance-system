@@ -1683,6 +1683,37 @@ FIGURES: dict[str, tuple[Draw, str, tuple[str, ...]]] = {
 MANIFEST = CACHE / "figures-manifest.json"
 
 
+def figure_key(ctx: Context, name: str, theme: str, dpi: int) -> str:
+    """What a rendered image depends on: its inputs, all predmaint source code, the theme, the
+    resolution and the plotting libraries. A change to any of them gives a new key."""
+    _, scope, files = FIGURES[name]
+    runs = [ctx.focus] if scope == "focus" else list(ctx.runs.values())
+    inputs = {}
+    for run in runs:
+        if run is None:
+            continue
+        for name_ in files:
+            path = run.dir / name_
+            inputs[f"{run.subset}/{name_}"] = (
+                ctx.memo(("sha256", path), functools.partial(_sha256, path))
+                if path.is_file()
+                else None
+            )
+    payload = {
+        "figure": name,
+        "theme": theme,
+        "dpi": dpi,
+        "source": ctx.memo("source", source_digest),
+        "inputs": inputs,
+        "libraries": {
+            "matplotlib": matplotlib.__version__,
+            "numpy": np.__version__,
+            "pandas": pd.__version__,
+        },
+    }
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m predmaint.figures",
