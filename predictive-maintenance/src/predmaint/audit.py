@@ -41,7 +41,6 @@ from predmaint.config import DOCUMENTS, SUBSETS, Settings
 from predmaint.evaluate import manifest_files, paired_differences, repeat_metrics
 from predmaint.train import TrainConfig, whole_life_metrics
 
-SUBSETS = ("FD001", "FD002", "FD003", "FD004")
 # The files the audit recomputes from: their hashes must be in the manifest.
 AUDITED_FILES = (
     "metrics.json",
