@@ -793,13 +793,15 @@ def _open_share_by_rul(ctx: Context) -> pd.DataFrame:
     return ctx.memo("open_by_rul", build)
 
 
-def fig_uncertainty(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
-    subsets = list(runs)
-    first = next(iter(runs.values()))["metrics"]
+def fig_uncertainty(ctx: Context, t: dict) -> Figure:
+    subsets = ctx.subsets
+    assert ctx.focus is not None
+    first = ctx.focus["metrics"]
     nominal = 100 * (1 - first["config"]["alpha"])
     cap = first["config"]["max_rul"]
-    by_rul = coverage_by_rul({s: runs[s]["dir"] for s in subsets})
-    widths = {s: width_stats(runs[s]["dir"]) for s in subsets}
+    by_rul = ctx.by_rul()
+    pooled = ctx.memo("pooled", lambda: pooled_coverage({s: r.dir for s, r in ctx.runs.items()}))
+    open_share = _open_share_by_rul(ctx)
     repeats = len(first["config"]["repeats"])
 
     fig = plt.figure(figsize=(WIDTH, 5.5))
