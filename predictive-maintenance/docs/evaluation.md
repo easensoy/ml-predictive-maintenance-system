@@ -354,6 +354,13 @@ Limits of these checks:
   <img alt="Deletion and insertion areas of every window for integrated gradients, input deviation, a re-initialised network's attributions and random order, with medians, means and clipped extremes; and, by stage of life, how much worse integrated gradients ranks than random order and than input deviation in each window." src="figures/attribution-checks-light.png">
 </picture>
 
+**Reading the figure.** Each dot is one of the 40 windows. The bar is the median and the diamond
+the mean of the recorded per-window areas; values beyond the axis are drawn at its edge as red
+triangles, with their count and extreme. The lower panels show each window's deletion area for
+integrated gradients minus that of random order (left) or of input deviation (right): above zero,
+integrated gradients ranks worse. The failures concentrate at 100 cycles before failure, where
+the prediction barely departs from the reference.
+
 ## Published results
 
 The RMSEs below are those listed in Table 4 of Chaoub et al. (2021), next to each study's
