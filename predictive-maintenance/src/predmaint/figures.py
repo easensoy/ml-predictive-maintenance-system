@@ -1432,17 +1432,15 @@ def fig_lives(ctx: Context, t: dict, n: int = 4) -> Figure:
     threshold, horizon, cap = cfg["alert_threshold"], cfg["alert_cycles"], cfg["max_rul"]
     lengths = oof.groupby("unit")["cycle"].max().sort_values()
     picks = lengths.index[np.linspace(0, len(lengths) - 1, n).round().astype(int)]
-    fig = plt.figure(figsize=(WIDTH, 5.4))
+    fig = plt.figure(figsize=(WIDTH, 5.2))
     lead = run["metrics"]["out_of_fold"]["lstm"]["per_repeat"][str(run["served_repeat"])]["alert"]
     y = _header(
         fig,
         t,
-        f"{run['metrics']['subset']}: whole lives, each predicted by a network that never saw the "
-        "engine",
-        f"The shortest, longest and two evenly spaced lives of {lead['units']} cross-fitted "
-        f"engines (served repeat). Over all of them: median first alert {lead['lead_median']:.0f} "
-        f"cycles before failure,\n{lead['missed']} missed, {lead['early']} with more than "
-        f"{horizon} cycles left.",
+        f"{run.subset} whole lives, each predicted by the single fold model that never saw it",
+        f"Shortest, longest and two evenly spaced of {lead['units']} cross-fitted engines; "
+        f"over all of them, median first alert {lead['lead_median']:.0f} cycles before failure, "
+        f"{lead['missed']} missed, {lead['early']} with more than {horizon} cycles left",
     )
     handles = [
         Line2D([], [], color=t["series"][0], lw=1.8),
@@ -1450,7 +1448,7 @@ def fig_lives(ctx: Context, t: dict, n: int = 4) -> Figure:
         Line2D([], [], color=t["truth"], lw=1.6),
         Line2D([], [], color=t["alert"], lw=1.3),
     ]
-    labels = ["Predicted RUL", "Nominal 90% interval", f"True RUL, capped at {cap}", "First alert"]
+    labels = ["predicted RUL", "nominal 90% interval", f"true RUL, capped at {cap}", "first alert"]
     y = _legend(fig, handles, labels, y, ncols=4)
     grid = fig.add_gridspec(
         2, 2, hspace=0.5, wspace=0.1, left=0.07, right=0.985, top=y, bottom=0.09
@@ -1476,7 +1474,7 @@ def fig_lives(ctx: Context, t: dict, n: int = 4) -> Figure:
                 color=t["text2"],
                 bbox={"boxstyle": "round,pad=0.2", "fc": t["surface"], "ec": "none", "alpha": 0.85},
             )
-        ax.set_title(f"Engine {unit} · {int(g['cycle'].max())} cycles", fontsize=9)
+        ax.set_title(f"Engine {unit} · {int(g['cycle'].max())} cycles")
         ax.set_xlim(1, g["cycle"].max())
         ax.set_ylim(0, cap + 10)
         if k % 2 == 0:
