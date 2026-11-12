@@ -37,7 +37,7 @@ import numpy as np
 import pandas as pd
 
 from predmaint.calibration import cqr_scores, cv_plus_interval, finalize_interval, probability
-from predmaint.config import PROJECT_ROOT, Settings
+from predmaint.config import DOCUMENTS, SUBSETS, Settings
 from predmaint.evaluate import manifest_files, paired_differences, repeat_metrics
 from predmaint.train import TrainConfig, whole_life_metrics
 
@@ -50,12 +50,6 @@ AUDITED_FILES = (
     "predictions/calibration-points.csv",
     "predictions/oof.csv.gz",
     "predictions/replay-holdout.csv.gz",
-)
-DOCUMENTS = (
-    PROJECT_ROOT.parent / "README.md",
-    PROJECT_ROOT.parent / "MODEL_CARD.md",
-    PROJECT_ROOT / "docs" / "evaluation.md",
-    PROJECT_ROOT / "docs" / "serving.md",
 )
 # Values are stored rounded (cycles to 0.01, probabilities to 0.0001).
 CYCLE_TOLERANCE, PROBABILITY_TOLERANCE = 0.0051, 0.00006
