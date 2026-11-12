@@ -12,7 +12,7 @@
   "status": "alert",
   "interval": 0.9,
   "horizon_cycles": 30,
-  "page": "/?engine=81&only=prediction&theme=light|dark",
+  "page": "/?engine=81&only=fleet&theme=light|dark",
   "viewport_css_px": [
     1000,
     1200
