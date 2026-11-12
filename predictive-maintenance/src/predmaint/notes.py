@@ -371,6 +371,50 @@ def call_bound_usd(request: dict) -> float:
     return sum(tokens_in * p["input"] + tokens_out * p["output"] for p in prices) / 1e6
 
 
+def _field(obj: Any, name: str) -> Any:
+    return obj.get(name) if isinstance(obj, dict) else getattr(obj, name, None)
+
+
+def billed_attempts(usage: Any, requested: str, served: str) -> list[dict]:
+    """The token counts of every billed attempt. With server-side fallback, ``usage.iterations``
+    records each attempt, billed at its own model's rates, and the top-level counts cover only
+    the attempt that answered; without iterations, the top-level counts are the whole bill."""
+    attempts: list[dict] = []
+    for entry in _field(usage, "iterations") or [usage]:
+        kind, model = _field(entry, "type"), _field(entry, "model")
+        model = model or (requested if kind == "message" else served)
+        attempts.append({"model": model} | {f: int(_field(entry, f) or 0) for f in TOKEN_FIELDS})
+    return attempts
+
+
+def attempt_cost_usd(attempt: dict) -> float | None:
+    """What one attempt is billed, from its usage counts; None when its model has no price."""
+    price = PRICE_PER_MTOK.get(attempt.get("model") or "")
+    if price is None:
+        return None
+    n = {f: attempt.get(f) or 0 for f in TOKEN_FIELDS}
+    tokens_in = (
+        n["input_tokens"]
+        + CACHE_READ_FACTOR * n["cache_read_input_tokens"]
+        + CACHE_WRITE_FACTOR * n["cache_creation_input_tokens"]
+    )
+    return (tokens_in * price["input"] + n["output_tokens"] * price["output"]) / 1e6
+
+
+def response_cost_usd(row: dict) -> float | None:
+    """What one recorded response was billed, summed over its attempts; None when an attempt's
+    model has no price. A refusal before any output is counted even in the categories that are
+    not billed, so this can only over-count. Lines from before attempts were recorded hold one
+    attempt's counts."""
+    total = 0.0
+    for attempt in row.get("attempts") or [row]:
+        cost = attempt_cost_usd(attempt)
+        if cost is None:
+            return None
+        total += cost
+    return total
+
+
 def claude_note(client: Any, record: dict, effort: str = "medium") -> dict:
     """One Claude note, with its latency, token usage and stop reason."""
     started = time.perf_counter()
