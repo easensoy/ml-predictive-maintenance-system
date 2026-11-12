@@ -627,11 +627,11 @@ def headline_block(artifacts: Path) -> str:
         f"intervals and a {f['horizon']}-cycle alert."
     )
     where = (
-        f"the paired engine-level bootstrap interval excludes zero only on {clear[0]}"
+        f"paired 95% interval excludes zero only on {clear[0]}"
         if len(clear) == 1
-        else f"the paired engine-level bootstrap interval excludes zero on {_and(clear)}"
+        else f"paired 95% intervals exclude zero on {_and(clear)}"
         if clear
-        else "no paired engine-level bootstrap interval excludes zero"
+        else "no paired 95% interval excludes zero"
     )
     if 2 * k >= n:
         accuracy = (
