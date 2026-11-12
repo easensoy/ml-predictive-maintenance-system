@@ -622,6 +622,7 @@
     const only = params.get("only");
     if (only === "detail" || only === "prediction") document.body.classList.add("only-detail");
     if (only === "prediction") document.body.classList.add("only-prediction");
+    if (only === "fleet") document.body.classList.add("only-fleet");
     try {
       const [info, fleet] = await Promise.all([fetchJson("/api/model-info"), fetchJson("/api/fleet")]);
       renderInfo(info);
