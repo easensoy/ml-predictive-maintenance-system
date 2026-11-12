@@ -485,10 +485,48 @@ def recorded_keys(path: Path) -> set[str]:
 
 
 def run_claude(
-    cases: list[dict], out: Path, client: Any = None, repeat_cases: int = 30, repeats: int = 3
-) -> None:
-    """Call Claude once per case, and ``repeats`` times on the first ``repeat_cases`` cases,
-    appending every response to ``out``."""
+    cases: list[dict],
+    out: Path,
+    client: Any = None,
+    run: RunConfig | None = None,
+    *,
+    max_spend_usd: float,
+) -> dict[str, Any]:
+    """Make the calls the configuration still needs, appending every response to ``out``.
+
+    Calls already recorded under their cache key are skipped. Before any call, the worst case of
+    the rest (call_bound_usd) is added up, and the run refuses to start when it exceeds
+    ``max_spend_usd``. During the run the spend is added up from each response's usage, and the
+    run stops before any call whose worst case could take it past the limit."""
+    run = run or RunConfig()
+    calls = plan_calls(cases, run)
+    done = recorded_keys(out)
+    todo = [call for call in calls if call["key"] not in done]
+    bounds = [call_bound_usd(call["request"]) for call in todo]
+    status: dict[str, Any] = {
+        "planned": len(calls),
+        "already_recorded": len(calls) - len(todo),
+        "to_call": len(todo),
+        "worst_case_usd": sum(bounds),
+        "limit_usd": max_spend_usd,
+        "made": 0,
+        "spent_usd": 0.0,
+        "stopped": None,
+    }
+    if status["worst_case_usd"] > max_spend_usd:
+        raise SystemExit(
+            f"Refusing to start: the {len(todo)} calls not yet recorded could cost up to "
+            f"${status['worst_case_usd']:.2f}, which exceeds the ${max_spend_usd:.2f} limit. "
+            "Raise --max-spend-usd or make fewer calls (--max-cases, --repeat-cases, --repeats); "
+            "a lower --max-tokens also lowers the bound, but can cut replies off."
+        )
+    print(
+        f"Claude: {len(todo)} calls to make, {status['already_recorded']} of {len(calls)} already "
+        f"recorded; worst case ${status['worst_case_usd']:.2f} within a ${max_spend_usd:.2f} limit",
+        flush=True,
+    )
+    if not todo:
+        return status
     client = client or make_client()
     with out.open("a", encoding="utf-8") as log:
         for i, case in enumerate(cases):
