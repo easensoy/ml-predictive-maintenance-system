@@ -41,12 +41,13 @@ served FD001 model and its replay engines, which no network trained on:
 uv run python -m predmaint.notes eval            # template and any recorded responses; writes results.md and results.json
 ```
 
-The model side needs the optional dependencies and an API key in `ANTHROPIC_API_KEY` (read from
-the environment only; never write it to a file in this repository):
+The model side needs the optional dependencies, an API key in `ANTHROPIC_API_KEY` (read from
+the environment only; never write it to a file in this repository) and a spending limit in US
+dollars:
 
 ```bash
 uv sync --extra notes
-uv run python -m predmaint.notes eval --claude
+uv run python -m predmaint.notes eval --claude --max-spend-usd <USD>
 ```
 
 That would make one call per case and two extra calls for each of the first 30 cases, to
