@@ -50,12 +50,23 @@ uv sync --extra notes
 uv run python -m predmaint.notes eval --claude --max-spend-usd <USD>
 ```
 
-That would make one call per case and two extra calls for each of the first 30 cases, to
-measure repeatability. Each request asks for structured output and sets a server-side fallback
-for refusals; neither has been exercised here. Every response would be appended to
-`claude-responses.jsonl` with its latency and token counts, so that `results.md` (pass rates,
-latency, cost, repeatability and every case where the model loses to the template) could be
-regenerated offline.
+With the defaults that would make one call per case and two extra calls for each of the first 30
+cases, to measure repeatability: 210 calls on the 150 frozen cases. Each request asks for
+structured output and sets a server-side fallback for refusals; neither has been exercised here.
+Every response would be appended to `claude-responses.jsonl` with its cache key, latency and
+token counts, so that `results.md` (pass rates, latency, cost, repeatability and every case where
+the model loses to the template) could be regenerated offline.
+
+| Flag | Default | Sets |
+|---|---|---|
+| `--max-spend-usd` | none; required with `--claude` | the most one run may spend |
+| `--model` | `claude-opus-5-5` | the model, which needs a price in `PRICE_PER_MTOK` |
+| `--effort` | `medium` | `output_config.effort`: `low`, `medium`, `high`, `xhigh` or `max` |
+| `--max-tokens` | `16000` | `max_tokens`, the ceiling on each reply's thinking plus text |
+| `--repeat-cases` | `30` | how many of the first cases are called more than once |
+| `--repeats` | `3` | calls for each of those cases |
+| `--max-cases` | every case | only the first N cases, for a pilot run |
+
 
 ## Status
 
