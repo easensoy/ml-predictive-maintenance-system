@@ -184,7 +184,18 @@ class Predictor:
             torch.from_numpy(values),
             None if baseline is None else torch.from_numpy(baseline.astype(np.float32)),
         )
-        return attributions.detach().numpy() * self.contract.max_rul
+        result = attributions.detach().numpy() * self.contract.max_rul
+        if key is not None:
+            with self._explanations_lock:
+                self._explanations[key] = result.copy()
+                while len(self._explanations) > EXPLANATION_CACHE_SIZE:
+                    self._explanations.popitem(last=False)
+        return result
+
+    def clear_explanations(self) -> None:
+        """Forget cached attribution maps, so the next call computes afresh (for benchmarks)."""
+        with self._explanations_lock:
+            self._explanations.clear()
 
     def status(self, probability: float, lower: float) -> str:
         """alert: failure within the horizon is more likely than not.
