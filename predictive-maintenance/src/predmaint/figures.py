@@ -1765,9 +1765,27 @@ def main(argv: list[str] | None = None) -> int:
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    parser.add_argument("names", nargs="*", help="figures to draw (default: all; see --list)")
+    parser.add_argument(
+        "--theme",
+        choices=["light", "dark", "both"],
+        default=None,
+        help="default: both for a release, light for a draft",
+    )
+    parser.add_argument(
+        "--draft",
+        action="store_true",
+        help=f"{DRAFT_DPI} dpi into {DRAFTS} instead of {RELEASE_DPI} dpi into docs/figures",
+    )
+    parser.add_argument(
+        "--changed",
+        action="store_true",
+        help="skip figures whose inputs, code and settings are unchanged since the last render",
+    )
+    parser.add_argument("--list", action="store_true", help="print the figure names and exit")
     parser.add_argument("--artifacts", type=Path, default=None)
-    parser.add_argument("--out", type=Path, default=PROJECT_ROOT / "docs" / "figures")
-    parser.add_argument("--subsets", nargs="+", default=["FD001", "FD002", "FD003", "FD004"])
+    parser.add_argument("--out", type=Path, default=None)
+    parser.add_argument("--subsets", nargs="+", default=list(SUBSETS))
     parser.add_argument(
         "--focus", default="FD001", help="subset used for the single-engine figures"
     )
