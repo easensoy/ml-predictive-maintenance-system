@@ -230,6 +230,13 @@ def _save(fig, out_dir: Path, name: str, theme: str) -> Path:
     fig.savefig(path, dpi=DPI)
     plt.close(fig)
     return path
+def _rows(ax, subsets: list[str]) -> None:
+    """One row per subset, FD001 on top, with the two models' sub-rows inside it."""
+    ax.set_yticks(range(len(subsets)), subsets)
+    ax.set_ylim(len(subsets) - 0.5, -0.5)
+    ax.grid(axis="y", visible=False)
+    for i in range(1, len(subsets)):
+        ax.axhline(i - 0.5, color=plt.rcParams["grid.color"], linewidth=0.6, zorder=0)
 
 
 # --------------------------------------------------------------------------------------------
@@ -291,13 +298,29 @@ class Context:
     def subsets(self) -> list[str]:
         return list(self.runs)
 
-def _rows(ax, subsets: list[str]) -> None:
-    """One row per subset, FD001 on top, with the two models' sub-rows inside it."""
-    ax.set_yticks(range(len(subsets)), subsets)
-    ax.set_ylim(len(subsets) - 0.5, -0.5)
-    ax.grid(axis="y", visible=False)
-    for i in range(1, len(subsets)):
-        ax.axhline(i - 0.5, color=plt.rcParams["grid.color"], linewidth=0.7, zorder=0)
+    def by_rul(self) -> pd.DataFrame:
+        return self.memo(
+            "by_rul", lambda: coverage_by_rul({s: r.dir for s, r in self.runs.items()})
+        )
+
+    def widths(self, subset: str) -> dict:
+        return self.memo(("widths", subset), lambda: width_stats(self.runs[subset].dir))
+
+    def closed(self, subset: str) -> dict:
+        return self.memo(("closed", subset), lambda: closed_widths(self.runs[subset].dir))
+
+    def singles(self, subset: str) -> dict:
+        return self.memo(("singles", subset), lambda: single_models(self.runs[subset].dir))
+
+    def hero(self) -> dict:
+        focus = self.focus
+        assert focus is not None
+        return self.memo("hero", lambda: hero_state(focus.dir))
+
+    def attribution(self) -> dict | None:
+        """The served model's attribution map for the hero engine at its first alert, from the
+        cache when model, inputs and code are unchanged; None without the model or replay rows."""
+        return self.memo("attribution", lambda: _attribution_map(self))
 
 
 def _served(frame: pd.DataFrame, run: Run, model: str = "lstm") -> pd.DataFrame:
