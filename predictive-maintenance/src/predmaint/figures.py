@@ -487,13 +487,12 @@ def fig_hero(ctx: Context, t: dict) -> Figure:
         crossing = cycle[np.argmin(np.abs(actual - (top - 11)))]
         ax.text(crossing + 3, top - 2, "actual RUL", color=t["text2"], va="top", **small)
     ax.text(
-        cycle.max(),
-        cap + 2,
-        f"{cap}-cycle cap",
-        ha="right",
-        va="bottom",
-        fontsize=7.5,
+        cycle[0] + 2,
+        horizon - 2,
+        f"alert horizon, {horizon} cycles",
         color=t["muted"],
+        va="top",
+        **small,
     )
     open_cycles = cycle[open_ended]
     if len(open_cycles):
@@ -505,30 +504,8 @@ def fig_hero(ctx: Context, t: dict) -> Figure:
             color=t["text2"],
             va="bottom",
         )
-    ax.text(3, horizon - 2, f"last {horizon} cycles", fontsize=7.5, color=t["muted"], va="top")
-    lines = []
-    if n_miss:
-        span = cycle[~inside]
-        if below[~inside].all():
-            where = "below the interval"
-        elif not below[~inside].any():
-            where = "above the interval"
-        else:
-            where = "outside the interval"
-        lines.append(
-            f"\u00d7 truth {where} on {n_miss} of {len(cycle)} cycles ({span.min()}–{span.max()})"
-        )
-    else:
-        lines.append(f"Truth inside the interval on all {len(cycle)} cycles")
     if alert is not None:
         a_cycle, lead = int(alert["cycle"]), int(alert["rul"])
-        after = prob[cycle >= a_cycle] >= threshold
-        flaps = int(np.sum(after[:-1] & ~after[1:]))
-        lines.append(
-            "After the first alert it stays on to failure"
-            if flaps == 0
-            else f"After the first alert it switches off {flaps} times"
-        )
         for a in (ax, axp):
             a.axvline(a_cycle, color=t["alert"], lw=1.3, zorder=6)
         ax.text(
@@ -541,21 +518,7 @@ def fig_hero(ctx: Context, t: dict) -> Figure:
             color=t["alert"],
             linespacing=1.25,
         )
-    else:
-        lines.append("The alert never fires")
-    ax.text(
-        4,
-        horizon + 5,
-        "\n".join(lines),
-        fontsize=8,
-        color=t["text"],
-        va="bottom",
-        ha="left",
-        linespacing=1.45,
-        bbox={"boxstyle": "round,pad=0.45", "fc": t["surface"], "ec": t["grid"], "lw": 0.8},
-        zorder=7,
-    )
-    ax.set_xlim(1, cycle.max())
+    ax.set_xlim(cycle.min(), cycle.max())
     ax.set_ylim(0, top)
     ax.set_yticks([0, 25, 50, 75, 100, 125])
     ax.set_ylabel("Remaining useful life\n(cycles)")
