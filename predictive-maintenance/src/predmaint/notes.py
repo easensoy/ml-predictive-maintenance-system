@@ -529,10 +529,37 @@ def run_claude(
         return status
     client = client or make_client()
     with out.open("a", encoding="utf-8") as log:
-        for i, case in enumerate(cases):
-            for _ in range(repeats if i < repeat_cases else 1):
-                log.write(json.dumps(claude_note(client, case)) + "\n")
-                log.flush()
+        for call, bound in zip(todo, bounds, strict=True):
+            if status["spent_usd"] + bound > max_spend_usd:
+                status["stopped"] = (
+                    f"stopped before call {status['made'] + 1} of {len(todo)}: "
+                    f"${status['spent_usd']:.2f} spent, and its worst case of ${bound:.2f} "
+                    "could pass the limit"
+                )
+                break
+            row = claude_note(
+                client,
+                call["case"],
+                run.effort,
+                model=run.model,
+                max_tokens=run.max_tokens,
+                repetition=call["repetition"],
+            )
+            log.write(json.dumps(row) + "\n")
+            log.flush()
+            status["made"] += 1
+            cost = response_cost_usd(row)
+            if cost is None:
+                unpriced = [a["model"] for a in row["attempts"] if a["model"] not in PRICE_PER_MTOK]
+                status["stopped"] = (
+                    f"stopped: an attempt ran on {', '.join(unpriced)}, which has no price, so "
+                    "the spend can no longer be tracked"
+                )
+                break
+            status["spent_usd"] += cost
+    return status
+
+
 
 
 def load_recorded(path: Path) -> dict[str, list[dict]]:
