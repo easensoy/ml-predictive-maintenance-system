@@ -139,6 +139,33 @@ def test_claude_request_takes_model_effort_and_max_tokens():
     assert request["output_config"]["effort"] == "high"
 
 
+def _key(record=None, repetition=0, **request_args):
+    record = record or _record()
+    request = notes.claude_request(record, **request_args)
+    return notes.cache_key(request, record["case_id"], repetition)
+
+
+def test_cache_key_changes_with_model_prompt_schema_record_and_budget(monkeypatch):
+    base = _key()
+    assert _key() == base
+    changed = {
+        "model": _key(model="claude-opus-5"),
+        "effort": _key(effort="high"),
+        "max_tokens": _key(max_tokens=8000),
+        "record": _key(record=_record(cycle=146)),
+        "case": _key(record=_record(case_id="002-normal")),
+        "repetition": _key(repetition=1),
+    }
+    with monkeypatch.context() as m:
+        m.setattr(notes, "SYSTEM_PROMPT", notes.SYSTEM_PROMPT + " Be brief.")
+        changed["prompt"] = _key()
+    with monkeypatch.context() as m:
+        m.setattr(notes, "OUTPUT_SCHEMA", {**notes.OUTPUT_SCHEMA, "required": ["note"]})
+        changed["schema"] = _key()
+    assert base not in changed.values()
+    assert len(set(changed.values())) == len(changed)
+
+
 class FakeMessages:
     """Stands in for client.beta.messages; replies come from a list of canned responses."""
 
