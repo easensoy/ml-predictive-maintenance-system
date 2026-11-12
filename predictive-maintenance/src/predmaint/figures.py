@@ -1367,7 +1367,8 @@ def fig_attribution(ctx: Context, t: dict) -> Figure | None:
 # Figures for docs/evaluation.md
 
 
-def fig_test_sets(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
+def fig_test_sets(ctx: Context, t: dict) -> Figure:
+    runs = ctx.runs
     subsets = list(runs)
     cols = 2 if len(subsets) > 1 else 1
     rows = int(np.ceil(len(subsets) / cols))
@@ -1423,7 +1424,7 @@ def fig_test_sets(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
         if k % cols == 0:
             ax.set_ylabel("Cycles")
         ax.grid(axis="x", visible=False)
-    return _save(fig, out_dir, "test-sets", theme)
+    return fig
 
 
 def fig_lives(run: dict, t: dict, out_dir: Path, theme: str, n: int = 4) -> Path:
