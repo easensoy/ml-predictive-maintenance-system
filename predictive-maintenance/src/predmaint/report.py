@@ -810,14 +810,30 @@ def findings_block(artifacts: Path) -> str:
         + " and ".join(f"{100 * p['coverage']:.1f}% ({NAMES[m]})" for m, p in pooled.items())
         + f", with {_dash(shares, '.0f')}% open-ended"
         + (
-            "but LightGBM's switches off again before failure "
-            f"{_span(flaps['lightgbm'], '.2f')} times per engine against "
-            f"{_span(flaps['lstm'], '.2f')} for the LSTM"
-            if calmer
-            else f"and the alert switches off again before failure {_span(flaps['lstm'], '.2f')} "
-            f"times per engine for the LSTM and {_span(flaps['lightgbm'], '.2f')} for LightGBM"
+            "; the LSTM's intervals are narrower on every subset under all three width statistics."
+            if narrower
+            else "."
         )
-        + f"; {_misses(f)}."
+    )
+    flaps, missing = f["flaps"], _missing(f)
+    if missing["lstm"] and not missing["lightgbm"]:
+        ending = ", but only the LSTM misses engines."
+    elif missing["lightgbm"] and not missing["lstm"]:
+        ending = ", but only LightGBM misses engines."
+    else:
+        ending = "."
+    alerts = (
+        f"Out of fold, both alerts first fire a median {_dash(f['lead'], '.0f')} cycles before "
+        f"failure; LightGBM's switches off again {_dash(flaps['lightgbm'], '.2f')} times per "
+        f"engine against the LSTM's {_dash(flaps['lstm'], '.2f')}{ending}"
+    )
+    return "\n".join(
+        f"- **{head}** {text}"
+        for head, text in (
+            ("Point accuracy.", accuracy),
+            ("Intervals.", intervals),
+            ("Alert dynamics.", alerts),
+        )
     )
 
     late, replay = f["late_flaps"], _replay_flaps(f)
