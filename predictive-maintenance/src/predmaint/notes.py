@@ -856,8 +856,10 @@ def write_report(cases: list[dict], template: dict, claude: dict | None, out_dir
             "the cases and the grader agree; they say nothing about the quality of model-written "
             "notes. The language-model side has not been run: no model call has been made, so no "
             "model fidelity, abstention, latency or cost figure exists. Running it needs an API "
-            "key in `ANTHROPIC_API_KEY` and `uv sync --extra notes`, then "
-            "`python -m predmaint.notes eval --claude`.",
+            "key in `ANTHROPIC_API_KEY`, `uv sync --extra notes` and a spending limit: "
+            "`python -m predmaint.notes eval --claude --max-spend-usd <USD>` refuses to start "
+            "when the worst-case cost of its calls exceeds the limit (README.md has the cost "
+            "controls).",
         ]
     (out_dir / "results.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
