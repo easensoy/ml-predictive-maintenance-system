@@ -1790,35 +1790,30 @@ def main(argv: list[str] | None = None) -> int:
         "--focus", default="FD001", help="subset used for the single-engine figures"
     )
     args = parser.parse_args(argv)
-    artifacts = args.artifacts or Settings.from_env().artifacts_dir
-    runs = {
-        s: _load(artifacts, s)
-        for s in args.subsets
-        if (artifacts / s / "metrics.json").is_file()
-        and json.loads((artifacts / s / "metrics.json").read_text()).get("served")
-    }
-    if not runs:
-        parser.error(f"No evaluated subsets found in {artifacts}")
-    args.out.mkdir(parents=True, exist_ok=True)
-    focus = runs.get(args.focus) or next(iter(runs.values()))
-    written = []
-    for theme, t in THEMES.items():
-        _style(t)
-        written += [
-            fig_hero(focus, t, args.out, theme),
-            fig_comparison(runs, t, args.out, theme),
-            fig_uncertainty(runs, t, args.out, theme),
-            fig_alerts(runs, t, args.out, theme),
-            fig_alert_calibration(runs, t, args.out, theme),
-            fig_test_sets(runs, t, args.out, theme),
-            fig_lives(focus, t, args.out, theme),
-        ]
-        if (focus["dir"] / "model.pt").is_file() and (focus["dir"] / "replay.csv").is_file():
-            written.append(fig_attribution(focus, t, args.out, theme))
-        if checks := fig_attribution_checks(focus, t, args.out, theme):
-            written.append(checks)
-    for path in written:
-        print(path)
+    if args.list:
+        print("\n".join(FIGURES))
+        return 0
+    unknown = [name for name in args.names if name not in FIGURES]
+    if unknown:
+        parser.error(f"unknown figure {', '.join(unknown)}; choose from {', '.join(FIGURES)}")
+    theme = args.theme or ("light" if args.draft else "both")
+    themes = ["light", "dark"] if theme == "both" else [theme]
+    out = args.out or (DRAFTS if args.draft else PROJECT_ROOT / "docs" / "figures")
+    ctx = Context(args.artifacts or Settings.from_env().artifacts_dir, args.subsets, args.focus)
+    if not ctx.runs:
+        parser.error(f"No evaluated subsets found in {ctx.artifacts}")
+    started = time.perf_counter()
+    written = render(
+        ctx,
+        args.names or list(FIGURES),
+        themes,
+        out,
+        DRAFT_DPI if args.draft else RELEASE_DPI,
+        changed_only=args.changed,
+    )
+    print(
+        f"{len(written)} images written in {time.perf_counter() - started:.1f} s", file=sys.stderr
+    )
     return 0
 
 
