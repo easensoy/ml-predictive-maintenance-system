@@ -1281,23 +1281,13 @@ def fig_attribution(ctx: Context, t: dict) -> Figure | None:
     long_members = sum(w > shortest for w in member_windows)
 
     totals = attributions.sum(axis=0)
-    ranked = np.argsort(-np.abs(totals))
-    lead = [symbols[i] for i in ranked[:3]]
-    signs = np.sign(totals[ranked[:3]])
-    verb = (
-        "lower the predicted RUL most"
-        if (signs < 0).all()
-        else "raise the predicted RUL most"
-        if (signs > 0).all()
-        else "move the predicted RUL most"
-    )
-    fig = plt.figure(figsize=(WIDTH, 4.05))
+    fig = plt.figure(figsize=(WIDTH, 4.0))
     y = _header(
         fig,
         t,
-        f"Engine {unit} at its first alert: the {lead[0]}, {lead[1]} and {lead[2]} readings {verb}",
-        "Integrated gradients of the served LSTM against a regime-mean baseline, in cycles of "
-        "predicted RUL: what the model uses, not a cause.",
+        f"Integrated gradients for engine {unit} at its first alert, in cycles of predicted RUL",
+        "Relative to a reference window at the operating regime's training mean: what the "
+        "prediction is sensitive to, not a cause",
     )
     grid = fig.add_gridspec(
         1,
