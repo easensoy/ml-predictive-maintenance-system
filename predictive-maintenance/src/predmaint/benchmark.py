@@ -101,7 +101,9 @@ def run(model_dir: Path, repeats: int) -> dict:
             before=predictor.clear_explanations,
         ),
         "replay_tick_whole_fleet": _time(fleet.step, repeats),
-        "engine_detail_with_attribution": _time(lambda: fleet.detail(fleet.units[0]), repeats),
+        "engine_detail_with_attribution": _time(
+            lambda: fleet.detail(fleet.units[0]), repeats, before=predictor.clear_explanations
+        ),
     }
     return {
         "model": model_dir.name,
