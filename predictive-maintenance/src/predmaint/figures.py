@@ -426,24 +426,11 @@ def fig_hero(ctx: Context, t: dict) -> Figure:
     inside = covered(lower, upper, open_ended, truth)
     below = ~inside & (truth < lower)
     alert = first_alert(g, threshold)
-    n_miss = int((~inside).sum())
-    top = cap + 38
+    top = cap + 36
+    blue = t["series"][0]
 
-    if alert is not None:
-        title = (
-            f"Held-out engine {unit}: alert {int(alert['rul'])} cycles before failure; "
-            f"interval missed {n_miss} of {len(cycle)} cycles"
-        )
-    else:
-        title = f"Held-out engine {unit}: no alert; interval missed {n_miss} of {len(cycle)} cycles"
-    fig = plt.figure(figsize=(WIDTH, 4.45))
-    y = _header(
-        fig,
-        t,
-        title,
-        f"{focus['metrics']['subset']} engine never seen in training or calibration, predicted "
-        "cycle by cycle by the served LSTM. Picked by a fixed rule, not by eye.",
-    )
+    fig = plt.figure(figsize=(WIDTH, 4.5))
+    y = _header(fig, t, f"Held-out engine {unit} ({focus.subset}), predicted at every cycle")
     handles = [
         Line2D([], [], color=t["series"][0], lw=2),
         Patch(color=t["series"][0], alpha=t["band"], lw=0),
