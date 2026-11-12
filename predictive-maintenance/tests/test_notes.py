@@ -122,6 +122,7 @@ def test_grader_catches_wrong_abstention():
 def test_claude_request_uses_structured_output_and_server_side_fallback():
     request = notes.claude_request(_record())
     assert request["model"] == notes.MODEL
+    assert request["max_tokens"] == 16000
     assert request["fallbacks"] == "default"
     assert request["betas"] == ["server-side-fallback-2026-07-01"]
     assert request["output_config"]["format"]["schema"] == notes.OUTPUT_SCHEMA
@@ -130,6 +131,12 @@ def test_claude_request_uses_structured_output_and_server_side_fallback():
     payload = json.loads(request["messages"][0]["content"])
     assert "case_id" not in payload
     assert payload["rul"]["point"] == 38.2
+
+
+def test_claude_request_takes_model_effort_and_max_tokens():
+    request = notes.claude_request(_record(), "high", model="claude-opus-5", max_tokens=4000)
+    assert (request["model"], request["max_tokens"]) == ("claude-opus-5", 4000)
+    assert request["output_config"]["effort"] == "high"
 
 
 class FakeMessages:
