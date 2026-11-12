@@ -607,6 +607,12 @@ def _on(subsets: list[str], n: int) -> str:
     return f"all {n} subsets" if len(subsets) == n else _and(subsets)
 
 
+def _dash(values: list[float], spec: str) -> str:
+    """'30–31' or '30': a compact range for the opening, where every word counts."""
+    low, high = format(min(values), spec), format(max(values), spec)
+    return low if low == high else f"{low}–{high}"
+
+
 def headline_block(artifacts: Path) -> str:
     """The two-sentence abstract under the README title: the task and the controlled
     comparison, then the principal result."""
