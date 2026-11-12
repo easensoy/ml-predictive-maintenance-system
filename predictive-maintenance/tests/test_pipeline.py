@@ -98,6 +98,26 @@ def test_predictor_matches_saved_test_predictions(artifacts_dir, cmapss_dir):
     np.testing.assert_array_equal(served["open_ended"], out["open_ended"])
 
 
+def test_explanations_are_reused_only_for_identical_windows(artifacts_dir, cmapss_dir):
+    predictor = Predictor(artifacts_dir / "FD001")
+    test = cmapss.load_test_inputs(cmapss_dir, "FD001")
+    windows, _ = predictor.contract.last_windows(test)
+    first = predictor.explain(windows[0])
+    first[:] = 0.0  # a caller's edit must not reach the cached map
+    again = predictor.explain(windows[0])
+    predictor.clear_explanations()
+    fresh = predictor.explain(windows[0])
+    np.testing.assert_array_equal(again, fresh)
+    assert np.abs(fresh).sum() > 0
+    changed = windows[0].copy()
+    changed[-1, 0] += 0.5
+    assert not np.array_equal(predictor.explain(changed), fresh)
+    reference = np.full_like(windows[0], 0.1)
+    other = predictor.explain(windows[0], baseline=reference)
+    assert not np.array_equal(other, fresh)
+    assert predictor._baseline_point() == predictor._baseline_point()
+
+
 def test_predict_readings_returns_calibrated_explained_output(artifacts_dir, cmapss_dir):
     predictor = Predictor(artifacts_dir / "FD001")
     engine = cmapss.load_test_inputs(cmapss_dir, "FD001").query("unit == 1")
