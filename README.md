@@ -157,20 +157,18 @@ multiple comparisons. Coverage intervals are Wilson intervals over engines.
   <img alt="Empirical coverage of the nominal 90% intervals: pooled over all test engines and by band of true remaining life with Wilson intervals, the mid-life band below nominal shaded; the share of open-ended intervals in each band; coverage per subset; and the mean width on engines where both models' intervals are closed." src="predictive-maintenance/docs/figures/uncertainty-light.png">
 </picture>
 
-- **Marginal coverage hides structure.** Test-endpoint coverage averages over engines at every
-  remaining life, and an open-ended interval covers almost every engine far from failure.
-  Coverage by true RUL (lower panel) is a diagnostic, not a guarantee: in mid-life it falls to
-  about nominal for the LSTM and below it for LightGBM.
-- **The open-ended reading matters.** Read as closed at 125 instead, the same intervals would
-  contain the actual RUL far less often
-  ([interval width](predictive-maintenance/docs/evaluation.md#interval-width)).
-- **Width.** The middle panel truncates open-ended intervals at the cap (mean ± sd over repeats),
-  a summary defined after the test labels were read. The evaluation notes compare it with the
-  width on engines where both intervals are closed and with the width over each model's own
-  closed intervals, the only one of the three fixed before the test labels were read.
-- **Two populations.** Out-of-fold coverage (diamonds) weights engines equally over whole lives,
-  for single fold models. Both the population and the interval construction differ from the test
-  endpoints', so the two coverages are not comparable estimates of one quantity.
+- **Aggregate versus conditional.** The left panel puts pooled coverage over all test engines
+  beside coverage by band of true RUL. The aggregate exceeds the nominal 90%, while a shaded band
+  falls below it for at least one model: coverage is marginal, not conditional.
+- **Open-ended prevalence.** Below it, the share of open-ended intervals in each band: near zero
+  close to failure and dominant far from it, where an open-ended interval covers almost every
+  engine. Read as closed at 125 instead, the same intervals would contain the actual RUL far less
+  often ([interval width](predictive-maintenance/docs/evaluation.md#interval-width)).
+- **Per subset.** Marginal coverage with 95% Wilson intervals over engines.
+- **Width only where it is finite.** The lower-right panel averages upper minus lower on the
+  engines where both models' intervals are closed (n per subset). The results table's truncated
+  width and the pre-registered width over each model's own closed intervals are compared in the
+  evaluation notes.
 
 ### Alerts
 
