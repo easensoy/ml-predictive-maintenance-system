@@ -28,6 +28,7 @@ before a call could take it past the limit. Every response is appended to
 import argparse
 import copy
 import csv
+import hashlib
 import json
 import os
 import re
@@ -313,6 +314,18 @@ def claude_request(
         },
         "messages": [{"role": "user", "content": json.dumps(payload, sort_keys=True)}],
     }
+
+
+def cache_key(request: dict, case_id: str, repetition: int) -> str:
+    """The identity of one call: a SHA-256 of the whole request (model, system prompt, output
+    schema, record, effort, max_tokens, betas and fallbacks), the case and the repetition index.
+    A response recorded under the key is reused instead of being paid for again."""
+    blob = json.dumps(
+        {"request": request, "case_id": case_id, "repetition": repetition},
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
 
 def claude_note(client: Any, record: dict, effort: str = "medium") -> dict:
