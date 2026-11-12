@@ -191,7 +191,22 @@ def _span_text(values: list[float], spec: str, unit: str = "") -> str:
 
 
 def _identity_handles(t: dict) -> list:
-    return [Patch(color=t["series"][MODEL_SLOT[m]], lw=0) for m in MODELS]
+    return [_model_handle(t, m) for m in MODELS]
+
+
+def _model_handle(t: dict, model: str, line: bool = False) -> Line2D:
+    colour = t["series"][MODEL_SLOT[model]]
+    return Line2D(
+        [],
+        [],
+        color=colour,
+        lw=1.6 if line else 0,
+        linestyle=MODEL_DASH[model] if line else "",
+        marker=MODEL_MARKER[model],
+        markersize=5.2 if model == "lstm" else 4.4,
+        markerfacecolor=colour,
+        markeredgecolor=colour,
+    )
 
 
 def _legend(fig, handles: list, labels: list[str], top: float, ncols: int) -> float:
