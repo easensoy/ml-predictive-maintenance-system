@@ -836,54 +836,57 @@ def findings_block(artifacts: Path) -> str:
         )
     )
 
-    late, replay = f["late_flaps"], _replay_flaps(f)
-    caption = (
-        "**Populations and definitions.** Accuracy and intervals are scored on the official "
-        "test endpoints: one prediction per "
-        "test engine, at its last observed cycle, from each repeat's five-fold ensemble, "
-        f"averaged over {f['repeats']} repeats. The 95% CIs are paired engine-level bootstrap "
-        f"intervals; they exclude repeat variability and are not corrected for the {4 * n} "
-        "comparisons. Coverage is marginal: by true RUL it falls to "
+
+def reading_block(artifacts: Path) -> str:
+    """How to read the README's findings: the populations, what each interval covers, the
+    width statistics and the alert evidence, with the numbers the findings leave out."""
+    f = _findings(artifacts)
+    if f is None:
+        return "_No evaluated runs yet._"
+    n, cap, horizon = f["n"], f["cap"], f["horizon"]
+    worst, late, replay = f["worst_bin"], f["late_flaps"], _replay_flaps(f)
+    margins = _width_margins(f)
+    misses = _misses(f)
+    bullets = [
+        "**Test endpoints.** Accuracy and intervals score one prediction per official test "
+        "engine, at its last observed cycle, from each repeat's five-fold ensemble, averaged "
+        f"over {f['repeats']} repeats. RMSE is against the true RUL capped at {cap} cycles.",
+        "**Paired differences.** Each 95% CI is a paired engine-level bootstrap interval: it "
+        "reflects which engines are in the test set, excludes repeat variability and is not "
+        f"corrected for the {4 * n} comparisons.",
+        "**Coverage** is marginal: by true RUL it falls to "
         + " and ".join(
             f"{100 * row['coverage']:.0f}% ({NAMES[m]}, {row['bin']} cycles left)"
             for m, row in worst.items()
         )
-        + "."
-        + (
-            f" The LSTM's intervals are narrower by {_span(margins['truncated'], '.0f')} cycles "
-            f"with open-ended intervals truncated at the {cap}-cycle cap, by "
-            f"{_span(margins['both_closed'], '.0f')} on engines where both intervals are closed, "
-            f"and by {_span(margins['own_closed'], '.0f')} over each model's own closed "
-            "intervals, the only one of the three statistics defined before the test labels were "
-            "read."
-            if all(v > 0 for values in margins.values() for v in values)
-            else ""
+        + f". An open-ended interval, one whose upper end reached the {cap}-cycle cap, means "
+        "[lower, ∞).",
+    ]
+    if all(v > 0 for values in margins.values() for v in values):
+        bullets.append(
+            "**Width.** The LSTM's intervals are narrower by "
+            f"{_span(margins['truncated'], '.0f')} cycles with open-ended intervals truncated at "
+            f"the cap, by {_span(margins['both_closed'], '.0f')} on engines where both "
+            f"intervals are closed, and by {_span(margins['own_closed'], '.0f')} over each "
+            "model's own closed intervals, the only one of the three defined before the test "
+            "labels were read."
         )
-        + "\n\nAlert dynamics are scored out of fold: every cycle of every cross-fitted training "
-        "engine, predicted by the single fold model that never saw it. Of the first alerts, "
+    replay_text = (
+        "; the five-fold ensembles on the held-out replay engines give "
+        f"{_span(replay['lightgbm'], '.2f')} against {_span(replay['lstm'], '.2f')}"
+        if replay["lstm"] and replay["lightgbm"]
+        else ""
+    )
+    bullets.append(
+        "**Alerts** are scored out of fold: every cycle of every cross-fitted training engine, "
+        "predicted by the single fold model that never saw it. "
         f"{_early_share(f, 'lstm'):.0f}% (LSTM) and {_early_share(f, 'lightgbm'):.0f}% "
-        f"(LightGBM) come with more than {horizon} cycles left, false alarms at that moment by "
-        "the label's definition. A switch-off can end such an early "
-        f"alert; counting only switch-offs in the last {horizon} cycles gives "
-        f"{_span(late['lightgbm'], '.2f')} (LightGBM) against {_span(late['lstm'], '.2f')} "
-        "(LSTM)"
-        + (
-            ", and with the five-fold ensembles on the held-out replay engines, "
-            f"{_span(replay['lightgbm'], '.2f')} against {_span(replay['lstm'], '.2f')}"
-            if replay["lstm"] and replay["lightgbm"]
-            else ""
-        )
-        + "."
+        f"(LightGBM) of first alerts come with more than {horizon} cycles left, false alarms by "
+        "the label's definition when they fire. Counting only switch-offs in the last "
+        f"{horizon} cycles gives {_span(late['lightgbm'], '.2f')} (LightGBM) against "
+        f"{_span(late['lstm'], '.2f')} (LSTM){replay_text}. {misses[0].upper()}{misses[1:]}."
     )
-    bullets = "\n".join(
-        f"- **{head}** {text}"
-        for head, text in (
-            ("Point accuracy.", accuracy),
-            ("Intervals.", intervals),
-            ("Alert dynamics.", alert_text),
-        )
-    )
-    return f"{bullets}\n\n{caption}"
+    return "\n".join(f"- {b}" for b in bullets)
 
 
 def _pair(values: Mapping[str, float], spec: str, lower_better: bool | None, unit: str = "") -> str:
