@@ -34,11 +34,17 @@ The dashboard screenshots are not drawn here: ``python -m predmaint.screenshots`
 """
 
 import argparse
+import functools
+import hashlib
+import importlib.metadata
 import json
 import logging
+import sys
 import textwrap
+import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import matplotlib
 
@@ -48,18 +54,21 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm  # noqa: E402
+from matplotlib.figure import Figure  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 from matplotlib.patches import Patch  # noqa: E402
 
 from predmaint.calibration import covered  # noqa: E402
-from predmaint.config import PROJECT_ROOT, Settings  # noqa: E402
+from predmaint.config import PROJECT_ROOT, SUBSETS, Settings  # noqa: E402
 from predmaint.data import SENSOR_INFO  # noqa: E402
 from predmaint.gallery import RUL_LABELS  # noqa: E402
 from predmaint.inference import Predictor  # noqa: E402
 from predmaint.report import (  # noqa: E402
+    closed_widths,
     coverage_by_rul,
     first_alert,
     hero_state,
+    pooled_coverage,
     single_models,
     width_stats,
 )
