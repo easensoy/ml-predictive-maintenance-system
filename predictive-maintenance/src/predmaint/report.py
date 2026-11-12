@@ -927,16 +927,10 @@ def summary_table_block(artifacts: Path) -> str:
         )
     notes = (
         f"Each cell is LSTM / LightGBM, the mean over {f['repeats']} repeats; bold marks the "
-        "lower value where lower is better. The test columns score the official test endpoints: "
-        "one prediction per test engine, at its last observed cycle, from each repeat's "
-        f"five-fold ensemble. RMSE is against the true RUL capped at {f['cap']} cycles. Coverage "
-        "is the empirical, marginal share of test engines whose capped RUL lies in the nominal "
-        f"{f['nominal']:.0f}% interval, an open-ended interval counting as [lower, ∞); the next "
-        "column gives the share of such intervals. Width truncates open-ended intervals at the "
-        "cap, a summary defined after the test labels were read; the evaluation notes give two "
-        "other width statistics. The CI is a paired engine-level bootstrap interval. "
-        "Switch-offs are counted out of fold, over every cycle of every cross-fitted training "
-        "engine, for single fold models."
+        "lower value where lower is better. Test columns score the official test endpoints; "
+        "coverage reads an open-ended interval as [lower, ∞), and width truncates it at the "
+        f"{f['cap']}-cycle cap (a summary defined after the test labels were read). Switch-offs "
+        "are counted out of fold, for single fold models."
     )
 
     def better(key: str, lgbm_wins: bool) -> list[str]:
