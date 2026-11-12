@@ -1601,17 +1601,14 @@ def fig_attribution_checks(ctx: Context, t: dict) -> Figure | None:
         ),
         Line2D([], [], marker=">", linestyle="", markersize=5, color=t["fail"]),
     ]
-    values = [s[k]["median"] for k, _ in labels]
-    lows = [s[k]["median"] - s[k]["p10"] for k, _ in labels]
-    highs = [s[k]["p90"] - s[k]["median"] for k, _ in labels]
-    yy = np.arange(len(labels))
-    ax_rho.barh(
-        yy,
-        values,
-        color=t["series"][0],
-        height=0.5,
-        xerr=[lows, highs],
-        error_kw={"ecolor": t["text2"], "elinewidth": 1},
+    fig.legend(
+        key_handles,
+        [f"median of {n} windows", f"mean of {n} windows", "clipped value"],
+        loc="upper right",
+        bbox_to_anchor=(0.985, y + 0.005),
+        ncols=3,
+        handletextpad=0.4,
+        borderaxespad=0,
     )
     ax_rho.set_yticks(yy, [label for _, label in labels])
     ax_rho.set_xlim(-0.2, 1)
