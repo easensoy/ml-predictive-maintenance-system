@@ -33,10 +33,10 @@ An LSTM on raw sensor windows and LightGBM on per-sensor window statistics predi
   open-ended share and width of the intervals; and the alert's ranking, calibration, threshold
   decisions and temporal stability, each on a named population.
 - **Auditable artifacts.** `predmaint.audit` recomputes every metric in `metrics.json` from the
-  committed predictions, rebuilds every test interval from the fold models' raw quantile outputs
-  and the stored conformity scores, regenerates every generated block of the documents, rechecks
-  the engine-separation rules and verifies the artifact hashes. That establishes that the
-  documents agree with the artifacts, not that the method is valid.
+  committed predictions, rebuilds every test interval from the fold models' quantile outputs and
+  the stored conformity scores, regenerates every generated block of the documents, rechecks the
+  engine-separation rules and verifies the artifact hashes. That shows the documents agree with
+  the artifacts, not that the method is valid.
 - **Failure analysis.** Error and coverage by remaining-life band, the worst interval misses, and
   the earliest, latest and missed alerts, engine by engine.
 
