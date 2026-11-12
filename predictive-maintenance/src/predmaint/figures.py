@@ -1423,8 +1423,10 @@ def fig_test_sets(ctx: Context, t: dict) -> Figure:
     return fig
 
 
-def fig_lives(run: dict, t: dict, out_dir: Path, theme: str, n: int = 4) -> Path:
+def fig_lives(ctx: Context, t: dict, n: int = 4) -> Figure:
     """Whole lives of a spread of training engines, each predicted out of fold."""
+    run = ctx.focus
+    assert run is not None
     oof = _served(run["oof"], run)
     cfg = run["metrics"]["config"]
     threshold, horizon, cap = cfg["alert_threshold"], cfg["alert_cycles"], cfg["max_rul"]
@@ -1482,7 +1484,8 @@ def fig_lives(run: dict, t: dict, out_dir: Path, theme: str, n: int = 4) -> Path
         if k >= 2:
             ax.set_xlabel("Cycle")
         ax.grid(axis="x", visible=False)
-    return _save(fig, out_dir, "lives", theme)
+    return fig
+
 
 
 def fig_attribution_checks(focus: dict, t: dict, out_dir: Path, theme: str) -> Path | None:
