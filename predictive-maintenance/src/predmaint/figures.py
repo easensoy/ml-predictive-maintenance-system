@@ -993,22 +993,8 @@ def fig_uncertainty(ctx: Context, t: dict) -> Figure:
 # Alerts
 
 
-def _alert_title(subsets: list[str], flaps: dict) -> str:
-    more = [s for s in subsets if flaps[s]["lightgbm"]["mean"] > flaps[s]["lstm"]["mean"]]
-    if len(more) == len(subsets):
-        return (
-            "LightGBM's alert switches off before failure more often than the LSTM's, "
-            "on every subset"
-        )
-    if not more:
-        return "The LSTM's alert switches off before failure at least as often as LightGBM's"
-    return (
-        f"LightGBM's alert switches off before failure more often on {len(more)} of "
-        f"{len(subsets)} subsets"
-    )
-
-
-def fig_alerts(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
+def fig_alerts(ctx: Context, t: dict) -> Figure:
+    runs = ctx.runs
     subsets = list(runs)
     first = next(iter(runs.values()))
     horizon = first["metrics"]["config"]["alert_cycles"]
@@ -1030,7 +1016,7 @@ def fig_alerts(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
     medians = [v for v in medians if v is not None]
 
     fig = plt.figure(figsize=(WIDTH, 1.25 + 0.66 * len(subsets)))
-    y = _header(fig, t, _alert_title(subsets, flaps))
+    y = _header(fig, t, "Alert timing and stability over whole lives, out of fold")
     handles = [
         *_identity_handles(t),
         Line2D([], [], color=t["text"], marker="|", linestyle="", markersize=10, mew=1.6),
@@ -1158,7 +1144,7 @@ def fig_alerts(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
     ax_tab.set_xlabel(
         f"> {2 * horizon}: first alert with\nmore than {2 * horizon} cycles left", fontsize=7.5
     )
-    return _save(fig, out_dir, "alerts", theme)
+    return fig
 
 
 def fig_alert_calibration(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
