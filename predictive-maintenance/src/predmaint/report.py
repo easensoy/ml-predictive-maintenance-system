@@ -781,24 +781,26 @@ def summary_block(artifacts: Path) -> str:
 
 
 def findings_block(artifacts: Path) -> str:
-    """The three findings under the README hero, one principal result each, then the
-    populations, definitions and subsidiary statistics they rest on."""
+    """The three findings under the README hero, at most 35 words each, one principal result
+    apiece. Their populations, intervals and caveats are in the reading block."""
     f = _findings(artifacts)
     if f is None:
         return "_No evaluated runs yet._"
-    n, subsets, cap, horizon = f["n"], f["subsets"], f["cap"], f["horizon"]
-    rmse, clear = f["rmse"], f["significant"]
-    accuracy = f"LightGBM's test RMSE is lower on {len(f['lgbm_lower'])} of {n} subsets" + (
-        ", but the paired LSTM − LightGBM difference excludes zero "
-        + ("only " if len(clear) < n else "")
-        + "on "
-        + "; ".join(f"{s}: {_difference(rmse[s])}" for s in clear)
-        + "."
-        if clear
-        else "; no paired LSTM − LightGBM difference excludes zero."
-    )
-
-    pooled, worst = f["pooled"], f["worst_bin"]
+    n, clear, rmse = f["n"], f["significant"], f["rmse"]
+    lower = len(f["lgbm_lower"])
+    if clear:
+        detail = "; ".join(f"{s}: {_difference(rmse[s])}" for s in clear)
+        only = "only " if len(clear) < n else ""
+        accuracy = (
+            f"LightGBM's test RMSE is lower on {lower} of {n} subsets, but the paired difference "
+            f"excludes zero {only}on {detail}."
+        )
+    else:
+        accuracy = (
+            f"LightGBM's test RMSE is lower on {lower} of {n} subsets; no paired difference "
+            "excludes zero."
+        )
+    pooled = f["pooled"]
     engines = next(iter(pooled.values()))["engines"]
     open_share = [100 * f["mean"][(s, m, "open_ended_share")] for s in subsets for m in NAMES]
     margins = _width_margins(f)
