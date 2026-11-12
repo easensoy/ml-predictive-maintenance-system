@@ -823,114 +823,55 @@ def fig_uncertainty(ctx: Context, t: dict) -> Figure:
         top=y - 0.05,
         bottom=0.1,
     )
-    ax_cov = fig.add_subplot(grid[0, 0])
-    ax_w = fig.add_subplot(grid[0, 1], sharey=ax_cov)
-    ax_open = fig.add_subplot(grid[0, 2], sharey=ax_cov)
-    ax_rul = fig.add_subplot(grid[1, :])
+    ax_rul = fig.add_subplot(grid[0, 0])
+    ax_open = fig.add_subplot(grid[1, 0], sharex=ax_rul)
+    ax_sub = fig.add_subplot(grid[0, 1])
+    ax_w = fig.add_subplot(grid[1, 1])
 
-    for i, s in enumerate(subsets):
-        m = runs[s]["metrics"]
-        for model in MODELS:
-            row = i + OFFSET[model]
-            colour = t["series"][MODEL_SLOT[model]]
-            summary = m["test"]["models"][model]["summary"]
-            mean = 100 * summary["coverage"]["mean"]
-            lo, hi = (100 * v for v in summary["coverage_wilson_at_mean"])
-            ax_cov.errorbar(
-                mean,
-                row,
-                xerr=[[max(mean - lo, 0)], [max(hi - mean, 0)]],
-                fmt="o",
-                markersize=5.5,
-                color=colour,
-                markeredgecolor=t["surface"],
-                elinewidth=1.3,
-                capsize=0,
-                zorder=3,
-            )
-            oof = 100 * m["out_of_fold"][model]["summary"]["coverage_per_engine_weighted"]["mean"]
-            ax_cov.plot(
-                oof,
-                row,
-                marker="D",
-                markersize=5,
-                markerfacecolor=t["surface"],
-                markeredgecolor=colour,
-                markeredgewidth=1.3,
-                linestyle="",
-                zorder=4,
-            )
-            w = widths[s][model]
-            ax_w.errorbar(
-                w["mean"],
-                row,
-                xerr=w["sd"] or 0,
-                fmt="o",
-                markersize=5.5,
-                color=colour,
-                markeredgecolor=t["surface"],
-                elinewidth=1.3,
-                capsize=0,
-            )
-            ax_open.text(
-                0.5,
-                row,
-                f"{100 * summary['open_ended_share']['mean']:.0f}%",
-                ha="center",
-                va="center",
-                fontsize=8,
-                color=t["text"],
-                transform=ax_open.get_yaxis_transform(),
-            )
-    ax_cov.axvline(nominal, color=t["muted"], lw=1, linestyle=(0, (3, 3)), zorder=1)
-    _rows(ax_cov, subsets)
-    ax_cov.set_xlim(77, 100.5)
-    ax_cov.set_xlabel("Inside the interval (%): test engines, or engine-weighted out of fold")
-    ax_cov.set_title(f"Empirical coverage per subset (dashed: nominal {nominal:.0f}%)")
-    for a in (ax_w, ax_open):
-        a.tick_params(labelleft=False)
-        a.grid(axis="y", visible=False)
-        for i in range(1, len(subsets)):
-            a.axhline(i - 0.5, color=plt.rcParams["grid.color"], linewidth=0.7, zorder=0)
-    ax_w.set_xlabel(f"Cycles, test engines; open-ended\nintervals truncated at {cap}")
-    ax_w.set_title("Mean width")
-    ax_open.set_xticks([])
-    ax_open.grid(False)
-    for spine in ax_open.spines.values():
-        spine.set_visible(False)
-    ax_open.set_title("Open-ended", fontsize=8.5)
-
-    x = np.arange(len(RUL_LABELS))
-    counts = by_rul.drop_duplicates("bin").set_index("bin")["engines"]
-    for model, shift in (("lstm", -0.14), ("lightgbm", 0.14)):
-        rows = by_rul[by_rul["model"] == model].set_index("bin").reindex(RUL_LABELS)
-        colour = t["series"][MODEL_SLOT[model]]
-        cov = 100 * rows["coverage"].to_numpy()
-        ax_rul.errorbar(
-            x + shift,
-            cov,
-            yerr=[cov - 100 * rows["low"].to_numpy(), 100 * rows["high"].to_numpy() - cov],
-            fmt="o",
-            markersize=5.5,
+    # Conditional coverage: by true remaining life, with the aggregate as the first column.
+    columns = ["all", *RUL_LABELS]
+    x = np.arange(len(columns), dtype=float)
+    x[1:] += 0.45  # a gap between the aggregate and the bands
+    deficit = [
+        label
+        for label in RUL_LABELS
+        if (by_rul[by_rul["bin"] == label]["coverage"] * 100 < nominal).any()
+    ]
+    for i, label in enumerate(columns):
+        if label in deficit:
+            ax_rul.axvspan(x[i] - 0.42, x[i] + 0.42, color=t["fail"], alpha=0.07, lw=0, zorder=0)
+    ax_rul.axhline(nominal, color=t["muted"], lw=0.8, linestyle=(0, (3, 3)), zorder=1)
+    for m in MODELS:
+        colour = t["series"][MODEL_SLOT[m]]
+        g = by_rul[by_rul["model"] == m].set_index("bin").reindex(RUL_LABELS)  # empty band: NaN
+        rates = [100 * pooled[m]["coverage"], *(100 * g["coverage"].to_numpy(float))]
+        lows = [100 * pooled[m]["low"], *(100 * g["low"].to_numpy(float))]
+        highs = [100 * pooled[m]["high"], *(100 * g["high"].to_numpy(float))]
+        xs = x + (-0.13 if m == "lstm" else 0.13)
+        ax_rul.vlines(xs, lows, highs, color=colour, lw=1.3, zorder=2)
+        ax_rul.scatter(
+            xs,
+            rates,
+            s=MODEL_SIZE[m] * 1.1,
+            marker=MODEL_MARKER[m],
             color=colour,
-            markeredgecolor=t["surface"],
-            elinewidth=1.3,
-            capsize=0,
+            edgecolors=t["surface"],
+            linewidths=0.7,
             zorder=3,
         )
-        worst = int(np.nanargmin(cov))
-        ax_rul.annotate(
-            f"{cov[worst]:.0f}%",
-            (x[worst] + shift, cov[worst]),
-            xytext=(7, -1),
-            textcoords="offset points",
-            fontsize=7.5,
-            color=t["text"],
-            va="center",
-        )
-    ax_rul.axhline(nominal, color=t["muted"], lw=1, linestyle=(0, (3, 3)), zorder=1)
+        worst = int(np.nanargmin(rates[1:])) + 1
+        if rates[worst] < nominal:
+            ax_rul.text(
+                xs[worst] + 0.1,
+                rates[worst],
+                f"{rates[worst]:.0f}%",
+                fontsize=7.5,
+                color=t["fail"],
+                va="center",
+                weight="semibold",
+            )
     ax_rul.text(
-        len(x) - 0.45,
+        x[-1] + 0.46,
         nominal + 0.6,
         f"nominal {nominal:.0f}%",
         ha="right",
@@ -938,11 +879,14 @@ def fig_uncertainty(ctx: Context, t: dict) -> Figure:
         fontsize=7.5,
         color=t["muted"],
     )
-    ax_rul.set_xticks(x, [f"{label}\n{int(counts[label])} engines" for label in RUL_LABELS])
-    ax_rul.set_xlim(-0.5, len(x) - 0.5)
-    ax_rul.set_ylim(66, 101)
-    ax_rul.set_ylabel("Test engines inside (%)")
-    ax_rul.set_xlabel("True RUL at the last observed cycle (cycles), all four test sets pooled")
+    ax_rul.set_ylim(68, 101)
+    ax_rul.set_ylabel("Inside the interval (%)")
+    ax_rul.set_title(
+        f"By true RUL at the last observed cycle; all four subsets, mean of {repeats} repeats",
+        fontsize=8,
+        weight="normal",
+        color=t["text2"],
+    )
     ax_rul.grid(axis="x", visible=False)
     ax_rul.set_title(f"Coverage by true remaining life (test sets, mean of {repeats} repeats)")
     return _save(fig, out_dir, "uncertainty", theme)
