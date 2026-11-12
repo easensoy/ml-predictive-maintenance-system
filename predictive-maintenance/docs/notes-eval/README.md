@@ -4,9 +4,9 @@ An evaluation harness for one narrow job: turning a structured prediction record
 `/api/predict` returns, plus the subset's measured coverage) into a short maintenance note. It
 is optional. The API, the dashboard and CI do not depend on it.
 
-**Status: template-only results.** Only the deterministic template baseline has been graded. No
-language-model call has been made in this repository, so no model fidelity, abstention,
-latency or cost result exists.
+**Status: template-only: no model call has been made.** Only the deterministic template baseline
+has been graded, so no model fidelity, abstention, latency or cost result exists. The cost
+controls below have been exercised against fake clients in the tests, never against the API.
 
 ## What is graded
 
