@@ -35,6 +35,7 @@ from predmaint.metrics import (
     rmse,
     wilson_interval,
 )
+from predmaint.metrics import by_engine as _by_engine
 from predmaint.train import LEDGER, append_ledger, git_state, ledger_path
 
 SUMMARY = (
@@ -84,12 +85,6 @@ def repeat_metrics(frame: pd.DataFrame, max_rul: int, horizon: int, seed: int) -
         "brier": float(np.mean((prob - label) ** 2)),
         "reliability": reliability_curve(prob, label.astype(float)),
     }
-
-
-def _by_engine(test: pd.DataFrame, model: str, column: str) -> np.ndarray:
-    """(repeats, engines) array of one column, engines in unit order."""
-    wide = test[test["model"] == model].pivot(index="repeat", columns="unit", values=column)
-    return wide.sort_index().sort_index(axis=1).to_numpy(float)
 
 
 def paired_differences(test: pd.DataFrame, max_rul: int, models=("lstm", "lightgbm")) -> dict:
