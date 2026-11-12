@@ -1372,14 +1372,13 @@ def fig_test_sets(ctx: Context, t: dict) -> Figure:
     subsets = list(runs)
     cols = 2 if len(subsets) > 1 else 1
     rows = int(np.ceil(len(subsets) / cols))
-    fig = plt.figure(figsize=(WIDTH, 2.75 * rows + 1.15))
+    fig = plt.figure(figsize=(WIDTH, 2.75 * rows + 1.05))
     first = next(iter(runs.values()))
     y = _header(
         fig,
         t,
-        "Every official test engine: predicted against true remaining useful life",
-        "One prediction per engine at its last recorded cycle, from the served networks (LSTM, "
-        f"repeat {first['served_repeat']}). Engines sorted by capped true RUL.",
+        "Every official test engine at its last observed cycle, sorted by capped true RUL",
+        f"LSTM five-fold ensemble, repeat {first['served_repeat']}",
     )
     handles = [
         Line2D([], [], color=t["truth"], lw=1.6),
@@ -1389,10 +1388,10 @@ def fig_test_sets(ctx: Context, t: dict) -> Figure:
     ]
     cap = first["metrics"]["config"]["max_rul"]
     labels = [
-        f"True RUL, capped at {cap}",
-        "Predicted RUL",
-        "Nominal 90% interval",
-        "Open-ended interval (at least the lower end)",
+        f"true RUL, capped at {cap}",
+        "predicted RUL",
+        "nominal 90% interval",
+        "open-ended: at least the lower end",
     ]
     y = _legend(fig, handles, labels, y, ncols=4)
     grid = fig.add_gridspec(
@@ -1413,10 +1412,7 @@ def fig_test_sets(ctx: Context, t: dict) -> Figure:
         ax.plot(x, test["capped"], color=t["truth"], lw=1.5)
         ax.scatter(x, test["point"], s=6, color=t["series"][0], linewidths=0, zorder=3)
         m = run["metrics"]["test"]["models"]["lstm"]["per_repeat"][str(run["served_repeat"])]
-        ax.set_title(
-            f"{subset} · RMSE {m['rmse']:.1f} · {m['coverage']:.0%} inside the interval",
-            fontsize=9,
-        )
+        ax.set_title(f"{subset} · RMSE {m['rmse']:.1f} · {m['coverage']:.0%} inside the interval")
         ax.set_xlim(-2, len(test) + 1)
         ax.set_ylim(0, top)
         above = int((test["rul_true"] > cap).sum())
