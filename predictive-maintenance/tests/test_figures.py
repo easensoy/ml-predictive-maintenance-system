@@ -44,3 +44,16 @@ def test_changed_only_skips_current_images_and_redraws_edited_ones(tmp_path, art
     assert draw(True) == []
     image.write_bytes(b"edited by hand")
     assert draw(True) == [image]
+
+
+def test_every_figure_draws_on_a_synthetic_run(tmp_path, artifacts_dir):
+    out = tmp_path / "figures"
+    ctx = _context(artifacts_dir, cache=tmp_path / "cache")
+    written = render(ctx, list(FIGURES), ["light"], out, 40, manifest_path=tmp_path / "m.json")
+    assert {p.name for p in written} == {f"{name}-light.png" for name in FIGURES} - (
+        set()
+        if (artifacts_dir / "FD001" / "attribution-checks.json").is_file()
+        else {"attribution-checks-light.png"}
+    )
+    # The attribution map was computed once and cached outside the repository.
+    assert len(list((tmp_path / "cache" / "figures").glob("attribution-*.npz"))) == 1
