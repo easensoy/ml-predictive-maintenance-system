@@ -232,21 +232,64 @@ def _save(fig, out_dir: Path, name: str, theme: str) -> Path:
     return path
 
 
-def _load(artifacts: Path, subset: str) -> dict:
-    model_dir = artifacts / subset
-    metrics = json.loads((model_dir / "metrics.json").read_text())
-    return {
-        "metrics": metrics,
-        "served_repeat": metrics["served"]["repeat"],
-        "test": pd.read_csv(model_dir / "predictions" / "test.csv"),
-        "oof": pd.read_csv(model_dir / "predictions" / "oof.csv.gz"),
-        "dir": model_dir,
+# --------------------------------------------------------------------------------------------
+# Loading: each artifact file is parsed once per rendering run, on first use
+
+
+class Run:
+    """One subset's artifacts. ``run["test"]`` and the like parse the file on first use and keep
+    it, so the figures and both themes share one copy."""
+
+    FILES: ClassVar[dict[str, str]] = {
+        "test": "predictions/test.csv",
+        "members": "predictions/test-members.csv",
+        "oof": "predictions/oof.csv.gz",
+        "replay": "predictions/replay-holdout.csv.gz",
     }
 
+    def __init__(self, model_dir: Path):
+        self.dir = model_dir
+        self.subset = model_dir.name
+        self._cache: dict[str, Any] = {}
 
-def _served(frame: pd.DataFrame, run: dict, model: str = "lstm") -> pd.DataFrame:
-    return frame[(frame["model"] == model) & (frame["repeat"] == run["served_repeat"])]
+    def __getitem__(self, key: str) -> Any:
+        if key == "dir":
+            return self.dir
+        if key not in self._cache:
+            if key == "metrics":
+                self._cache[key] = json.loads((self.dir / "metrics.json").read_text())
+            elif key == "served_repeat":
+                self._cache[key] = self["metrics"]["served"]["repeat"]
+            elif key in self.FILES:
+                self._cache[key] = pd.read_csv(self.dir / self.FILES[key])
+            else:
+                raise KeyError(key)
+        return self._cache[key]
 
+
+class Context:
+    """What the figures of one rendering run read: the runs, and every derived table, computed
+    once and shared by all figures and both themes."""
+
+    def __init__(self, artifacts: Path, subsets: list[str], focus: str, cache: Path = CACHE):
+        self.artifacts, self.cache = artifacts, cache
+        self.runs = {
+            s: Run(artifacts / s)
+            for s in subsets
+            if (artifacts / s / "metrics.json").is_file()
+            and json.loads((artifacts / s / "metrics.json").read_text()).get("served")
+        }
+        self.focus = self.runs.get(focus) or next(iter(self.runs.values()), None)
+        self._memo: dict[Any, Any] = {}
+
+    def memo(self, key: Any, build: Callable[[], Any]) -> Any:
+        if key not in self._memo:
+            self._memo[key] = build()
+        return self._memo[key]
+
+    @property
+    def subsets(self) -> list[str]:
+        return list(self.runs)
 
 def _rows(ax, subsets: list[str]) -> None:
     """One row per subset, FD001 on top, with the two models' sub-rows inside it."""
@@ -255,6 +298,10 @@ def _rows(ax, subsets: list[str]) -> None:
     ax.grid(axis="y", visible=False)
     for i in range(1, len(subsets)):
         ax.axhline(i - 0.5, color=plt.rcParams["grid.color"], linewidth=0.7, zorder=0)
+
+
+def _served(frame: pd.DataFrame, run: Run, model: str = "lstm") -> pd.DataFrame:
+    return frame[(frame["model"] == model) & (frame["repeat"] == run["served_repeat"])]
 
 
 # --------------------------------------------------------------------------------------------
