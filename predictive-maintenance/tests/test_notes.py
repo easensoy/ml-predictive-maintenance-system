@@ -235,6 +235,27 @@ def test_claude_note_handles_refusals_malformed_and_cut_off_replies():
     assert cut_off["malformed"] is True
 
 
+def test_spend_counts_every_billed_attempt_of_a_fallback():
+    usage = SimpleNamespace(
+        input_tokens=412,  # top-level counts cover only the attempt that answered
+        output_tokens=264,
+        iterations=[
+            SimpleNamespace(
+                type="message", model="claude-opus-5-5", input_tokens=535, output_tokens=40
+            ),
+            SimpleNamespace(
+                type="fallback_message",
+                model="claude-opus-4-8",
+                input_tokens=412,
+                output_tokens=264,
+            ),
+        ],
+    )
+    row = notes.claude_note(_client(("end_turn", GOOD, usage)), _record())
+    expected = (535 * 4 + 40 * 20 + 412 * 5 + 264 * 25) / 1e6
+    assert notes.response_cost_usd(row) == pytest.approx(expected)
+    row["attempts"][1]["model"] = "claude-unlisted"
+    assert notes.response_cost_usd(row) is None
 
 
 def test_run_claude_records_every_call_and_summarises(tmp_path):
