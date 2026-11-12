@@ -138,6 +138,23 @@ models table is dated 2026-10-06), the source of the `anthropic` SDK at 2.6.0 (t
 | `client.beta.messages.create` takes `betas`, `fallbacks="default"`, a required `max_tokens` and `output_config={"effort": ..., "format": {"type": "json_schema", "schema": ...}}`, with effort one of `low` to `max` | `anthropic` 2.6.0: `types/beta/message_create_params.py`, `beta_output_config_param.py`, `beta_json_output_format_param.py`; bundled `python/claude-api/sdk-upgrade.md` and `python/claude-api/tool-use.md` |
 | About 16,000 is the recommended `max_tokens` for non-streaming requests | bundled `SKILL.md` (Common pitfalls) |
 
+### Not verified
+
+- **The input estimate.** One token per byte plus 1,000 is an assumption: the tokenizer is not
+  documented, and no `count_tokens` request is made, since that is an API call too. The stop on
+  recorded spend is the backstop.
+- **The fallback model.** Default routing is not published. The bound assumes a fallback attempt
+  costs no more than the dearest listed price, $5 and $25 (Claude Opus 5 and Claude Opus 4.8, the
+  targets the bundled reference expects for Claude Opus 5.5), and that a declined request gets one
+  fallback attempt, as the documentation describes; a run stops if an attempt shows up on an
+  unlisted model.
+- **SDK retries.** The bound counts one request per attempt. The SDK retries connection errors,
+  timeouts, 408, 409, 429 and 5xx responses twice by default; whether a request that timed out
+  after being processed is billed was not checked.
+- **Prices change.** The prices come from the bundled reference's table dated 2026-10-06; check
+  the pricing page before a paid run.
+- **Nothing here has met the API.** The request shape matches the SDK source and the
+  documentation, but no request has been sent.
 
 ## Status
 
