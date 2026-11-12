@@ -336,6 +336,39 @@ def test_rerun_makes_only_the_missing_calls(tmp_path):
     assert (rows[-1]["case_id"], rows[-1]["repetition"]) == ("000-normal", 2)
 
 
+def test_offline_regrade_needs_no_client_and_reads_old_lines(tmp_path):
+    cases = _cases(3)
+    (tmp_path / "cases.json").write_text(json.dumps(cases), encoding="utf-8")
+    out = tmp_path / "claude-responses.jsonl"
+    run = notes.RunConfig(repeat_cases=0)
+    notes.run_claude(
+        cases, out, client=_client(*[("end_turn", GOOD)] * 3), run=run, max_spend_usd=100
+    )
+    old = {  # a line written before cache keys existed
+        "case_id": "000-normal",
+        "model": notes.MODEL,
+        "stop_reason": "end_turn",
+        "latency_s": 1.0,
+        "input_tokens": 600,
+        "output_tokens": 90,
+        "note": "Engine 17: 38 cycles left.",
+        "abstained": False,
+    }
+    with out.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(old) + "\n")
+
+    def claude_calls():
+        return json.loads((tmp_path / "results.json").read_text(encoding="utf-8"))["claude"]
+
+    assert notes.main(["eval", "--out", str(tmp_path)]) == 0
+    assert claude_calls()["calls"] == 4  # every line, the old one included
+    assert len(claude_calls()["configurations"]) == 2
+    assert notes.main(["eval", "--regrade", "--out", str(tmp_path)]) == 0
+    assert claude_calls()["calls"] == 3  # only the default configuration's keyed lines
+    with pytest.raises(SystemExit, match="No recorded responses"):
+        notes.main(["eval", "--regrade", "--effort", "high", "--out", str(tmp_path)])
+
+
 def test_make_client_explains_what_is_missing(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     with pytest.raises(SystemExit, match="ANTHROPIC_API_KEY"):
