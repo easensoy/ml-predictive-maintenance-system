@@ -262,6 +262,17 @@ The README's compact table summarises these.
 | FD004 | LightGBM | 25 | 11.80 ± 0.09 | 94.4 ± 0.7% | 74 ± 3% | 29 ± 1 | 0.0 ± 0.0 | 11.0 ± 0.0 | 0.27 ± 0.05 |
 <!-- results:end -->
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="figures/comparison-folds-dark.png">
+  <img alt="Test RMSE of every single fold model and every repeat's five-fold ensemble, per subset and model, with the mean of the three ensembles." src="figures/comparison-folds-light.png">
+</picture>
+
+**Single fold models and ensembles.** Open markers are single fold models, five per repeat;
+filled markers are the three repeats' five-fold ensembles, whose mean is labelled. The spread of
+the filled markers is repeat variability on fixed test engines; the gap to the open markers is
+what averaging the fold models contributes. Neither is an interval for the comparison, which is
+the paired difference in the README.
+
 ### Findings in detail
 
 <!-- summary:start -->
