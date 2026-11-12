@@ -58,11 +58,21 @@ def cpu_name() -> str:
     return platform.processor() or platform.machine()
 
 
-def _time(fn: Callable[[], object], repeats: int, warmup: int = 3) -> dict:
+def _time(
+    fn: Callable[[], object],
+    repeats: int,
+    warmup: int = 3,
+    before: Callable[[], object] | None = None,
+) -> dict:
+    """Median and p95 of ``fn`` in milliseconds; ``before`` runs untimed ahead of every call."""
     for _ in range(warmup):
+        if before:
+            before()
         fn()
     samples = []
     for _ in range(repeats):
+        if before:
+            before()
         start = time.perf_counter()
         fn()
         samples.append(1000 * (time.perf_counter() - start))
