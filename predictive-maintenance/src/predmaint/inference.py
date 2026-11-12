@@ -165,10 +165,23 @@ class Predictor:
 
     def explain(self, window: np.ndarray, baseline: np.ndarray | None = None) -> np.ndarray:
         """Integrated-gradients attribution of the ensemble's point RUL, in cycles: shape
-        (window, F). Networks with a shorter window attribute nothing to the earlier rows."""
+        (window, F). Networks with a shorter window attribute nothing to the earlier rows.
+
+        Against the default reference, a window whose float32 bytes equal one explained before
+        returns a copy of that earlier map: the networks are fixed once loaded, so recomputing it
+        would repeat the same arithmetic. Any other reference is always computed."""
+        values = window.astype(np.float32)
+        key = None
+        if baseline is None:
+            key = hashlib.sha256(repr(values.shape).encode() + values.tobytes()).digest()
+            with self._explanations_lock:
+                cached = self._explanations.get(key)
+                if cached is not None:
+                    self._explanations.move_to_end(key)
+                    return cached.copy()
         attributions = integrated_gradients(
             self.model.point,
-            torch.from_numpy(window.astype(np.float32)),
+            torch.from_numpy(values),
             None if baseline is None else torch.from_numpy(baseline.astype(np.float32)),
         )
         return attributions.detach().numpy() * self.contract.max_rul
