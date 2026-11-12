@@ -432,20 +432,20 @@ def fig_hero(ctx: Context, t: dict) -> Figure:
     fig = plt.figure(figsize=(WIDTH, 4.5))
     y = _header(fig, t, f"Held-out engine {unit} ({focus.subset}), predicted at every cycle")
     handles = [
-        Line2D([], [], color=t["series"][0], lw=2),
-        Patch(color=t["series"][0], alpha=t["band"], lw=0),
-        Line2D([], [], color=t["truth"], lw=1.6),
-        Line2D([], [], color=t["truth"], lw=1.2, linestyle=(0, (4, 2.5))),
+        Line2D([], [], color=blue, lw=1.8),
+        Patch(color=blue, alpha=t["band"], lw=0),
+        Line2D([], [], color=t["truth"], lw=1.5),
+        Line2D([], [], color=t["truth"], lw=1.1, linestyle=(0, (4, 2.5))),
     ]
     labels = [
-        "Predicted RUL",
-        "Nominal 90% interval",
-        f"True RUL capped at {cap} (the target)",
-        "Actual remaining life",
+        "predicted RUL",
+        "nominal 90% interval",
+        f"target: true RUL capped at {cap}",
+        "actual RUL",
     ]
-    y = _legend(fig, handles, labels, y, ncols=len(handles))
+    y = _legend(fig, handles, labels, y, ncols=4)
     grid = fig.add_gridspec(
-        2, 1, height_ratios=[3.4, 1], hspace=0.14, left=0.082, right=0.985, top=y, bottom=0.105
+        2, 1, height_ratios=[3.3, 1], hspace=0.1, left=0.066, right=0.988, top=y, bottom=0.1
     )
     ax = fig.add_subplot(grid[0])
     axp = fig.add_subplot(grid[1], sharex=ax)
