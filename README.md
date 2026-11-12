@@ -154,7 +154,7 @@ multiple comparisons. Coverage intervals are Wilson intervals over engines.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="predictive-maintenance/docs/figures/uncertainty-dark.png">
-  <img alt="Empirical coverage of the nominal 90% intervals per subset on the test endpoints, with Wilson intervals, and out of fold; mean width with open-ended intervals truncated at 125; the share of open-ended intervals; and test coverage by true remaining life for both models." src="predictive-maintenance/docs/figures/uncertainty-light.png">
+  <img alt="Empirical coverage of the nominal 90% intervals: pooled over all test engines and by band of true remaining life with Wilson intervals, the mid-life band below nominal shaded; the share of open-ended intervals in each band; coverage per subset; and the mean width on engines where both models' intervals are closed." src="predictive-maintenance/docs/figures/uncertainty-light.png">
 </picture>
 
 - **Marginal coverage hides structure.** Test-endpoint coverage averages over engines at every
