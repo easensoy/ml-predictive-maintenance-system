@@ -51,6 +51,22 @@ def test_update_readme_replaces_only_the_marked_block(tmp_path, artifacts_dir):
     assert "| FD001 (" in text
 
 
+def test_the_opening_keeps_to_its_word_limits(artifacts_dir):
+    """The README abstract stays within 80 words and each finding within 35, on the synthetic
+    run and on the committed artifacts."""
+    from predmaint.config import PROJECT_ROOT
+    from predmaint.report import BLOCKS
+
+    runs = [artifacts_dir]
+    if (PROJECT_ROOT / "artifacts" / "FD004" / "metrics.json").is_file():
+        runs.append(PROJECT_ROOT / "artifacts")
+    for artifacts in runs:
+        assert len(BLOCKS["headline"](artifacts).split()) <= 80
+        findings = BLOCKS["findings"](artifacts).splitlines()
+        assert len(findings) == 3
+        assert all(len(line.removeprefix("- ").split()) <= 35 for line in findings)
+
+
 def test_update_readme_requires_markers(tmp_path, artifacts_dir):
     readme = tmp_path / "README.md"
     readme.write_text("no markers here", encoding="utf-8")
