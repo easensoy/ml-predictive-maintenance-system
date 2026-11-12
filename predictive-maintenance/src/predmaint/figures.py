@@ -804,40 +804,24 @@ def fig_uncertainty(ctx: Context, t: dict) -> Figure:
     open_share = _open_share_by_rul(ctx)
     repeats = len(first["config"]["repeats"])
 
-    fig = plt.figure(figsize=(WIDTH, 5.5))
-    y = _header(fig, t, _coverage_title(runs, by_rul, nominal))
-    neutral = t["text2"]
-    handles = [
-        *_identity_handles(t),
-        Line2D([], [], marker="o", linestyle="-", color=neutral, markersize=5.5, lw=1.3),
-        Line2D(
-            [],
-            [],
-            marker="D",
-            linestyle="",
-            markerfacecolor="none",
-            markeredgecolor=neutral,
-            markersize=5,
-        ),
-    ]
-    labels = [
-        "LSTM",
-        "LightGBM",
-        "Test sets, with 95% Wilson interval",
-        "Out of fold, whole lives",
-    ]
-    y = _legend(fig, handles, labels, y, ncols=len(handles))
+    fig = plt.figure(figsize=(WIDTH, 4.7))
+    y = _header(
+        fig,
+        t,
+        f"Coverage of the nominal {nominal:.0f}% intervals on the official test endpoints",
+    )
+    y = _legend(fig, _identity_handles(t), ["LSTM", "LightGBM"], y, ncols=2)
     grid = fig.add_gridspec(
         2,
-        3,
-        height_ratios=[1.12, 1],
-        width_ratios=[1.3, 1, 0.34],
+        2,
+        width_ratios=[1.75, 1],
+        height_ratios=[2.15, 1],
+        wspace=0.3,
         hspace=0.62,
-        wspace=0.08,
-        left=0.075,
+        left=0.072,
         right=0.985,
-        top=y - 0.035,
-        bottom=0.125,
+        top=y - 0.05,
+        bottom=0.1,
     )
     ax_cov = fig.add_subplot(grid[0, 0])
     ax_w = fig.add_subplot(grid[0, 1], sharey=ax_cov)
