@@ -1170,12 +1170,10 @@ def fig_alert_calibration(ctx: Context, t: dict) -> Figure:
     y = _header(
         fig,
         t,
-        f"Alert ranking: average precision {_span_text(aps, '.3f')} against base rates of "
-        f"{_span_text(rates, '.0f', '%')}",
-        f"Left: test sets, P(failure within {horizon} cycles) at each engine's last observed "
-        "cycle. "
-        "Right: reliability out of fold over whole lives (served repeat), with cycles per bin; "
-        "cycles of one engine are dependent.",
+        f"Alert ranking (test endpoints) and calibration (out of fold), P(fail ≤ {horizon})",
+        f"Average precision {_span_text(aps, '.3f')} against base rates of "
+        f"{_span_text(rates, '.0f', '%')}; reliability for the first repeat, cycles per bin "
+        "below each panel",
     )
     handles = [
         *_identity_handles(t),
