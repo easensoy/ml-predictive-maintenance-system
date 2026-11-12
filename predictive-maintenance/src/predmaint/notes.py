@@ -340,6 +340,37 @@ def plan_calls(cases: list[dict], run: RunConfig) -> list[dict]:
     return calls
 
 
+def price_of(model: str) -> dict[str, float]:
+    if model not in PRICE_PER_MTOK:
+        raise SystemExit(
+            f"No price for {model!r} in PRICE_PER_MTOK, so the cost of a run cannot be bounded. "
+            "Add its input and output prices from the pricing page first."
+        )
+    return PRICE_PER_MTOK[model]
+
+
+def input_token_bound(request: dict) -> int:
+    """The request's input tokens, over-counted without an API call: one token per UTF-8 byte of
+    the system prompt, output format and messages, plus FRAMING_TOKENS. The tokenizer is not
+    documented, so this is an assumption rather than a guarantee, which is why a run also stops
+    on the spend it records."""
+    sent = request["system"] + json.dumps(request["output_config"])
+    sent += json.dumps(request["messages"])
+    return len(sent.encode("utf-8")) + FRAMING_TOKENS
+
+
+def call_bound_usd(request: dict) -> float:
+    """The most one call can cost, worked out before it is made: the over-counted input plus the
+    full max_tokens of output at the requested model's price, and, with fallbacks on, the same
+    again at the dearest price in PRICE_PER_MTOK for the attempt a fallback model can make. The
+    declined attempt is billed too when it declined mid-reply or in a billed refusal category."""
+    tokens_in, tokens_out = input_token_bound(request), request["max_tokens"]
+    prices = [price_of(request["model"])]
+    if request.get("fallbacks"):
+        prices.append({k: max(p[k] for p in PRICE_PER_MTOK.values()) for k in ("input", "output")})
+    return sum(tokens_in * p["input"] + tokens_out * p["output"] for p in prices) / 1e6
+
+
 def claude_note(client: Any, record: dict, effort: str = "medium") -> dict:
     """One Claude note, with its latency, token usage and stop reason."""
     started = time.perf_counter()
