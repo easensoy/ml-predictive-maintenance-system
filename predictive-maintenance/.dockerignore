@@ -10,3 +10,4 @@ tests
 docs
 *.md
 artifacts/FD001/predictions
+.cache
