@@ -121,6 +121,23 @@ before cache keys existed are still read and graded by plain `eval`; they match 
   show whether a lower `--max-tokens` is safe. A reply cut off at the ceiling is recorded as
   truncated and graded as a failure.
 
+### Verified facts
+
+Checked on 2026-11-08 against the Claude API reference bundled with Claude Code 2.1.317 (its
+models table is dated 2026-10-06), the source of the `anthropic` SDK at 2.6.0 (the version
+`uv.lock` pins) and, where the bundled reference was silent, the official pages linked.
+
+| Fact | Source |
+|---|---|
+| `claude-opus-5-5` costs $4 per million input tokens and $20 per million output tokens; `claude-opus-5` and `claude-opus-4-8` cost $5 and $25 | bundled `claude-api` skill: models table in `SKILL.md`, `shared/models.md`, `shared/model-migration.md` (Migrating to Claude Opus 5.5). The [pricing page](https://platform.claude.com/docs/en/about-claude/pricing.md) was not fetched |
+| Cache writes bill at 1.25x (5-minute) or 2x (1-hour) base input and cache reads at a fraction of it | bundled `shared/cost-optimization.md` (Step 0) |
+| `max_tokens` is a hard limit on total output, thinking plus reply text; on Claude Opus 5.5 thinking is always on and effort, `medium` by default, is the main control of how much it reasons and what a request costs | [Effort](https://platform.claude.com/docs/en/build-with-claude/effort.md) (Claude Opus 5.5); bundled `shared/model-migration.md` |
+| Thinking is billed as output: `usage.output_tokens` is the inclusive total used for billing and `output_tokens_details.thinking_tokens` the part that was reasoning; `thinking.display` changes visibility, not billing | [Extended thinking](https://platform.claude.com/docs/en/build-with-claude/extended-thinking.md); `anthropic` 2.6.0 `types/beta/beta_usage.py`; bundled `shared/model-migration.md` |
+| With server-side fallback, `usage.iterations` is the per-attempt billing record, each attempt at its own model's rates, and top-level `usage` covers only the attempt that answered; a declined attempt is billed too when it declined mid-reply or in the `bio`, `frontier_llm` or `reasoning_extraction` categories | [Refusals and fallback](https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback.md) |
+| `fallbacks: "default"` needs the beta header `server-side-fallback-2026-07-01`, and retries a declined request on the model Anthropic recommends for its refusal category | Refusals and fallback; bundled `shared/model-migration.md` (Migrating to Claude Opus 5) and `python/claude-api/README.md` |
+| `client.beta.messages.create` takes `betas`, `fallbacks="default"`, a required `max_tokens` and `output_config={"effort": ..., "format": {"type": "json_schema", "schema": ...}}`, with effort one of `low` to `max` | `anthropic` 2.6.0: `types/beta/message_create_params.py`, `beta_output_config_param.py`, `beta_json_output_format_param.py`; bundled `python/claude-api/sdk-upgrade.md` and `python/claude-api/tool-use.md` |
+| About 16,000 is the recommended `max_tokens` for non-streaming requests | bundled `SKILL.md` (Common pitfalls) |
+
 
 ## Status
 
