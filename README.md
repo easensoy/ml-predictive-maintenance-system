@@ -248,7 +248,7 @@ alert or failed, as defined under the table), its predicted RUL and nominal inte
 probability of failure within 30 cycles.
 
 <!-- dashboard:start -->
-Both captures show the same replay state: FD001 replay engine 81 at cycle 207 of 240, the cycle at which its alert first fires (the hero figure shows its whole life). The dashboard predicts 32 cycles (nominal 90% interval 18 to 51) and a 51% probability of failure within 30 cycles; the true RUL, known because the simulated engine ran to failure, is 33. These are the numbers in that engine's row of `replay-holdout.csv.gz`, which `predmaint.audit` checks.
+Both captures show one replay tick of the FD001 fleet: the tick at which engine 81's alert first fires, at cycle 207 of 240 (its row is highlighted; the hero figure shows its whole life). Of the 10 replayed engines, 1 is in alert, 2 are on watch and 7 are healthy. Engine 81 is predicted at 32 cycles (nominal 90% interval 18 to 51) with a 51% probability of failure within 30 cycles; its true RUL, known because the simulated engine ran to failure, is 33. Every row is the evaluated prediction in `replay-holdout.csv.gz` for that engine and cycle, which `predmaint.audit` checks.
 <!-- dashboard:end -->
 
 The dashboard replays simulated C-MAPSS engines from the replay holdout, one recorded cycle per
