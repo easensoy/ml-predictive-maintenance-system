@@ -278,6 +278,28 @@ def test_run_claude_records_every_call_and_summarises(tmp_path):
     assert summary["evaluation"]["cases"] == 4
 
 
+def test_spend_limit_refuses_an_over_budget_run_before_any_call(tmp_path):
+    cases, run = _cases(4), notes.RunConfig(repeat_cases=0)
+    client = _client(*[("end_turn", GOOD)] * 4)
+    out = tmp_path / "responses.jsonl"
+    with pytest.raises(SystemExit, match="exceeds"):
+        notes.run_claude(
+            cases, out, client=client, run=run, max_spend_usd=_bound(cases, run) * 0.99
+        )
+    assert client.beta.messages.requests == []
+    assert not out.exists()
+    status = notes.run_claude(cases, out, client=client, run=run, max_spend_usd=_bound(cases, run))
+    assert status["made"] == 4
+
+
+def test_unpriced_model_is_refused(tmp_path):
+    run = notes.RunConfig(model="claude-unlisted")
+    with pytest.raises(SystemExit, match="No price"):
+        notes.run_claude(
+            _cases(1), tmp_path / "r.jsonl", client=_client(), run=run, max_spend_usd=1e6
+        )
+
+
 def test_make_client_explains_what_is_missing(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     with pytest.raises(SystemExit, match="ANTHROPIC_API_KEY"):
