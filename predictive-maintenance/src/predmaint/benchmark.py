@@ -104,6 +104,7 @@ def run(model_dir: Path, repeats: int) -> dict:
         "engine_detail_with_attribution": _time(
             lambda: fleet.detail(fleet.units[0]), repeats, before=predictor.clear_explanations
         ),
+        "engine_detail_repeated_state": _time(lambda: fleet.detail(fleet.units[0]), repeats),
     }
     return {
         "model": model_dir.name,
