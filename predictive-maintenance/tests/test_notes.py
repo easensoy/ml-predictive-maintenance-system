@@ -316,6 +316,26 @@ def test_run_stops_once_the_recorded_spend_reaches_the_limit(tmp_path):
     assert len(client.beta.messages.requests) == 1
 
 
+def test_rerun_makes_only_the_missing_calls(tmp_path):
+    cases, out = _cases(2), tmp_path / "responses.jsonl"
+    run = notes.RunConfig(repeat_cases=1, repeats=2)
+    first = notes.run_claude(
+        cases, out, client=_client(*[("end_turn", GOOD)] * 3), run=run, max_spend_usd=100
+    )
+    assert first["made"] == 3
+    again = _client()  # no canned replies: any call would fail
+    status = notes.run_claude(cases, out, client=again, run=run, max_spend_usd=100)
+    assert (status["made"], status["already_recorded"]) == (0, 3)
+    assert again.beta.messages.requests == []
+    more = _client(("end_turn", GOOD))
+    run = notes.RunConfig(repeat_cases=1, repeats=3)
+    status = notes.run_claude(cases, out, client=more, run=run, max_spend_usd=100)
+    assert (status["made"], status["already_recorded"]) == (1, 3)
+    rows = notes.read_responses(out)
+    assert len({row["cache_key"] for row in rows}) == 4
+    assert (rows[-1]["case_id"], rows[-1]["repetition"]) == ("000-normal", 2)
+
+
 def test_make_client_explains_what_is_missing(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     with pytest.raises(SystemExit, match="ANTHROPIC_API_KEY"):
