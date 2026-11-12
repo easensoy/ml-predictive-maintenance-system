@@ -623,29 +623,29 @@ def _difference_rows(ax, t: dict, subsets: list[str], diffs: dict, label: bool =
     )
 
 
-def fig_comparison(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
-    subsets = list(runs)
-    stats = {s: single_models(runs[s]["dir"]) for s in subsets}
-    diffs = {s: runs[s]["metrics"]["test"]["lstm_minus_lightgbm"]["rmse"] for s in subsets}
-    means = {s: {m: float(np.mean(stats[s][m]["averages"])) for m in MODELS} for s in subsets}
-    fig = plt.figure(figsize=(WIDTH, 1.3 + 0.6 * len(subsets)))
-    y = _header(fig, t, _rmse_title(subsets, means, diffs))
-    neutral = t["text2"]
+def fig_comparison(ctx: Context, t: dict) -> Figure:
+    """The principal comparison: the paired difference in test RMSE with its bootstrap interval,
+    next to each model's RMSE (the three repeat ensembles and their mean)."""
+    subsets = ctx.subsets
+    diffs = {s: ctx.runs[s]["metrics"]["test"]["lstm_minus_lightgbm"]["rmse"] for s in subsets}
+    stats = {s: ctx.singles(s) for s in subsets}
+    fig = plt.figure(figsize=(WIDTH, 2.9))
+    y = _header(fig, t, "Test RMSE on the official test endpoints, LSTM versus LightGBM")
     handles = [
         *_identity_handles(t),
-        Line2D([], [], marker="o", linestyle="", markersize=6, color=neutral),
+        Line2D([], [], marker="o", linestyle="", markersize=5.5, color=t["text"]),
         Line2D(
             [],
             [],
             marker="o",
             linestyle="",
             markersize=5.5,
-            markerfacecolor="none",
-            markeredgecolor=neutral,
+            markerfacecolor=t["surface"],
+            markeredgecolor=t["text"],
         ),
     ]
-    labels = ["LSTM", "LightGBM", "Five-fold ensemble, one per repeat", "Single fold model"]
-    y = _legend(fig, handles, labels, y, ncols=len(handles))
+    labels = ["LSTM", "LightGBM", "95% interval excludes 0", "includes 0"]
+    y = _legend(fig, handles, labels, y, ncols=4)
     grid = fig.add_gridspec(
         1,
         2,
