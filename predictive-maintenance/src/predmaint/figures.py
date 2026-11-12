@@ -546,26 +546,26 @@ def fig_hero(ctx: Context, t: dict) -> Figure:
     ax.tick_params(labelbottom=False)
 
     within = actual <= horizon
-    axp.fill_between(cycle, 0, 1, where=within, color=t["zone"], alpha=0.12, lw=0, step="mid")
-    axp.plot(cycle, prob, color=t["series"][0], lw=1.5)
+    axp.fill_between(cycle, 0, 1, where=within, color=t["zone"], alpha=0.1, lw=0, step="mid")
+    axp.plot(cycle, prob, color=blue, lw=1.4)
     axp.fill_between(
         cycle,
         threshold,
         prob,
         where=prob >= threshold,
         color=t["alert"],
-        alpha=0.45,
+        alpha=0.4,
         lw=0,
         interpolate=True,
     )
-    axp.axhline(threshold, color=t["muted"], lw=0.8, linestyle=(0, (3, 3)))
+    axp.axhline(threshold, color=t["muted"], lw=0.7, linestyle=(0, (3, 3)))
     axp.text(
-        3,
-        threshold + 0.06,
+        cycle[0] + 2,
+        threshold + 0.07,
         f"alert threshold {threshold:g}",
-        fontsize=7.5,
         color=t["muted"],
         va="bottom",
+        **small,
     )
     axp.set_ylim(0, 1.05)
     axp.set_yticks([0, 0.5, 1], ["0", "0.5", "1"])
