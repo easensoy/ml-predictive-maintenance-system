@@ -472,6 +472,18 @@ def make_client() -> Any:
     return anthropic.Anthropic()
 
 
+def read_responses(path: Path) -> list[dict]:
+    if not path.is_file():
+        return []
+    lines = path.read_text(encoding="utf-8").splitlines()
+    return [json.loads(line) for line in lines if line.strip()]
+
+
+def recorded_keys(path: Path) -> set[str]:
+    """The cache keys already recorded. Lines from before cache keys existed have none."""
+    return {row["cache_key"] for row in read_responses(path) if "cache_key" in row}
+
+
 def run_claude(
     cases: list[dict], out: Path, client: Any = None, repeat_cases: int = 30, repeats: int = 3
 ) -> None:
