@@ -410,10 +410,12 @@ def _served(frame: pd.DataFrame, run: Run, model: str = "lstm") -> pd.DataFrame:
 # Hero
 
 
-def fig_hero(focus: dict, t: dict, out_dir: Path, theme: str) -> Path:
+def fig_hero(ctx: Context, t: dict) -> Figure:
+    focus = ctx.focus
+    assert focus is not None
     cfg = focus["metrics"]["config"]
     cap, horizon, threshold = cfg["max_rul"], cfg["alert_cycles"], cfg["alert_threshold"]
-    state = hero_state(focus["dir"])
+    state = ctx.hero()
     g, unit = state["life"], state["unit"]
     cycle = g["cycle"].to_numpy()
     actual = g["rul"].to_numpy()
@@ -602,7 +604,7 @@ def fig_hero(focus: dict, t: dict, out_dir: Path, theme: str) -> Path:
     axp.set_ylabel(f"P(failure\nwithin {horizon})")
     axp.set_xlabel("Cycle")
     axp.grid(axis="x", visible=False)
-    return _save(fig, out_dir, "hero", theme)
+    return fig
 
 
 # --------------------------------------------------------------------------------------------
