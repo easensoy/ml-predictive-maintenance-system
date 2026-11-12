@@ -24,6 +24,8 @@ from predmaint import data as cmapss
 from predmaint.calibration import covered
 from predmaint.config import Settings
 from predmaint.metrics import (
+    BOOT_SEED,
+    N_BOOT,
     bootstrap_indices,
     ece_with_interval,
     mean_sd,
@@ -35,8 +37,6 @@ from predmaint.metrics import (
 )
 from predmaint.train import LEDGER, append_ledger, git_state, ledger_path
 
-N_BOOT = 2000
-BOOT_SEED = 7
 SUMMARY = (
     "rmse",
     "nasa_score",
