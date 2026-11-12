@@ -351,7 +351,7 @@ Limits of these checks:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="figures/attribution-checks-dark.png">
-  <img alt="Deletion and insertion curves for integrated gradients, input deviation, a randomised network and random order, and rank correlations between attribution maps under each change." src="figures/attribution-checks-light.png">
+  <img alt="Deletion and insertion areas of every window for integrated gradients, input deviation, a re-initialised network's attributions and random order, with medians, means and clipped extremes; and, by stage of life, how much worse integrated gradients ranks than random order and than input deviation in each window." src="figures/attribution-checks-light.png">
 </picture>
 
 ## Published results
