@@ -21,10 +21,7 @@ An LSTM on raw sensor windows and LightGBM on per-sensor window statistics predi
 - **Alert dynamics.** Out of fold, both alerts first fire a median 30–31 cycles before failure; LightGBM's switches off again 0.33–0.49 times per engine against the LSTM's 0.02–0.15, but only the LSTM misses engines.
 <!-- findings:end -->
 
-The official test sets were also seen during an earlier development round, so none of these
-numbers is an estimate on untouched data ([test-set exposure](#test-set-exposure)).
-
-**[Protocol](predictive-maintenance/docs/evaluation.md#protocol)** · **[Reproduction](#reproduce)** · **[Failure analysis](predictive-maintenance/docs/failure-cases.md)** · **[Serving](predictive-maintenance/docs/serving.md)** · **[Full evaluation](predictive-maintenance/docs/evaluation.md)**
+**[Protocol](predictive-maintenance/docs/evaluation.md#protocol)** · **[How to read the results](#how-to-read-the-results)** · **[Test-set exposure](#test-set-exposure)** · **[Failure analysis](#failure-analysis)** · **[Reproduction](#reproduce)**
 
 ## Contribution
 
