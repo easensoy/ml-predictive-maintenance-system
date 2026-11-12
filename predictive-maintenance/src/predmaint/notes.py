@@ -560,15 +560,39 @@ def run_claude(
     return status
 
 
-
-
-def load_recorded(path: Path) -> dict[str, list[dict]]:
+def load_recorded(path: Path, keys: set[str] | None = None) -> dict[str, list[dict]]:
+    """Recorded responses grouped by case, in file order. With ``keys``, only the lines recorded
+    under those cache keys, each once and in repetition order; lines from before cache keys
+    existed are read only when no keys are given."""
     recorded: dict[str, list[dict]] = {}
-    if path.is_file():
-        for line in path.read_text(encoding="utf-8").splitlines():
-            if line.strip():
-                row = json.loads(line)
-                recorded.setdefault(row["case_id"], []).append(row)
+    seen: set[str] = set()
+    for row in read_responses(path):
+        if keys is not None:
+            key = row.get("cache_key")
+            if key not in keys or key in seen:
+                continue
+            seen.add(key)
+        recorded.setdefault(row["case_id"], []).append(row)
+    if keys is not None:
+        for runs in recorded.values():
+            runs.sort(key=lambda row: row["repetition"])
+    return recorded
+
+
+def recorded_for(cases: list[dict], run: RunConfig, path: Path) -> dict[str, list[dict]]:
+    """One configuration's recorded responses, matched by cache key, after a line saying how much
+    of it is recorded and what its missing calls could cost at most."""
+    calls = plan_calls(cases, run)
+    recorded = load_recorded(path, {call["key"] for call in calls})
+    found = {row["cache_key"] for runs in recorded.values() for row in runs}
+    line = f"{len(found)} of {len(calls)} planned responses for this configuration are recorded"
+    missing = [call for call in calls if call["key"] not in found]
+    if missing and run.model in PRICE_PER_MTOK:
+        bound = sum(call_bound_usd(call["request"]) for call in missing)
+        line += f"; the {len(missing)} missing calls could cost up to ${bound:.2f}"
+    print(line, flush=True)
+    if not recorded:
+        raise SystemExit("No recorded responses match this configuration; nothing to grade.")
     return recorded
 
 
