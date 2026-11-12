@@ -271,6 +271,48 @@ def check_examples(artifacts: Path) -> list[str]:
                         f"replay-holdout.csv.gz has {float(row[key])}; rerun "
                         "`python -m predmaint.screenshots`"
                     )
+            problems += check_fleet(shown.get("fleet") or [], run_dir)
+    return problems
+
+
+def check_fleet(fleet: list[dict], run_dir: Path) -> list[str]:
+    """Every engine row of the fleet screenshot must be the evaluated replay prediction for that
+    engine and cycle, with the status the served model's rule gives it."""
+    from predmaint.report import served_replay
+
+    if not fleet:
+        return []
+    cfg = json.loads((run_dir / "metrics.json").read_text())["config"]
+    evaluated = served_replay(run_dir).set_index(["unit", "cycle"]).sort_index()
+    problems = []
+    for shown in fleet:
+        where = f"the fleet screenshot's engine {shown['unit']} at cycle {shown['cycle']}"
+        if (shown["unit"], shown["cycle"]) not in evaluated.index:
+            problems.append(f"{where} has no evaluated replay prediction")
+            continue
+        row = evaluated.loc[(shown["unit"], shown["cycle"])]
+        if shown["rul_true"] != int(row["rul"]) or shown["open_ended"] != bool(row["open_ended"]):
+            problems.append(f"{where} shows a different true RUL or interval type than evaluated")
+        keys = ["point", "lower", "probability"] + ([] if row["open_ended"] else ["upper"])
+        for key in keys:
+            tolerance = PROBABILITY_TOLERANCE * 2 if key == "probability" else 0.051
+            if abs(shown[key] - float(row[key])) > tolerance:
+                problems.append(
+                    f"{where} shows {key} {shown[key]}, but replay-holdout.csv.gz has "
+                    f"{float(row[key])}; rerun `python -m predmaint.screenshots`"
+                )
+        if shown["status"] != "failed":
+            expected = (
+                "alert"
+                if float(row["probability"]) >= cfg["alert_threshold"]
+                else "watch"
+                if float(row["lower"]) <= cfg["alert_cycles"]
+                else "healthy"
+            )
+            if shown["status"] != expected:
+                problems.append(f"{where} shows status {shown['status']}, expected {expected}")
+        elif shown["cycle"] != shown["total_cycles"]:
+            problems.append(f"{where} shows a failed engine before its last recorded cycle")
     return problems
 
 
