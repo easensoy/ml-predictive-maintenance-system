@@ -2,8 +2,9 @@
 that works.
 
     python -m predmaint.notes cases            # build the frozen cases, docs/notes-eval/cases.json
-    python -m predmaint.notes eval             # grade the deterministic template on every case
-    python -m predmaint.notes eval --claude    # also run and grade Claude (needs an API key)
+    python -m predmaint.notes eval             # grade the template and every recorded response
+    python -m predmaint.notes eval --claude --max-spend-usd USD   # also call Claude (needs a key)
+    python -m predmaint.notes eval --regrade   # grade one configuration's recorded responses
 
 A deterministic template is the baseline. Each note is graded on four properties:
 
@@ -16,8 +17,12 @@ A deterministic template is the baseline. Each note is graded on four properties
    uncertain to plan on, the note must decline to give an estimate; otherwise it must not.
 
 The Claude side needs the optional ``notes`` dependencies (``uv sync --extra notes``) and an API
-key in ``ANTHROPIC_API_KEY``; CI, the API and the dashboard never need either. Every response is
-appended to ``claude-responses.jsonl``, so grading can be rerun offline.
+key in ``ANTHROPIC_API_KEY``; CI, the API and the dashboard never need either. Before any call it
+bounds the worst-case cost of the calls still to make and refuses to start above
+``--max-spend-usd``; during the run it adds up the spend from each response's ``usage`` and stops
+before a call could take it past the limit. Every response is appended to
+``claude-responses.jsonl`` under a cache key, so a rerun makes only the missing calls, and grading
+(plain ``eval``, or ``--regrade`` for one configuration) runs offline without a client.
 """
 
 import argparse
