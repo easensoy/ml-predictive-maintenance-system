@@ -19,7 +19,7 @@ import pandas as pd
 
 from predmaint.audit import SUBSETS
 from predmaint.calibration import covered
-from predmaint.config import PROJECT_ROOT, Settings
+from predmaint.config import PROJECT_ROOT, SUBSETS, Settings
 
 NAMES = {"lstm": "LSTM", "lightgbm": "LightGBM"}
 RUL_BINS = [-1, 25, 50, 75, 100, 124, 10_000]
