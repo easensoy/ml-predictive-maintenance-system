@@ -1520,25 +1520,86 @@ def fig_attribution_checks(ctx: Context, t: dict) -> Figure | None:
         f"Attribution checks: {n} windows from {report['engines']} held-out "
         f"{report['model']} engines, served ensemble",
     )
-    for ax, key, title in (
-        (ax_del, "deletion", "Deletion: highest-ranked readings removed first"),
-        (ax_ins, "insertion", "Insertion: highest-ranked readings added first"),
-    ):
-        for name, _, colour, style, width in styles:
-            if f"{key}_{name}" in curves:
-                ax.plot(x, curves[f"{key}_{name}"], color=colour, lw=width, linestyle=style)
-        ax.set_xlabel("Readings replaced (%)")
-        ax.set_title(title, fontsize=9)
-        ax.set_ylim(-0.15, 1.15)
-        ax.axhline(0, color=t["axis"], lw=0.8)
-        ax.axhline(1, color=t["axis"], lw=0.8)
-    ax_ins.tick_params(labelleft=False)
-    ax_del.set_ylabel("Share of the prediction's\ndeparture from the baseline")
-    labels = [
-        ("spearman_vs_full_randomisation", "vs randomised weights"),
-        ("spearman_vs_head_randomisation", "vs randomised output heads"),
-        ("spearman_vs_own_baseline", "vs the engine's first cycles as baseline"),
-        ("spearman_vs_input_deviation", "vs |input − baseline| alone"),
+    upper = fig.add_gridspec(1, 2, wspace=0.08, left=0.19, right=0.985, top=y - 0.06, bottom=0.545)
+    lower = fig.add_gridspec(1, 2, wspace=0.08, left=0.1, right=0.985, top=0.375, bottom=0.1)
+    rng = np.random.default_rng(0)
+    jitter = rng.uniform(-0.17, 0.17, n)
+    bounds = {"deletion": (-0.8, 1.6), "insertion": (-0.6, 1.6)}
+    for col, (kind, better) in enumerate((("deletion", "lower"), ("insertion", "higher"))):
+        ax = fig.add_subplot(upper[0, col])
+        low, high = bounds[kind]
+        for row, (key, _label) in enumerate(ORDERINGS):
+            values = windows[f"{kind}_auc_{key}"].to_numpy(float)
+            over, under = values > high, values < low
+            inside = ~(over | under)
+            ax.scatter(
+                values[inside],
+                row + jitter[inside],
+                s=9,
+                color=colours[key],
+                alpha=0.75,
+                lw=0,
+                zorder=2,
+            )
+            for mask, edge, marker, word, extreme in (
+                (over, high, ">", "above", values.max()),
+                (under, low, "<", "below", values.min()),
+            ):
+                if not mask.any():
+                    continue
+                ax.scatter(
+                    np.full(int(mask.sum()), edge),
+                    row + jitter[mask],
+                    s=16,
+                    marker=marker,
+                    color=t["fail"],
+                    lw=0,
+                    zorder=3,
+                )
+                ax.text(
+                    edge,
+                    row - 0.36,
+                    f"{int(mask.sum())} {word} {edge:g} ({extreme:.2f})",
+                    ha="right" if marker == ">" else "left",
+                    va="bottom",
+                    fontsize=7,
+                    color=t["fail"],
+                )
+            median, mean = float(np.median(values)), float(np.mean(values))
+            ax.plot([median, median], [row - 0.3, row + 0.3], color=t["text"], lw=1.8, zorder=4)
+            ax.scatter(
+                [float(np.clip(mean, low, high))],
+                [row],
+                s=26,
+                marker="D",
+                facecolors=t["surface"],
+                edgecolors=t["text"],
+                linewidths=1.1,
+                zorder=5,
+            )
+        ax.set_yticks(range(len(ORDERINGS)), [label for _, label in ORDERINGS] if col == 0 else [])
+        ax.set_ylim(len(ORDERINGS) - 0.5, -0.5)
+        ax.grid(axis="y", visible=False)
+        ax.set_title(
+            f"{kind.capitalize()} area per window ({better} is better)",
+            fontsize=8,
+            weight="normal",
+            color=t["text2"],
+        )
+        ax.set_xlabel("Area under the curve")
+        ax.set_xlim(low - 0.05, high + 0.05)
+    key_handles = [
+        Line2D([], [], color=t["text"], lw=1.8),
+        Line2D(
+            [],
+            [],
+            marker="D",
+            linestyle="",
+            markersize=5,
+            markerfacecolor=t["surface"],
+            markeredgecolor=t["text"],
+        ),
+        Line2D([], [], marker=">", linestyle="", markersize=5, color=t["fail"]),
     ]
     values = [s[k]["median"] for k, _ in labels]
     lows = [s[k]["median"] - s[k]["p10"] for k, _ in labels]
