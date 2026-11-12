@@ -323,6 +323,85 @@ class Context:
         return self.memo("attribution", lambda: _attribution_map(self))
 
 
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def source_digest() -> str:
+    """One identifier for all of predmaint's source code: any change invalidates every cache."""
+    digest = hashlib.sha256()
+    for path in sorted(Path(__file__).parent.glob("*.py")):
+        digest.update(path.name.encode() + b"\0" + path.read_bytes().replace(b"\r\n", b"\n"))
+    return digest.hexdigest()
+
+
+ATTRIBUTION_INPUTS = (
+    "model.pt",
+    "contract.json",
+    "metrics.json",
+    "replay.csv",
+    "predictions/replay-holdout.csv.gz",
+)
+
+
+def _attribution_map(ctx: Context) -> dict | None:
+    run = ctx.focus
+    if run is None or not all((run.dir / name).is_file() for name in ATTRIBUTION_INPUTS):
+        return None
+    key = hashlib.sha256(
+        json.dumps(
+            {
+                "source": source_digest(),
+                "inputs": {name: _sha256(run.dir / name) for name in ATTRIBUTION_INPUTS},
+                "torch": importlib.metadata.version("torch"),
+                "numpy": np.__version__,
+            },
+            sort_keys=True,
+        ).encode()
+    ).hexdigest()[:24]
+    path = ctx.cache / "figures" / f"attribution-{run.subset}-{key}.npz"
+    if path.is_file():
+        stored = np.load(path, allow_pickle=False)
+        return {
+            "unit": int(stored["unit"]),
+            "cycle": int(stored["cycle"]),
+            "attributions": stored["attributions"],
+            "cycles": stored["cycles"],
+            "symbols": [str(s) for s in stored["symbols"]],
+            "member_windows": [int(w) for w in stored["member_windows"]],
+            "cached": True,
+        }
+    from predmaint.inference import Predictor  # PyTorch is imported only on a cache miss
+
+    predictor = Predictor(run.dir)
+    contract = predictor.contract
+    state = ctx.hero()
+    unit, cycle = state["unit"], state["cycle"]
+    replay = pd.read_csv(run.dir / "replay.csv")
+    engine = replay[replay["unit"] == unit].sort_values("cycle")
+    history = engine[engine["cycle"] <= cycle]
+    attributions = predictor.explain(contract.window_from_readings(history))
+    cycles = history["cycle"].to_numpy()[-contract.window :]
+    if len(cycles) < contract.window:  # padded window: the padded rows repeat the first cycle
+        cycles = np.r_[np.full(contract.window - len(cycles), cycles[0]), cycles]
+    result = {
+        "unit": int(unit),
+        "cycle": int(cycle),
+        "attributions": attributions,
+        "cycles": cycles,
+        "symbols": [SENSOR_INFO[s][0] for s in contract.sensors],
+        "member_windows": sorted(int(m.window) for m in predictor.model.members),  # type: ignore[arg-type]
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    arrays: dict[str, Any] = {k: np.asarray(v) for k, v in result.items()}
+    np.savez(path, **arrays)
+    return {**result, "cached": False}
+
+
 def _served(frame: pd.DataFrame, run: Run, model: str = "lstm") -> pd.DataFrame:
     return frame[(frame["model"] == model) & (frame["repeat"] == run["served_repeat"])]
 
