@@ -224,12 +224,17 @@ def test_claude_note_parses_structured_output_and_records_usage():
     assert notes.response_cost_usd(result) == pytest.approx((600 * 4 + 90 * 20) / 1e6)
 
 
-def test_claude_note_handles_refusals_and_malformed_replies():
+def test_claude_note_handles_refusals_malformed_and_cut_off_replies():
     refused = notes.claude_note(_client(("refusal", "")), _record())
     assert refused["refused"] is True
     assert refused["abstained"] is True
     malformed = notes.claude_note(_client(("end_turn", "not json")), _record())
     assert malformed["malformed"] is True
+    cut_off = notes.claude_note(_client(("max_tokens", '{"note": "Engine 17')), _record())
+    assert cut_off["truncated"] is True
+    assert cut_off["malformed"] is True
+
+
 
 
 def test_run_claude_records_every_call_and_summarises(tmp_path):
