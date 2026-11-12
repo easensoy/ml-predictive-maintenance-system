@@ -649,15 +649,85 @@ def fig_comparison(ctx: Context, t: dict) -> Figure:
     grid = fig.add_gridspec(
         1,
         2,
-        width_ratios=[2.2, 1],
-        wspace=0.06,
-        left=0.075,
+        width_ratios=[1.25, 1],
+        wspace=0.42,
+        left=0.07,
         right=0.985,
-        top=y - 0.04,
-        bottom=0.58 / fig.get_figheight(),
+        top=y - 0.07,
+        bottom=0.19,
     )
-    ax = fig.add_subplot(grid[0])
-    axd = fig.add_subplot(grid[1], sharey=ax)
+    axd = fig.add_subplot(grid[0])
+    axm = fig.add_subplot(grid[1], sharey=axd)
+    _difference_rows(axd, t, subsets, diffs)
+    _rows(axd, subsets)
+    axd.set_xlabel("LSTM − LightGBM test RMSE (cycles), paired engine bootstrap")
+
+    values = [v for s in subsets for m in MODELS for v in stats[s][m]["averages"]]
+    for i, s in enumerate(subsets):
+        means = {m: float(np.mean(stats[s][m]["averages"])) for m in MODELS}
+        axm.plot([means["lstm"], means["lightgbm"]], [i, i], color=t["axis"], lw=1.2, zorder=1)
+        for m in MODELS:
+            colour = t["series"][MODEL_SLOT[m]]
+            repeats = stats[s][m]["averages"]
+            axm.scatter(
+                repeats,
+                np.full(len(repeats), i + OFFSET[m] * 0.7),
+                s=11,
+                marker=MODEL_MARKER[m],
+                facecolors="none",
+                edgecolors=colour,
+                linewidths=0.8,
+                alpha=0.85,
+                zorder=2,
+            )
+            axm.scatter(
+                [means[m]],
+                [i],
+                s=MODEL_SIZE[m] * 1.5,
+                marker=MODEL_MARKER[m],
+                color=colour,
+                edgecolors=t["surface"],
+                linewidths=0.8,
+                zorder=3,
+            )
+    axm.set_xlim(min(values) - 0.35, max(values) + 0.35)
+    axm.tick_params(labelleft=False)
+    axm.grid(axis="y", visible=False)
+    for i in range(1, len(subsets)):
+        axm.axhline(i - 0.5, color=plt.rcParams["grid.color"], linewidth=0.6, zorder=0)
+    axm.set_xlabel("Test RMSE (cycles): mean of 3 repeats; small: each repeat")
+    return fig
+
+
+def fig_comparison_folds(ctx: Context, t: dict) -> Figure:
+    """Supporting detail for the evaluation notes: every single fold model and every repeat's
+    five-fold ensemble, so the gain from averaging and the repeat spread are visible."""
+    subsets = ctx.subsets
+    stats = {s: ctx.singles(s) for s in subsets}
+    means = {s: {m: float(np.mean(stats[s][m]["averages"])) for m in MODELS} for s in subsets}
+    fig = plt.figure(figsize=(WIDTH, 1.25 + 0.62 * len(subsets)))
+    y = _header(fig, t, "Test RMSE of every single fold model and every five-fold ensemble")
+    neutral = t["text2"]
+    handles = [
+        *_identity_handles(t),
+        Line2D([], [], marker="o", linestyle="", markersize=5.5, color=neutral),
+        Line2D(
+            [],
+            [],
+            marker="o",
+            linestyle="",
+            markersize=5,
+            markerfacecolor="none",
+            markeredgecolor=neutral,
+        ),
+    ]
+    labels = ["LSTM", "LightGBM", "five-fold ensemble, one per repeat", "single fold model"]
+    y = _legend(fig, handles, labels, y, ncols=4)
+    ax = fig.add_subplot(
+        fig.add_gridspec(
+            1, 1, left=0.075, right=0.985, top=y - 0.03, bottom=0.6 / fig.get_figheight()
+        )[0]
+    )
     rng = np.random.default_rng(0)
     values = [v for s in subsets for m in MODELS for v in stats[s][m]["singles"]]
     low, high = min(values) - 0.35, max(values) + 1.15
@@ -698,58 +768,9 @@ def fig_comparison(ctx: Context, t: dict) -> Figure:
             )
     ax.set_xlim(low, high)
     _rows(ax, subsets)
-    ax.set_xlabel("Test RMSE (cycles; truth capped at 125). Right: mean of the three ensembles")
-    ax.set_title(
-        "Lower is better; the lower mean is in bold",
-        fontsize=8.5,
-        weight="normal",
-        color=t["text2"],
-    )
-
-    for i, s in enumerate(subsets):
-        d = diffs[s]
-        significant = d["ci_low"] > 0 or d["ci_high"] < 0
-        axd.errorbar(
-            d["difference"],
-            i,
-            xerr=[[d["difference"] - d["ci_low"]], [d["ci_high"] - d["difference"]]],
-            fmt="o",
-            markersize=6,
-            color=t["text2"],
-            ecolor=t["text2"],
-            elinewidth=1.3,
-            capsize=0,
-            markerfacecolor=t["text"] if significant else t["surface"],
-            markeredgecolor=t["text"],
-        )
-    axd.axvline(0, color=t["muted"], lw=0.9)
-    span = max(abs(diffs[s][k]) for s in subsets for k in ("ci_low", "ci_high")) * 1.15
-    axd.set_xlim(-span, span)
-    axd.text(
-        0.02,
-        1.01,
-        "← LSTM lower",
-        transform=axd.transAxes,
-        fontsize=7.5,
-        color=t["muted"],
-        va="bottom",
-    )
-    axd.text(
-        0.98,
-        1.01,
-        "LightGBM lower →",
-        transform=axd.transAxes,
-        fontsize=7.5,
-        color=t["muted"],
-        va="bottom",
-        ha="right",
-    )
-    axd.tick_params(labelleft=False)
-    axd.grid(axis="y", visible=False)
-    for i in range(1, len(subsets)):
-        axd.axhline(i - 0.5, color=plt.rcParams["grid.color"], linewidth=0.7, zorder=0)
-    axd.set_xlabel("LSTM minus LightGBM, 95% paired\nbootstrap (filled: excludes 0)")
-    return _save(fig, out_dir, "comparison", theme)
+    cap = next(iter(ctx.runs.values()))["metrics"]["config"]["max_rul"]
+    ax.set_xlabel(f"Test RMSE (cycles; truth capped at {cap})")
+    return fig
 
 
 # --------------------------------------------------------------------------------------------
