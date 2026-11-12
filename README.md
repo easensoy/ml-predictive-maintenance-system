@@ -71,6 +71,16 @@ Each cell is LSTM / LightGBM, the mean over 3 repeats; bold marks the lower valu
 
 <sub>Left, the principal comparison: the paired difference with its 95% engine-bootstrap interval, filled where the interval excludes zero. Right, each model's RMSE: large markers are the mean of the three repeat ensembles, small ones each repeat. Single fold models are in the evaluation notes.</sub>
 
+### How to read the results
+
+<!-- reading:start -->
+- **Test endpoints.** Accuracy and intervals score one prediction per official test engine, at its last observed cycle, from each repeat's five-fold ensemble, averaged over 3 repeats. RMSE is against the true RUL capped at 125 cycles.
+- **Paired differences.** Each 95% CI is a paired engine-level bootstrap interval: it reflects which engines are in the test set, excludes repeat variability and is not corrected for the 16 comparisons.
+- **Coverage** is marginal: by true RUL it falls to 91% (LSTM, 76–100 cycles left) and 81% (LightGBM, 51–75 cycles left). An open-ended interval, one whose upper end reached the 125-cycle cap, means [lower, ∞).
+- **Width.** The LSTM's intervals are narrower by 2 to 20 cycles with open-ended intervals truncated at the cap, by 7 to 39 on engines where both intervals are closed, and by 6 to 35 over each model's own closed intervals, the only one of the three defined before the test labels were read.
+- **Alerts** are scored out of fold: every cycle of every cross-fitted training engine, predicted by the single fold model that never saw it. 48% (LSTM) and 47% (LightGBM) of first alerts come with more than 30 cycles left, false alarms by the label's definition when they fire. Counting only switch-offs in the last 30 cycles gives 0.16 to 0.24 (LightGBM) against 0.01 to 0.07 (LSTM); the five-fold ensembles on the held-out replay engines give 0.17 to 0.31 against 0.00 to 0.13. The LSTM alone misses engines (1.7 of 224 FD004 engines per repeat).
+<!-- reading:end -->
+
 The [full results](predictive-maintenance/docs/evaluation.md#full-results) add the PHM08 score,
 RMSE against the uncapped RUL, every paired difference, alert calibration, and whole-life
 statistics for the single fold models and for the ensembles on the replay holdout.
