@@ -1022,7 +1022,7 @@ def fig_alerts(ctx: Context, t: dict) -> Figure:
         Line2D([], [], color=t["text"], marker="|", linestyle="", markersize=10, mew=1.6),
         Line2D([], [], color=t["alert"], lw=1.3),
     ]
-    labels = ["LSTM", "LightGBM", "Median", f"{horizon}-cycle horizon"]
+    labels = ["LSTM", "LightGBM", "median", f"{horizon}-cycle horizon"]
     y = _legend(fig, handles, labels, y, ncols=len(handles))
     grid = fig.add_gridspec(
         1,
@@ -1054,7 +1054,8 @@ def fig_alerts(ctx: Context, t: dict) -> Figure:
             ax_lead.scatter(
                 shown,
                 row + rng.uniform(-0.09, 0.09, len(leads)),
-                s=7,
+                s=7 if model == "lstm" else 6,
+                marker=MODEL_MARKER[model],
                 color=colour,
                 alpha=0.55,
                 linewidths=0,
@@ -1092,8 +1093,8 @@ def fig_alerts(ctx: Context, t: dict) -> Figure:
                 f["mean"],
                 row,
                 xerr=f["sd"] or 0,
-                fmt="o",
-                markersize=5.5,
+                fmt=MODEL_MARKER[model],
+                markersize=5.5 if model == "lstm" else 4.6,
                 color=colour,
                 markeredgecolor=t["surface"],
                 elinewidth=1.3,
