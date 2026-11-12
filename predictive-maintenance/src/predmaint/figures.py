@@ -62,7 +62,6 @@ from predmaint.calibration import covered  # noqa: E402
 from predmaint.config import PROJECT_ROOT, SUBSETS, Settings  # noqa: E402
 from predmaint.data import SENSOR_INFO  # noqa: E402
 from predmaint.gallery import RUL_LABELS  # noqa: E402
-from predmaint.inference import Predictor  # noqa: E402
 from predmaint.report import (  # noqa: E402
     closed_widths,
     coverage_by_rul,
@@ -1269,21 +1268,15 @@ def fig_alert_calibration(ctx: Context, t: dict) -> Figure:
 # Attribution
 
 
-def fig_attribution(run: dict, t: dict, out_dir: Path, theme: str) -> Path:
-    predictor = Predictor(run["dir"])
-    contract = predictor.contract
-    state = hero_state(run["dir"])
-    unit, cycle = state["unit"], state["cycle"]
-    replay = pd.read_csv(run["dir"] / "replay.csv")
-    engine = replay[replay["unit"] == unit].sort_values("cycle")
-    history = engine[engine["cycle"] <= cycle]
-    window = contract.window_from_readings(history)
-    attributions = predictor.explain(window)
-    symbols = [SENSOR_INFO[s][0] for s in contract.sensors]
-    cycles = history["cycle"].to_numpy()[-contract.window :]
-    if len(cycles) < contract.window:  # padded window: the padded rows repeat the first cycle
-        cycles = np.r_[np.full(contract.window - len(cycles), cycles[0]), cycles]
-    member_windows = sorted(int(m.window) for m in predictor.model.members)  # type: ignore[arg-type]
+def fig_attribution(ctx: Context, t: dict) -> Figure | None:
+    attribution = ctx.attribution()
+    if attribution is None:
+        return None
+    unit = attribution["unit"]
+    attributions = attribution["attributions"]
+    symbols = attribution["symbols"]
+    cycles = attribution["cycles"]
+    member_windows = attribution["member_windows"]
     shortest = member_windows[0]
     long_members = sum(w > shortest for w in member_windows)
 
