@@ -27,12 +27,11 @@ An LSTM on raw sensor windows and LightGBM on per-sensor window statistics predi
 
 - **A controlled comparison.** An LSTM reading raw sensor windows and LightGBM reading four
   statistics per sensor over the same windows share the engine-disjoint folds, the
-  inner-validation window selection, the interval construction and the alert calibration. The
-  comparison is therefore between two model families under one protocol, not between protocols.
-- **Point prediction, intervals and alerts evaluated separately.** Error against the capped
-  target; empirical coverage, open-ended share and width of the intervals; and the alert's
-  ranking, calibration, threshold decisions and temporal stability. Each result names the
-  population it is measured on.
+  inner-validation window selection, the interval construction and the alert calibration, so the
+  comparison is between two model families under one protocol.
+- **Three targets, evaluated separately.** Error against the capped target; empirical coverage,
+  open-ended share and width of the intervals; and the alert's ranking, calibration, threshold
+  decisions and temporal stability, each on a named population.
 - **Auditable artifacts.** `predmaint.audit` recomputes every metric in `metrics.json` from the
   committed predictions, rebuilds every test interval from the fold models' raw quantile outputs
   and the stored conformity scores, regenerates every generated block of the documents, rechecks
