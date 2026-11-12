@@ -779,19 +779,18 @@ def fig_comparison_folds(ctx: Context, t: dict) -> Figure:
 # Uncertainty
 
 
-def _coverage_title(runs: dict, by_rul: pd.DataFrame, nominal: float) -> str:
-    coverage = [
-        100 * runs[s]["metrics"]["test"]["models"][m]["summary"]["coverage"]["mean"]
-        for s in runs
-        for m in MODELS
-    ]
-    worst = by_rul.iloc[int(np.argmin(by_rul["coverage"].to_numpy()))]
-    head = f"Test coverage is {_span_text(coverage, '.0f', '%')} at nominal {nominal:.0f}%"
-    if 100 * worst["coverage"] >= nominal:
-        return f"{head} on every subset and at every remaining life"
-    return (
-        f"{head}, but {100 * worst['coverage']:.0f}% for engines {worst['bin']} cycles from failure"
-    )
+def _open_share_by_rul(ctx: Context) -> pd.DataFrame:
+    """Share of open-ended test intervals per model and true-RUL band, all subsets pooled, mean
+    over repeats (a descriptive summary defined after the test labels were read)."""
+    from predmaint.gallery import RUL_BINS
+
+    def build() -> pd.DataFrame:
+        test = pd.concat([run["test"] for run in ctx.runs.values()], ignore_index=True)
+        test["bin"] = pd.cut(test["rul_true"], RUL_BINS, labels=RUL_LABELS).astype(str)
+        share = test.groupby(["model", "bin", "repeat"])["open_ended"].mean()
+        return share.groupby(level=["model", "bin"]).mean().rename("share").reset_index()
+
+    return ctx.memo("open_by_rul", build)
 
 
 def fig_uncertainty(runs: dict, t: dict, out_dir: Path, theme: str) -> Path:
