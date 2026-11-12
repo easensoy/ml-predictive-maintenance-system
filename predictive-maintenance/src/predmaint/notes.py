@@ -934,6 +934,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--subset", default="FD001")
     parser.add_argument("--out", type=Path, default=EVAL_DIR)
     args = parser.parse_args(argv)
+    if args.claude and args.max_spend_usd is None:
+        parser.error("--claude needs --max-spend-usd, the most this run may spend in USD")
+    if args.max_spend_usd is not None and args.max_spend_usd <= 0:
+        parser.error("--max-spend-usd must be positive")
+    if min(args.max_tokens, args.repeats) < 1 or args.repeat_cases < 0:
+        parser.error("--max-tokens and --repeats must be at least 1, --repeat-cases at least 0")
+    if args.max_cases is not None and args.max_cases < 1:
+        parser.error("--max-cases must be at least 1")
     args.out.mkdir(parents=True, exist_ok=True)
     cases_path = args.out / "cases.json"
     if args.command == "cases":
@@ -945,6 +953,14 @@ def main(argv: list[str] | None = None) -> int:
     template_notes = {c["case_id"]: template_note(c) for c in cases}
     template = evaluate(cases, template_notes)
     recorded_path = args.out / "claude-responses.jsonl"
+    run = RunConfig(
+        model=args.model,
+        effort=args.effort,
+        max_tokens=args.max_tokens,
+        repeat_cases=args.repeat_cases,
+        repeats=args.repeats,
+        max_cases=args.max_cases,
+    )
     if args.claude:
         run_claude(cases, recorded_path)
     recorded = load_recorded(recorded_path)
