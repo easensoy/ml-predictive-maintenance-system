@@ -285,8 +285,12 @@ class Predictor:
         }
 
     def _baseline_point(self) -> float:
-        zeros = np.zeros((1, self.contract.window, self.contract.n_features), np.float32)
-        return float(self.predict_windows(zeros)["point"][0])
+        """The ensemble's point RUL for the reference window, every scaled reading at its
+        regime's training mean. It is fixed for a loaded model, so it is computed once."""
+        if self._reference_point is None:
+            zeros = np.zeros((1, self.contract.window, self.contract.n_features), np.float32)
+            self._reference_point = float(self.predict_windows(zeros)["point"][0])
+        return self._reference_point
 
     def info(self) -> dict:
         """What the dashboard and /api/model-info show: the served model's own numbers."""
