@@ -178,6 +178,7 @@ def main(argv: list[str] | None = None) -> int:
         print(out)
     detail = _get(f"{base}/api/engines/{unit}")
     info = _get(f"{base}/api/model-info")
+    fleet = _get(f"{base}/api/fleet")
     shown = detail["history"][-1]
     if shown["cycle"] != cycle:
         raise SystemExit(f"The replay moved: showing cycle {shown['cycle']}, expected {cycle}")
@@ -196,6 +197,24 @@ def main(argv: list[str] | None = None) -> int:
         "interval": info["interval"],
         "horizon_cycles": info["alert_cycles"],
         "page": f"/?engine={unit}&only=fleet&theme=light|dark",
+        "fleet": [
+            {
+                key: engine[key]
+                for key in (
+                    "unit",
+                    "cycle",
+                    "total_cycles",
+                    "rul_true",
+                    "point",
+                    "lower",
+                    "upper",
+                    "open_ended",
+                    "probability",
+                    "status",
+                )
+            }
+            for engine in fleet["engines"]
+        ],
         "viewport_css_px": list(VIEWPORT),
         "device_scale_factor": SCALE,
         "browser": Path(browser).stem,
