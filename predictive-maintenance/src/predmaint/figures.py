@@ -107,6 +107,7 @@ THEMES = {
 }
 WIDTH = 8.0  # inches
 DPI = 240
+NOTE_CHARS = 150  # characters per note line at 7.5 pt across the 8-inch width
 MODELS = ("lstm", "lightgbm")
 MODEL_LABEL = {"lstm": "LSTM", "lightgbm": "LightGBM"}
 MODEL_SLOT = {"lstm": 0, "lightgbm": 2}
@@ -157,45 +158,26 @@ def _style(t: dict) -> None:
     )
 
 
-def _fit(fig, text, width: float = 0.976, smallest: float = 9.5) -> None:
-    """Shrink a title until it fits the figure width, so a data-driven title is never clipped."""
-    renderer = fig.canvas.get_renderer()
-    while (
-        text.get_fontsize() > smallest
-        and text.get_window_extent(renderer).width > width * fig.bbox.width
-    ):
-        text.set_fontsize(text.get_fontsize() - 0.25)
-
-
-def _header(fig, t: dict, title: str, subtitle: str = "") -> float:
-    """A finding-led title, and at most a short context line, in the top margin; returns the
-    figure fraction just below them. Method details belong in the caption next to the figure."""
+def _header(fig, t: dict, title: str, note: str = "") -> float:
+    """A short title naming what is shown, and at most one line of context, in the top margin;
+    returns the figure fraction just below them. Findings and reading notes belong in the
+    caption next to the figure, not here."""
     h = fig.get_figheight()
-    heading = fig.text(
-        0.012,
-        1 - 0.07 / h,
-        title,
-        ha="left",
-        va="top",
-        fontsize=11.5,
-        weight="semibold",
-        color=t["text"],
-    )
-    _fit(fig, heading)
-    if not subtitle:
-        return 1 - 0.38 / h
-    subtitle = textwrap.fill(" ".join(subtitle.split()), SUBTITLE_CHARS)
+    fig.text(0.012, 1 - 0.07 / h, title, ha="left", va="top", fontsize=10, weight="semibold")
+    if not note:
+        return 1 - 0.34 / h
+    note = textwrap.fill(" ".join(note.split()), NOTE_CHARS)
     fig.text(
         0.012,
-        1 - 0.34 / h,
-        subtitle,
+        1 - 0.29 / h,
+        note,
         ha="left",
         va="top",
-        fontsize=8.5,
+        fontsize=7.5,
         color=t["text2"],
-        linespacing=1.35,
+        linespacing=1.3,
     )
-    return 1 - (0.34 + 0.16 * (subtitle.count("\n") + 1) + 0.06) / h
+    return 1 - (0.36 + 0.14 * (note.count("\n") + 1)) / h
 
 
 def _span_text(values: list[float], spec: str, unit: str = "") -> str:
@@ -220,7 +202,7 @@ def _legend(fig, handles: list, labels: list[str], top: float, ncols: int) -> fl
         borderaxespad=0,
         borderpad=0,
     )
-    return top - (0.2 * rows + 0.12) / fig.get_figheight()
+    return top - (0.18 * rows + 0.1) / fig.get_figheight()
 
 
 def _save(fig, out_dir: Path, name: str, theme: str) -> Path:
