@@ -730,7 +730,7 @@ def fig_comparison_folds(ctx: Context, t: dict) -> Figure:
     )
     rng = np.random.default_rng(0)
     values = [v for s in subsets for m in MODELS for v in stats[s][m]["singles"]]
-    low, high = min(values) - 0.35, max(values) + 1.15
+    low, high = min(values) - 0.35, max(values) + 1.25
     for i, s in enumerate(subsets):
         best = min(means[s], key=lambda m: means[s][m])
         for m in MODELS:
@@ -740,17 +740,19 @@ def fig_comparison_folds(ctx: Context, t: dict) -> Figure:
             ax.scatter(
                 singles,
                 row + rng.uniform(-0.07, 0.07, len(singles)),
-                s=17,
+                s=14,
+                marker=MODEL_MARKER[m],
                 facecolors="none",
                 edgecolors=colour,
-                linewidths=0.9,
+                linewidths=0.8,
                 alpha=0.9,
                 zorder=2,
             )
             ax.scatter(
                 stats[s][m]["averages"],
                 np.full(len(stats[s][m]["averages"]), row),
-                s=38,
+                s=MODEL_SIZE[m] * 1.2,
+                marker=MODEL_MARKER[m],
                 color=colour,
                 edgecolors=t["surface"],
                 linewidths=0.8,
@@ -762,7 +764,7 @@ def fig_comparison_folds(ctx: Context, t: dict) -> Figure:
                 f"{MODEL_LABEL[m]} {means[s][m]:.2f}",
                 ha="right",
                 va="center",
-                fontsize=8,
+                fontsize=7.5,
                 color=t["text"] if m == best else t["text2"],
                 weight="semibold" if m == best else "normal",
             )
