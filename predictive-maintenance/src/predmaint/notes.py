@@ -962,8 +962,16 @@ def main(argv: list[str] | None = None) -> int:
         max_cases=args.max_cases,
     )
     if args.claude:
-        run_claude(cases, recorded_path)
-    recorded = load_recorded(recorded_path)
+        status = run_claude(cases, recorded_path, run=run, max_spend_usd=args.max_spend_usd)
+        stopped = f"; {status['stopped']}" if status["stopped"] else ""
+        print(
+            f"Claude: made {status['made']} of {status['to_call']} calls, "
+            f"${status['spent_usd']:.4f} by the usage counts{stopped}"
+        )
+    if args.claude or args.regrade:
+        recorded = recorded_for(cases, run, recorded_path)
+    else:
+        recorded = load_recorded(recorded_path)
     claude = claude_summary(cases, recorded) if recorded else None
     write_report(cases, template, claude, args.out)
     export_human_review(cases, template_notes, args.out / "human-review-template.csv")
