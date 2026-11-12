@@ -43,7 +43,23 @@ from predmaint.config import PROJECT_ROOT, Settings
 
 EVAL_DIR = PROJECT_ROOT / "docs" / "notes-eval"
 MODEL = "claude-opus-5-5"
-PRICE_PER_MTOK = {"input": 4.00, "output": 20.00}  # USD for MODEL
+EFFORTS = ("low", "medium", "high", "xhigh", "max")
+EFFORT = "medium"  # the default level on claude-opus-5-5, sent explicitly
+# The ceiling on each response's output, thinking included: thinking is always on for MODEL and
+# counts toward max_tokens. It bounds what a call can cost; the bill is usage.output_tokens.
+# About 16,000 is the documented default for non-streaming requests such as these.
+MAX_TOKENS = 16_000
+REPEAT_CASES, REPEATS = 30, 3
+FALLBACK_BETA = "server-side-fallback-2026-07-01"  # the header that fallbacks="default" needs
+# USD per million tokens, copied from the Claude API reference bundled with Claude Code (models
+# table cached 2026-10-06) and not re-checked against the pricing page: check it before a paid
+# run. claude-opus-5 and claude-opus-4-8 are the fallback targets that reference expects for
+# claude-opus-5-5. A model missing here cannot be run, because its cost cannot be bounded.
+PRICE_PER_MTOK = {
+    "claude-opus-5-5": {"input": 4.00, "output": 20.00},
+    "claude-opus-5": {"input": 5.00, "output": 25.00},
+    "claude-opus-4-8": {"input": 5.00, "output": 25.00},
+}
 MAX_WIDTH = 80  # cycles: a wider closed interval is too uncertain to plan maintenance on
 WORDS = 80
 ABSTAIN_MARKER = "no maintenance estimate"
