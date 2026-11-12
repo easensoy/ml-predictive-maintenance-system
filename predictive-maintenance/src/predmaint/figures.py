@@ -1,21 +1,34 @@
-"""Render the README figures from trained artifacts, in a light and a dark variant.
+"""Render the figures from trained artifacts, in a light and a dark variant.
 
-    python -m predmaint.figures                     # artifacts/ -> docs/figures/
-    python -m predmaint.figures --out /tmp/figures
+    python -m predmaint.figures hero --draft        # preview one figure: light, 110 dpi, .cache/
+    python -m predmaint.figures                     # release: every figure, both themes, 240 dpi
+    python -m predmaint.figures --changed           # release, skipping figures that are current
+    python -m predmaint.figures --out /tmp/figures  # rebuild every figure elsewhere (CI)
+    python -m predmaint.figures --list              # the figure names
 
 Every number in every figure is read or computed from ``artifacts/<subset>/``: nothing is typed
-in by hand. Figures are drawn 8 inches wide at 240 dpi, so that scaled to the 850-1000 pixels of a
-GitHub README no text is smaller than about 11 pixels. Each colour has one meaning throughout:
+in by hand. Release figures are 8 inches wide at 240 dpi, so that at the 850-1000 pixels of a
+GitHub README no text is smaller than about 11 pixels. Drafts go to ``.cache/figure-drafts/``,
+never to ``docs/figures``.
 
-- blue: the LSTM, its prediction and its interval; green: LightGBM (slots 1 and 3 of the
-  validated reference palette; orange, slot 2, is kept for alerts);
-- grey: the truth, solid for the benchmark target (RUL capped at 125 cycles) and dashed for the
-  actual remaining life;
-- orange: the alert and the 30-cycle alert horizon;
-- the red/blue diverging pair with a grey midpoint: attributions.
+One visual system runs through every figure:
 
-Each title states the figure's finding and is computed from the artifacts, so it cannot
-drift from the data; how to read a figure is in the caption next to it in the README.
+- **Identity.** The LSTM is blue with round markers and solid lines; LightGBM is green with
+  diamond markers and dashed lines, so neither depends on colour alone (the pair passes a
+  colour-vision-deficiency check against both backgrounds). Grey is the truth: solid for the
+  capped target, dashed for the actual remaining life. Orange is the alert and its 30-cycle
+  horizon. Red marks a failure: the truth outside the interval, or an attribution that ranks
+  worse than chance. The red/blue diverging pair with a grey midpoint is for attributions.
+- **Hierarchy.** A short title names what is shown; the finding and how to read the figure are
+  in the Markdown caption beside it. Panels carry small titles, series are labelled directly
+  where that removes a legend, and statistics are annotated compactly.
+
+Each rendering run loads every artifact once and shares it between the figures and both
+themes. The attribution map behind ``attribution`` is computed once and cached in ``.cache/``
+under a key that covers the model, its inputs and the source code, so redrawing the layout does
+not load PyTorch. ``--changed`` skips a figure only when its key (inputs, source code, theme,
+resolution and library versions) matches the last render and the image on disk is the one that
+render wrote.
 
 The dashboard screenshots are not drawn here: ``python -m predmaint.screenshots`` captures them.
 """
