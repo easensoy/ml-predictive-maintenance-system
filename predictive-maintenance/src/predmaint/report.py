@@ -1413,6 +1413,7 @@ def dashboard_block(artifacts: Path) -> str:
 BLOCKS = {
     "headline": lambda artifacts: headline_block(artifacts),
     "findings": lambda artifacts: findings_block(artifacts),
+    "reading": lambda artifacts: reading_block(artifacts),
     "summary-table": lambda artifacts: summary_table_block(artifacts),
     "results": lambda artifacts: results_block(artifacts),
     "summary": lambda artifacts: summary_block(artifacts),
