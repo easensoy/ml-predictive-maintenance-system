@@ -415,13 +415,29 @@ def response_cost_usd(row: dict) -> float | None:
     return total
 
 
-def claude_note(client: Any, record: dict, effort: str = "medium") -> dict:
-    """One Claude note, with its latency, token usage and stop reason."""
+def claude_note(
+    client: Any,
+    record: dict,
+    effort: str = EFFORT,
+    *,
+    model: str = MODEL,
+    max_tokens: int = MAX_TOKENS,
+    repetition: int = 0,
+) -> dict:
+    """One Claude note, with its cache key, latency, billed token counts and stop reason."""
+    request = claude_request(record, effort, model, max_tokens)
     started = time.perf_counter()
-    response = client.beta.messages.create(**claude_request(record, effort))
+    response = client.beta.messages.create(**request)
+    served = getattr(response, "model", None) or model
+    usage = response.usage
     result: dict[str, Any] = {
         "case_id": record["case_id"],
-        "model": getattr(response, "model", MODEL),
+        "cache_key": cache_key(request, record["case_id"], repetition),
+        "repetition": repetition,
+        "requested_model": model,
+        "effort": effort,
+        "max_tokens": max_tokens,
+        "model": served,
         "stop_reason": response.stop_reason,
         "latency_s": round(time.perf_counter() - started, 3),
         "input_tokens": response.usage.input_tokens,
