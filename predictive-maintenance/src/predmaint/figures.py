@@ -1313,12 +1313,13 @@ def fig_attribution(ctx: Context, t: dict) -> Figure | None:
     ax_heat.set_yticks(range(len(symbols)), symbols, fontsize=7.5)
     ticks = np.arange(len(cycles) - 1, -1, -10)[::-1]
     ax_heat.set_xticks(ticks, cycles[ticks])
-    ax_heat.set_xlabel(f"Cycle (the model's {contract.window}-cycle input window)")
+    window = attributions.shape[0]
+    ax_heat.set_xlabel(f"Cycle (the model's {window}-cycle input window)")
     ax_heat.grid(False)
     for spine in ax_heat.spines.values():
         spine.set_visible(False)
-    if long_members and shortest < contract.window:
-        edge = contract.window - shortest - 0.5
+    if long_members and shortest < window:
+        edge = window - shortest - 0.5
         ax_heat.axvline(edge, color=t["text"], lw=1, linestyle=(0, (2, 2)))
         ax_heat.text(
             edge + 0.6,
@@ -1339,7 +1340,7 @@ def fig_attribution(ctx: Context, t: dict) -> Figure | None:
         fontsize=8,
     )
 
-    order = ranked[:10][::-1]
+    order = np.argsort(-np.abs(totals))[:10][::-1]
     colours = [t["div"][0] if v < 0 else t["div"][2] for v in totals[order]]
     ax_bar.barh(range(len(order)), totals[order], color=colours, height=0.6)
     ax_bar.set_yticks(range(len(order)), [symbols[i] for i in order], fontsize=7.5)
@@ -1358,8 +1359,8 @@ def fig_attribution(ctx: Context, t: dict) -> Figure | None:
         )
     ax_bar.grid(axis="y", visible=False)
     ax_bar.set_xlabel("Net effect per sensor (cycles)")
-    ax_bar.set_title("Ten largest sensor totals", fontsize=9)
-    return _save(fig, out_dir, "attribution", theme)
+    ax_bar.set_title("Ten largest sensor totals")
+    return fig
 
 
 # --------------------------------------------------------------------------------------------
