@@ -1387,14 +1387,26 @@ def dashboard_block(artifacts: Path) -> str:
     interval = (
         f"at least {s['lower']:.0f}" if s["open_ended"] else f"{s['lower']:.0f} to {s['upper']:.0f}"
     )
+    fleet = s.get("fleet") or []
+    counts = {
+        status: sum(e["status"] == status for e in fleet)
+        for status in ("alert", "watch", "healthy", "failed")
+    }
+    words = {"alert": "in alert", "watch": "on watch", "healthy": "healthy", "failed": "failed"}
+    mix = _and(
+        [f"{n} {'is' if n == 1 else 'are'} {words[status]}" for status, n in counts.items() if n]
+    )
     return (
-        f"Both captures show the same replay state: {s['subset']} replay engine {s['unit']} at "
-        f"cycle {s['cycle']} of {s['total_cycles']}, the cycle at which its alert first fires "
-        f"(the hero figure shows its whole life). The dashboard predicts {s['point']:.0f} cycles "
-        f"(nominal {100 * s['interval']:.0f}% interval {interval}) and a {s['probability']:.0%} "
-        f"probability of failure within {s['horizon_cycles']} cycles; the true RUL, known because "
-        f"the simulated engine ran to failure, is {s['rul_true']}. These are the numbers in that "
-        "engine's row of `replay-holdout.csv.gz`, which `predmaint.audit` checks."
+        f"Both captures show one replay tick of the {s['subset']} fleet: the tick at which engine "
+        f"{s['unit']}'s alert first fires, at cycle {s['cycle']} of {s['total_cycles']} (its "
+        "row is highlighted; the hero figure shows its whole life)"
+        + (f". Of the {len(fleet)} replayed engines, {mix}" if fleet else "")
+        + f". Engine {s['unit']} is predicted at {s['point']:.0f} cycles (nominal "
+        f"{100 * s['interval']:.0f}% interval {interval}) with a {s['probability']:.0%} "
+        f"probability of failure within {s['horizon_cycles']} cycles; its true RUL, known "
+        f"because the simulated engine ran to failure, is {s['rul_true']}. Every row is the "
+        "evaluated prediction in `replay-holdout.csv.gz` for that engine and cycle, which "
+        "`predmaint.audit` checks."
     )
 
 
