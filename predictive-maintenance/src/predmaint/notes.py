@@ -33,6 +33,7 @@ import os
 import re
 import statistics
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -275,6 +276,20 @@ def evaluate(cases: list[dict], notes: dict[str, dict]) -> dict:
 
 # --------------------------------------------------------------------------------------------
 # Claude
+
+
+@dataclass(frozen=True)
+class RunConfig:
+    """One configuration of the Claude side. model, effort and max_tokens go into every request,
+    and so into its cache key; repeat_cases, repeats and max_cases pick the (case, repetition)
+    pairs that are called."""
+
+    model: str = MODEL
+    effort: str = EFFORT
+    max_tokens: int = MAX_TOKENS
+    repeat_cases: int = REPEAT_CASES
+    repeats: int = REPEATS
+    max_cases: int | None = None
 
 
 def claude_request(record: dict, effort: str = "medium") -> dict[str, Any]:
