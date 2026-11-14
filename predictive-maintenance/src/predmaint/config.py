@@ -12,6 +12,13 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SUBSETS = ("FD001", "FD002", "FD003", "FD004")
+# The documents whose generated blocks predmaint.report writes and predmaint.audit checks.
+DOCUMENTS = (
+    PROJECT_ROOT.parent / "README.md",
+    PROJECT_ROOT.parent / "MODEL_CARD.md",
+    PROJECT_ROOT / "docs" / "evaluation.md",
+    PROJECT_ROOT / "docs" / "serving.md",
+)
 
 
 def _parse_bool(raw: str) -> bool:

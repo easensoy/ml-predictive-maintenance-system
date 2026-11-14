@@ -25,11 +25,17 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from predmaint.audit import DOCUMENTS, SUBSETS
 from predmaint.calibration import _ranks, covered
-from predmaint.config import PROJECT_ROOT, Settings
-from predmaint.evaluate import BOOT_SEED, N_BOOT, _by_engine
-from predmaint.metrics import bootstrap_indices, mean_sd, percentile_interval, wilson_interval
+from predmaint.config import DOCUMENTS, PROJECT_ROOT, SUBSETS, Settings
+from predmaint.metrics import (
+    BOOT_SEED,
+    N_BOOT,
+    bootstrap_indices,
+    mean_sd,
+    percentile_interval,
+    wilson_interval,
+)
+from predmaint.metrics import by_engine as _by_engine
 
 START, END = "<!-- results:start -->", "<!-- results:end -->"
 LEDGER_START, LEDGER_END = "<!-- ledger:start -->", "<!-- ledger:end -->"
@@ -601,51 +607,50 @@ def _on(subsets: list[str], n: int) -> str:
     return f"all {n} subsets" if len(subsets) == n else _and(subsets)
 
 
+def _dash(values: list[float], spec: str) -> str:
+    """'30–31' or '30': a compact range for the opening, where every word counts."""
+    low, high = format(min(values), spec), format(max(values), spec)
+    return low if low == high else f"{low}–{high}"
+
+
 def headline_block(artifacts: Path) -> str:
-    """The two-sentence abstract under the README title: the task and the controlled
-    comparison, then the principal result."""
+    """The README abstract, at most 80 words: the controlled comparison, then the principal
+    result. Definitions and qualifications are in the reading block below the table."""
     f = _findings(artifacts)
     if f is None:
         return "_No evaluated runs yet._"
     n, k, clear = f["n"], len(f["lgbm_lower"]), f["significant"]
     task = (
-        "This repository compares an LSTM sequence model with LightGBM on per-sensor window "
-        "statistics for remaining-useful-life (RUL) prediction on NASA's simulated C-MAPSS "
-        "turbofan data, under one engine-disjoint cross-fitting protocol, and evaluates the "
-        f"point estimate, a nominal {f['nominal']:.0f}% prediction interval and a "
-        f"{f['horizon']}-cycle failure alert separately."
+        "An LSTM on raw sensor windows and LightGBM on per-sensor window statistics predict "
+        "remaining useful life on NASA's simulated C-MAPSS turbofans under one engine-disjoint "
+        f"cross-fitting protocol, scored separately on point error, nominal {f['nominal']:.0f}% "
+        f"intervals and a {f['horizon']}-cycle alert."
     )
     where = (
-        f"the paired engine-level bootstrap interval excludes zero only on {clear[0]}"
+        f"paired 95% interval excludes zero only on {clear[0]}"
         if len(clear) == 1
-        else f"the paired engine-level bootstrap interval excludes zero on {_and(clear)}"
+        else f"paired 95% intervals exclude zero on {_and(clear)}"
         if clear
-        else "no paired engine-level bootstrap interval excludes zero"
+        else "no paired 95% interval excludes zero"
     )
     if 2 * k >= n:
         accuracy = (
-            "LightGBM's point predictions are at least as accurate (lower test RMSE on "
-            f"{k} of {n} subsets; {where})"
+            f"LightGBM is at least as accurate (lower test RMSE on {k} of {n} subsets; {where})"
         )
     else:
-        accuracy = (
-            "The LSTM's point predictions are more accurate (lower test RMSE on "
-            f"{n - k} of {n} subsets; {where})"
-        )
+        accuracy = f"The LSTM is more accurate (lower test RMSE on {n - k} of {n} subsets; {where})"
     lstm = []
     if all(v > 0 for margins in _width_margins(f).values() for v in margins):
         similar = not any(_significant(d["coverage"]) for d in f["differences"].values())
-        lstm.append("narrower intervals" + (" at similar empirical coverage" if similar else ""))
+        lstm.append("narrower intervals" + (" at similar coverage" if similar else ""))
     if all(a < b for a, b in zip(f["flaps"]["lstm"], f["flaps"]["lightgbm"], strict=True)):
         missing = _missing(f)
         only = bool(missing["lstm"]) and not missing["lightgbm"]
         lstm.append(
-            "an alert that, out of fold, switches off before failure less often"
-            + (" but is the only one to miss engines" if only else "")
+            "an out-of-fold alert that switches off less often"
+            + (" but misses engines" if only else "")
         )
-    return f"{task} {accuracy}" + (
-        f", whereas the LSTM gives {' and '.join(lstm)}." if lstm else "."
-    )
+    return f"{task} {accuracy}" + (f"; the LSTM gives {' and '.join(lstm)}." if lstm else ".")
 
 
 def _miss_counts(f: dict[str, Any], model: str) -> str:
@@ -776,105 +781,112 @@ def summary_block(artifacts: Path) -> str:
 
 
 def findings_block(artifacts: Path) -> str:
-    """The three findings under the README hero, one principal result each, then the
-    populations, definitions and subsidiary statistics they rest on."""
+    """The three findings under the README hero, at most 35 words each, one principal result
+    apiece. Their populations, intervals and caveats are in the reading block."""
     f = _findings(artifacts)
     if f is None:
         return "_No evaluated runs yet._"
-    n, subsets, cap, horizon = f["n"], f["subsets"], f["cap"], f["horizon"]
-    rmse, clear = f["rmse"], f["significant"]
-    accuracy = f"LightGBM's test RMSE is lower on {len(f['lgbm_lower'])} of {n} subsets" + (
-        ", but the paired LSTM − LightGBM difference excludes zero "
-        + ("only " if len(clear) < n else "")
-        + "on "
-        + "; ".join(f"{s}: {_difference(rmse[s])}" for s in clear)
-        + "."
-        if clear
-        else "; no paired LSTM − LightGBM difference excludes zero."
-    )
-
-    pooled, worst = f["pooled"], f["worst_bin"]
+    n, clear, rmse = f["n"], f["significant"], f["rmse"]
+    lower = len(f["lgbm_lower"])
+    if clear:
+        detail = "; ".join(f"{s}: {_difference(rmse[s])}" for s in clear)
+        only = "only " if len(clear) < n else ""
+        accuracy = (
+            f"LightGBM's test RMSE is lower on {lower} of {n} subsets, but the paired difference "
+            f"excludes zero {only}on {detail}."
+        )
+    else:
+        accuracy = (
+            f"LightGBM's test RMSE is lower on {lower} of {n} subsets; no paired difference "
+            "excludes zero."
+        )
+    pooled = f["pooled"]
     engines = next(iter(pooled.values()))["engines"]
-    open_share = [100 * f["mean"][(s, m, "open_ended_share")] for s in subsets for m in NAMES]
-    margins = _width_margins(f)
+    shares = [100 * f["mean"][(s, m, "open_ended_share")] for s in f["subsets"] for m in NAMES]
+    narrower = all(v > 0 for values in _width_margins(f).values() for v in values)
     intervals = (
-        f"Pooled over {engines} test engines, empirical coverage of the nominal "
-        f"{f['nominal']:.0f}% intervals is "
+        f"Pooled over {engines} test engines, coverage of the nominal {f['nominal']:.0f}% "
+        "intervals is "
         + " and ".join(f"{100 * p['coverage']:.1f}% ({NAMES[m]})" for m, p in pooled.items())
-        + f", with {_span(open_share, '.0f')}% of intervals open-ended"
-    )
-    if all(v > 0 for values in margins.values() for v in values):
-        similar = not any(_significant(d["coverage"]) for d in f["differences"].values())
-        intervals += (
-            f"; the LSTM's intervals are narrower on all {n} subsets under each of three width "
-            "statistics" + (", at similar coverage" if similar else "")
-        )
-    intervals += "."
-
-    flaps = f["flaps"]
-    calmer = all(a < b for a, b in zip(flaps["lstm"], flaps["lightgbm"], strict=True))
-    alert_text = (
-        f"Out of fold, both alerts first fire a median {_span(f['lead'], '.0f')} cycles before "
-        "failure, "
+        + f", with {_dash(shares, '.0f')}% open-ended"
         + (
-            "but LightGBM's switches off again before failure "
-            f"{_span(flaps['lightgbm'], '.2f')} times per engine against "
-            f"{_span(flaps['lstm'], '.2f')} for the LSTM"
-            if calmer
-            else f"and the alert switches off again before failure {_span(flaps['lstm'], '.2f')} "
-            f"times per engine for the LSTM and {_span(flaps['lightgbm'], '.2f')} for LightGBM"
+            "; the LSTM's intervals are narrower on every subset under all three width statistics."
+            if narrower
+            else "."
         )
-        + f"; {_misses(f)}."
     )
-
-    late, replay = f["late_flaps"], _replay_flaps(f)
-    caption = (
-        "**Populations and definitions.** Accuracy and intervals are scored on the official "
-        "test endpoints: one prediction per "
-        "test engine, at its last observed cycle, from each repeat's five-fold ensemble, "
-        f"averaged over {f['repeats']} repeats. The 95% CIs are paired engine-level bootstrap "
-        f"intervals; they exclude repeat variability and are not corrected for the {4 * n} "
-        "comparisons. Coverage is marginal: by true RUL it falls to "
-        + " and ".join(
-            f"{100 * row['coverage']:.0f}% ({NAMES[m]}, {row['bin']} cycles left)"
-            for m, row in worst.items()
-        )
-        + "."
-        + (
-            f" The LSTM's intervals are narrower by {_span(margins['truncated'], '.0f')} cycles "
-            f"with open-ended intervals truncated at the {cap}-cycle cap, by "
-            f"{_span(margins['both_closed'], '.0f')} on engines where both intervals are closed, "
-            f"and by {_span(margins['own_closed'], '.0f')} over each model's own closed "
-            "intervals, the only one of the three statistics defined before the test labels were "
-            "read."
-            if all(v > 0 for values in margins.values() for v in values)
-            else ""
-        )
-        + "\n\nAlert dynamics are scored out of fold: every cycle of every cross-fitted training "
-        "engine, predicted by the single fold model that never saw it. Of the first alerts, "
-        f"{_early_share(f, 'lstm'):.0f}% (LSTM) and {_early_share(f, 'lightgbm'):.0f}% "
-        f"(LightGBM) come with more than {horizon} cycles left, false alarms at that moment by "
-        "the label's definition. A switch-off can end such an early "
-        f"alert; counting only switch-offs in the last {horizon} cycles gives "
-        f"{_span(late['lightgbm'], '.2f')} (LightGBM) against {_span(late['lstm'], '.2f')} "
-        "(LSTM)"
-        + (
-            ", and with the five-fold ensembles on the held-out replay engines, "
-            f"{_span(replay['lightgbm'], '.2f')} against {_span(replay['lstm'], '.2f')}"
-            if replay["lstm"] and replay["lightgbm"]
-            else ""
-        )
-        + "."
+    flaps, missing = f["flaps"], _missing(f)
+    if missing["lstm"] and not missing["lightgbm"]:
+        ending = ", but only the LSTM misses engines."
+    elif missing["lightgbm"] and not missing["lstm"]:
+        ending = ", but only LightGBM misses engines."
+    else:
+        ending = "."
+    alerts = (
+        f"Out of fold, both alerts first fire a median {_dash(f['lead'], '.0f')} cycles before "
+        f"failure; LightGBM's switches off again {_dash(flaps['lightgbm'], '.2f')} times per "
+        f"engine against the LSTM's {_dash(flaps['lstm'], '.2f')}{ending}"
     )
-    bullets = "\n".join(
+    return "\n".join(
         f"- **{head}** {text}"
         for head, text in (
             ("Point accuracy.", accuracy),
             ("Intervals.", intervals),
-            ("Alert dynamics.", alert_text),
+            ("Alert dynamics.", alerts),
         )
     )
-    return f"{bullets}\n\n{caption}"
+
+
+def reading_block(artifacts: Path) -> str:
+    """How to read the README's findings: the populations, what each interval covers, the
+    width statistics and the alert evidence, with the numbers the findings leave out."""
+    f = _findings(artifacts)
+    if f is None:
+        return "_No evaluated runs yet._"
+    n, cap, horizon = f["n"], f["cap"], f["horizon"]
+    worst, late, replay = f["worst_bin"], f["late_flaps"], _replay_flaps(f)
+    margins = _width_margins(f)
+    misses = _misses(f)
+    bullets = [
+        "**Test endpoints.** Accuracy and intervals score one prediction per official test "
+        "engine, at its last observed cycle, from each repeat's five-fold ensemble, averaged "
+        f"over {f['repeats']} repeats. RMSE is against the true RUL capped at {cap} cycles.",
+        "**Paired differences.** Each 95% CI is a paired engine-level bootstrap interval: it "
+        "reflects which engines are in the test set, excludes repeat variability and is not "
+        f"corrected for the {4 * n} comparisons.",
+        "**Coverage** is marginal: by true RUL it falls to "
+        + " and ".join(
+            f"{100 * row['coverage']:.0f}% ({NAMES[m]}, {row['bin']} cycles left)"
+            for m, row in worst.items()
+        )
+        + f". An open-ended interval, one whose upper end reached the {cap}-cycle cap, means "
+        "[lower, ∞).",
+    ]
+    if all(v > 0 for values in margins.values() for v in values):
+        bullets.append(
+            "**Width.** The LSTM's intervals are narrower by "
+            f"{_span(margins['truncated'], '.0f')} cycles with open-ended intervals truncated at "
+            f"the cap, by {_span(margins['both_closed'], '.0f')} on engines where both "
+            f"intervals are closed, and by {_span(margins['own_closed'], '.0f')} over each "
+            "model's own closed intervals, the only one of the three defined before the test "
+            "labels were read."
+        )
+    replay_text = (
+        "; the five-fold ensembles on the held-out replay engines give "
+        f"{_span(replay['lightgbm'], '.2f')} against {_span(replay['lstm'], '.2f')}"
+        if replay["lstm"] and replay["lightgbm"]
+        else ""
+    )
+    bullets.append(
+        "**Alerts** are scored out of fold: every cycle of every cross-fitted training engine, "
+        "predicted by the single fold model that never saw it. "
+        f"{_early_share(f, 'lstm'):.0f}% (LSTM) and {_early_share(f, 'lightgbm'):.0f}% "
+        f"(LightGBM) of first alerts come with more than {horizon} cycles left, false alarms by "
+        "the label's definition when they fire. Counting only switch-offs in the last "
+        f"{horizon} cycles gives {_span(late['lightgbm'], '.2f')} (LightGBM) against "
+        f"{_span(late['lstm'], '.2f')} (LSTM){replay_text}. {misses[0].upper()}{misses[1:]}."
+    )
+    return "\n".join(f"- {b}" for b in bullets)
 
 
 def _pair(values: Mapping[str, float], spec: str, lower_better: bool | None, unit: str = "") -> str:
@@ -915,16 +927,10 @@ def summary_table_block(artifacts: Path) -> str:
         )
     notes = (
         f"Each cell is LSTM / LightGBM, the mean over {f['repeats']} repeats; bold marks the "
-        "lower value where lower is better. The test columns score the official test endpoints: "
-        "one prediction per test engine, at its last observed cycle, from each repeat's "
-        f"five-fold ensemble. RMSE is against the true RUL capped at {f['cap']} cycles. Coverage "
-        "is the empirical, marginal share of test engines whose capped RUL lies in the nominal "
-        f"{f['nominal']:.0f}% interval, an open-ended interval counting as [lower, ∞); the next "
-        "column gives the share of such intervals. Width truncates open-ended intervals at the "
-        "cap, a summary defined after the test labels were read; the evaluation notes give two "
-        "other width statistics. The CI is a paired engine-level bootstrap interval. "
-        "Switch-offs are counted out of fold, over every cycle of every cross-fitted training "
-        "engine, for single fold models."
+        "lower value where lower is better. Test columns score the official test endpoints; "
+        "coverage reads an open-ended interval as [lower, ∞), and width truncates it at the "
+        f"{f['cap']}-cycle cap (a summary defined after the test labels were read). Switch-offs "
+        "are counted out of fold, for single fold models."
     )
 
     def better(key: str, lgbm_wins: bool) -> list[str]:
@@ -1381,20 +1387,33 @@ def dashboard_block(artifacts: Path) -> str:
     interval = (
         f"at least {s['lower']:.0f}" if s["open_ended"] else f"{s['lower']:.0f} to {s['upper']:.0f}"
     )
+    fleet = s.get("fleet") or []
+    counts = {
+        status: sum(e["status"] == status for e in fleet)
+        for status in ("alert", "watch", "healthy", "failed")
+    }
+    words = {"alert": "in alert", "watch": "on watch", "healthy": "healthy", "failed": "failed"}
+    mix = _and(
+        [f"{n} {'is' if n == 1 else 'are'} {words[status]}" for status, n in counts.items() if n]
+    )
     return (
-        f"Both captures show the same replay state: {s['subset']} replay engine {s['unit']} at "
-        f"cycle {s['cycle']} of {s['total_cycles']}, the cycle at which its alert first fires "
-        f"(the hero figure shows its whole life). The dashboard predicts {s['point']:.0f} cycles "
-        f"(nominal {100 * s['interval']:.0f}% interval {interval}) and a {s['probability']:.0%} "
-        f"probability of failure within {s['horizon_cycles']} cycles; the true RUL, known because "
-        f"the simulated engine ran to failure, is {s['rul_true']}. These are the numbers in that "
-        "engine's row of `replay-holdout.csv.gz`, which `predmaint.audit` checks."
+        f"Both captures show one replay tick of the {s['subset']} fleet: the tick at which engine "
+        f"{s['unit']}'s alert first fires, at cycle {s['cycle']} of {s['total_cycles']} (its "
+        "row is highlighted; the hero figure shows its whole life)"
+        + (f". Of the {len(fleet)} replayed engines, {mix}" if fleet else "")
+        + f". Engine {s['unit']} is predicted at {s['point']:.0f} cycles (nominal "
+        f"{100 * s['interval']:.0f}% interval {interval}) with a {s['probability']:.0%} "
+        f"probability of failure within {s['horizon_cycles']} cycles; its true RUL, known "
+        f"because the simulated engine ran to failure, is {s['rul_true']}. Every row is the "
+        "evaluated prediction in `replay-holdout.csv.gz` for that engine and cycle, which "
+        "`predmaint.audit` checks."
     )
 
 
 BLOCKS = {
     "headline": lambda artifacts: headline_block(artifacts),
     "findings": lambda artifacts: findings_block(artifacts),
+    "reading": lambda artifacts: reading_block(artifacts),
     "summary-table": lambda artifacts: summary_table_block(artifacts),
     "results": lambda artifacts: results_block(artifacts),
     "summary": lambda artifacts: summary_block(artifacts),

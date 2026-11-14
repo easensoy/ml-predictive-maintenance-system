@@ -686,6 +686,17 @@ a {
   grid-template-columns: 1fr;
 }
 
+/* ?only=fleet: the fleet table alone, for the README screenshot. */
+.only-fleet .topbar,
+.only-fleet .kpis,
+.only-fleet .detail,
+.only-fleet .footer {
+  display: none;
+}
+.only-fleet .layout {
+  grid-template-columns: 1fr;
+}
+
 /* The provenance line under an engine's title: replayed, simulated data. */
 .detail-source {
   flex-basis: 100%;

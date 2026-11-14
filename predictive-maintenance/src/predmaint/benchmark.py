@@ -8,6 +8,10 @@ integrated gradients, one replay tick for the whole fleet, and one engine-detail
 attribution heatmap the dashboard shows for a watched engine). Inference runs on the CPU, as it
 does in the Docker image. The results set how many watched engines the replay re-explains per
 tick (see ``Settings.explain_per_tick``).
+
+The predictor reuses an attribution map when the same window is explained again. The
+attribution timings clear that cache before every timed call, so they measure the computation;
+``engine_detail_repeated_state`` measures the reuse separately.
 """
 
 import argparse
@@ -54,11 +58,21 @@ def cpu_name() -> str:
     return platform.processor() or platform.machine()
 
 
-def _time(fn: Callable[[], object], repeats: int, warmup: int = 3) -> dict:
+def _time(
+    fn: Callable[[], object],
+    repeats: int,
+    warmup: int = 3,
+    before: Callable[[], object] | None = None,
+) -> dict:
+    """Median and p95 of ``fn`` in milliseconds; ``before`` runs untimed ahead of every call."""
     for _ in range(warmup):
+        if before:
+            before()
         fn()
     samples = []
     for _ in range(repeats):
+        if before:
+            before()
         start = time.perf_counter()
         fn()
         samples.append(1000 * (time.perf_counter() - start))
@@ -82,10 +96,15 @@ def run(model_dir: Path, repeats: int) -> dict:
             lambda: predictor.predict_readings(history, explain=False), repeats
         ),
         "predict_with_integrated_gradients": _time(
-            lambda: predictor.predict_readings(history, explain=True), repeats
+            lambda: predictor.predict_readings(history, explain=True),
+            repeats,
+            before=predictor.clear_explanations,
         ),
         "replay_tick_whole_fleet": _time(fleet.step, repeats),
-        "engine_detail_with_attribution": _time(lambda: fleet.detail(fleet.units[0]), repeats),
+        "engine_detail_with_attribution": _time(
+            lambda: fleet.detail(fleet.units[0]), repeats, before=predictor.clear_explanations
+        ),
+        "engine_detail_repeated_state": _time(lambda: fleet.detail(fleet.units[0]), repeats),
     }
     return {
         "model": model_dir.name,

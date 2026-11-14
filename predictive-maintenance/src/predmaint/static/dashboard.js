@@ -616,12 +616,14 @@
     window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", rerender);
     window.addEventListener("resize", () => Object.values(state.charts).forEach((ch) => ch.resize()));
     setText("theme-label", effectiveTheme() === "dark" ? "Light" : "Dark");
-    // Deep link: ?engine=<unit> opens that engine; &only=detail shows just its panel, and
-    // &only=prediction just its prediction (the README screenshots use that).
+    // Deep link: ?engine=<unit> opens that engine; &only=detail shows just its panel,
+    // &only=prediction just its prediction, and &only=fleet just the fleet table (the README
+    // screenshots use that one).
     const params = new URLSearchParams(window.location.search);
     const only = params.get("only");
     if (only === "detail" || only === "prediction") document.body.classList.add("only-detail");
     if (only === "prediction") document.body.classList.add("only-prediction");
+    if (only === "fleet") document.body.classList.add("only-fleet");
     try {
       const [info, fleet] = await Promise.all([fetchJson("/api/model-info"), fetchJson("/api/fleet")]);
       renderInfo(info);

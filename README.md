@@ -5,46 +5,38 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 <!-- headline:start -->
-This repository compares an LSTM sequence model with LightGBM on per-sensor window statistics for remaining-useful-life (RUL) prediction on NASA's simulated C-MAPSS turbofan data, under one engine-disjoint cross-fitting protocol, and evaluates the point estimate, a nominal 90% prediction interval and a 30-cycle failure alert separately. LightGBM's point predictions are at least as accurate (lower test RMSE on 3 of 4 subsets; the paired engine-level bootstrap interval excludes zero only on FD002), whereas the LSTM gives narrower intervals at similar empirical coverage and an alert that, out of fold, switches off before failure less often but is the only one to miss engines.
+An LSTM on raw sensor windows and LightGBM on per-sensor window statistics predict remaining useful life on NASA's simulated C-MAPSS turbofans under one engine-disjoint cross-fitting protocol, scored separately on point error, nominal 90% intervals and a 30-cycle alert. LightGBM is at least as accurate (lower test RMSE on 3 of 4 subsets; paired 95% interval excludes zero only on FD002); the LSTM gives narrower intervals at similar coverage and an out-of-fold alert that switches off less often but misses engines.
 <!-- headline:end -->
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="predictive-maintenance/docs/figures/hero-dark.png">
-  <img alt="One held-out engine over its whole life: the predicted remaining useful life with its nominal 90% interval, the true RUL capped at 125 cycles and the actual remaining life above the cap, the cycles where the truth leaves the interval, and the probability of failure within 30 cycles crossing the alert threshold." src="predictive-maintenance/docs/figures/hero-light.png">
+  <img alt="One held-out engine over its whole life: the predicted remaining useful life with its nominal 90% interval, open-ended above the 125-cycle cap; the capped target and the actual remaining life; the cycles where the truth leaves the interval; and the probability of failure within 30 cycles crossing the alert threshold." src="predictive-maintenance/docs/figures/hero-light.png">
 </picture>
 
-<sub>A replay-holdout engine, excluded from training, preprocessing, model selection and calibration, predicted at every cycle by the deployed LSTM ensemble. A rule fixed in code selected it: among the replay engines whose interval misses the capped truth at least once, the one with the median first-alert lead time. The solid line is the target, RUL capped at 125 cycles; the dashed line is the actual RUL. Where the interval's upper end reaches the cap, the interval is open-ended, [lower, ∞).</sub>
+<sub>A replay-holdout engine, excluded from training, preprocessing, model selection and calibration, predicted at every cycle by the deployed LSTM ensemble. A fixed rule chose it: among replay engines whose interval misses the capped truth at least once, the one with the median first-alert lead time.</sub>
 
 <!-- findings:start -->
-- **Point accuracy.** LightGBM's test RMSE is lower on 3 of 4 subsets, but the paired LSTM − LightGBM difference excludes zero only on FD002: +1.06 cycles (95% CI +0.26 to +1.93).
-- **Intervals.** Pooled over 707 test engines, empirical coverage of the nominal 90% intervals is 95.8% (LSTM) and 95.0% (LightGBM), with 39 to 62% of intervals open-ended; the LSTM's intervals are narrower on all 4 subsets under each of three width statistics, at similar coverage.
-- **Alert dynamics.** Out of fold, both alerts first fire a median 30 to 31 cycles before failure, but LightGBM's switches off again before failure 0.33 to 0.49 times per engine against 0.02 to 0.15 for the LSTM; the LSTM alone misses engines (1.7 of 224 FD004 engines per repeat).
-
-**Populations and definitions.** Accuracy and intervals are scored on the official test endpoints: one prediction per test engine, at its last observed cycle, from each repeat's five-fold ensemble, averaged over 3 repeats. The 95% CIs are paired engine-level bootstrap intervals; they exclude repeat variability and are not corrected for the 16 comparisons. Coverage is marginal: by true RUL it falls to 91% (LSTM, 76–100 cycles left) and 81% (LightGBM, 51–75 cycles left). The LSTM's intervals are narrower by 2 to 20 cycles with open-ended intervals truncated at the 125-cycle cap, by 7 to 39 on engines where both intervals are closed, and by 6 to 35 over each model's own closed intervals, the only one of the three statistics defined before the test labels were read.
-
-Alert dynamics are scored out of fold: every cycle of every cross-fitted training engine, predicted by the single fold model that never saw it. Of the first alerts, 48% (LSTM) and 47% (LightGBM) come with more than 30 cycles left, false alarms at that moment by the label's definition. A switch-off can end such an early alert; counting only switch-offs in the last 30 cycles gives 0.16 to 0.24 (LightGBM) against 0.01 to 0.07 (LSTM), and with the five-fold ensembles on the held-out replay engines, 0.17 to 0.31 against 0.00 to 0.13.
+- **Point accuracy.** LightGBM's test RMSE is lower on 3 of 4 subsets, but the paired difference excludes zero only on FD002: +1.06 cycles (95% CI +0.26 to +1.93).
+- **Intervals.** Pooled over 707 test engines, coverage of the nominal 90% intervals is 95.8% (LSTM) and 95.0% (LightGBM), with 39–62% open-ended; the LSTM's intervals are narrower on every subset under all three width statistics.
+- **Alert dynamics.** Out of fold, both alerts first fire a median 30–31 cycles before failure; LightGBM's switches off again 0.33–0.49 times per engine against the LSTM's 0.02–0.15, but only the LSTM misses engines.
 <!-- findings:end -->
 
-The official test sets were also seen during an earlier development round, so none of these
-numbers is an estimate on untouched data ([test-set exposure](#test-set-exposure)).
-
-**[Protocol](predictive-maintenance/docs/evaluation.md#protocol)** · **[Reproduction](#reproduce)** · **[Failure analysis](predictive-maintenance/docs/failure-cases.md)** · **[Serving](predictive-maintenance/docs/serving.md)** · **[Full evaluation](predictive-maintenance/docs/evaluation.md)**
+**[Protocol](predictive-maintenance/docs/evaluation.md#protocol)** · **[How to read the results](#how-to-read-the-results)** · **[Test-set exposure](#test-set-exposure)** · **[Failure analysis](#failure-analysis)** · **[Reproduction](#reproduce)**
 
 ## Contribution
 
 - **A controlled comparison.** An LSTM reading raw sensor windows and LightGBM reading four
   statistics per sensor over the same windows share the engine-disjoint folds, the
-  inner-validation window selection, the interval construction and the alert calibration. The
-  comparison is therefore between two model families under one protocol, not between protocols.
-- **Point prediction, intervals and alerts evaluated separately.** Error against the capped
-  target; empirical coverage, open-ended share and width of the intervals; and the alert's
-  ranking, calibration, threshold decisions and temporal stability. Each result names the
-  population it is measured on.
+  inner-validation window selection, the interval construction and the alert calibration, so the
+  comparison is between two model families under one protocol.
+- **Three targets, evaluated separately.** Error against the capped target; empirical coverage,
+  open-ended share and width of the intervals; and the alert's ranking, calibration, threshold
+  decisions and temporal stability, each on a named population.
 - **Auditable artifacts.** `predmaint.audit` recomputes every metric in `metrics.json` from the
-  committed predictions, rebuilds every test interval from the fold models' raw quantile outputs
-  and the stored conformity scores, regenerates every generated block of the documents, rechecks
-  the engine-separation rules and verifies the artifact hashes. That establishes that the
-  documents agree with the artifacts, not that the method is valid.
+  committed predictions, rebuilds every test interval from the fold models' quantile outputs and
+  the stored conformity scores, regenerates every generated block of the documents, rechecks the
+  engine-separation rules and verifies the artifact hashes. That shows the documents agree with
+  the artifacts, not that the method is valid.
 - **Failure analysis.** Error and coverage by remaining-life band, the worst interval misses, and
   the earliest, latest and missed alerts, engine by engine.
 
@@ -63,7 +55,7 @@ than ranked against these.
 | FD003&nbsp;(100) | 13.22&nbsp;/&nbsp;**12.03** | +1.19&nbsp;(-0.50&nbsp;to&nbsp;+3.25) | 95%&nbsp;/&nbsp;95% | 42%&nbsp;/&nbsp;57% | **37.6**&nbsp;/&nbsp;58.0 | **0.11**&nbsp;/&nbsp;0.33 |
 | FD004&nbsp;(248) | **12.82**&nbsp;/&nbsp;13.11 | -0.30&nbsp;(-1.04&nbsp;to&nbsp;+0.46) | 96%&nbsp;/&nbsp;94% | 50%&nbsp;/&nbsp;62% | **43.1**&nbsp;/&nbsp;56.0 | **0.12**&nbsp;/&nbsp;0.49 |
 
-Each cell is LSTM / LightGBM, the mean over 3 repeats; bold marks the lower value where lower is better. The test columns score the official test endpoints: one prediction per test engine, at its last observed cycle, from each repeat's five-fold ensemble. RMSE is against the true RUL capped at 125 cycles. Coverage is the empirical, marginal share of test engines whose capped RUL lies in the nominal 90% interval, an open-ended interval counting as [lower, ∞); the next column gives the share of such intervals. Width truncates open-ended intervals at the cap, a summary defined after the test labels were read; the evaluation notes give two other width statistics. The CI is a paired engine-level bootstrap interval. Switch-offs are counted out of fold, over every cycle of every cross-fitted training engine, for single fold models.
+Each cell is LSTM / LightGBM, the mean over 3 repeats; bold marks the lower value where lower is better. Test columns score the official test endpoints; coverage reads an open-ended interval as [lower, ∞), and width truncates it at the 125-cycle cap (a summary defined after the test labels were read). Switch-offs are counted out of fold, for single fold models.
 
 **Where each model is better**
 
@@ -74,10 +66,20 @@ Each cell is LSTM / LightGBM, the mean over 3 repeats; bold marks the lower valu
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="predictive-maintenance/docs/figures/comparison-dark.png">
-  <img alt="Test RMSE per subset for the single fold models and the five-fold ensembles of the LSTM and LightGBM, and the paired LSTM-minus-LightGBM difference with 95% bootstrap intervals." src="predictive-maintenance/docs/figures/comparison-light.png">
+  <img alt="Paired LSTM-minus-LightGBM differences in test RMSE with 95% engine-bootstrap intervals per subset, and each model's test RMSE: the mean of three repeat ensembles and each repeat." src="predictive-maintenance/docs/figures/comparison-light.png">
 </picture>
 
-<sub>Filled dots are the three five-fold ensembles, one per repeat; their spread is repeat variability on fixed test engines. Open circles are the single fold models, five per repeat; they show what averaging contributes and are not an error bar on the ensemble. The right panel is the paired difference with its 95% engine-level bootstrap interval, which reflects which engines are in the test set, not repeat variability.</sub>
+<sub>Left, the principal comparison: the paired difference with its 95% engine-bootstrap interval, filled where the interval excludes zero. Right, each model's RMSE: large markers are the mean of the three repeat ensembles, small ones each repeat. Single fold models are in the evaluation notes.</sub>
+
+### How to read the results
+
+<!-- reading:start -->
+- **Test endpoints.** Accuracy and intervals score one prediction per official test engine, at its last observed cycle, from each repeat's five-fold ensemble, averaged over 3 repeats. RMSE is against the true RUL capped at 125 cycles.
+- **Paired differences.** Each 95% CI is a paired engine-level bootstrap interval: it reflects which engines are in the test set, excludes repeat variability and is not corrected for the 16 comparisons.
+- **Coverage** is marginal: by true RUL it falls to 91% (LSTM, 76–100 cycles left) and 81% (LightGBM, 51–75 cycles left). An open-ended interval, one whose upper end reached the 125-cycle cap, means [lower, ∞).
+- **Width.** The LSTM's intervals are narrower by 2 to 20 cycles with open-ended intervals truncated at the cap, by 7 to 39 on engines where both intervals are closed, and by 6 to 35 over each model's own closed intervals, the only one of the three defined before the test labels were read.
+- **Alerts** are scored out of fold: every cycle of every cross-fitted training engine, predicted by the single fold model that never saw it. 48% (LSTM) and 47% (LightGBM) of first alerts come with more than 30 cycles left, false alarms by the label's definition when they fire. Counting only switch-offs in the last 30 cycles gives 0.16 to 0.24 (LightGBM) against 0.01 to 0.07 (LSTM); the five-fold ensembles on the held-out replay engines give 0.17 to 0.31 against 0.00 to 0.13. The LSTM alone misses engines (1.7 of 224 FD004 engines per repeat).
+<!-- reading:end -->
 
 The [full results](predictive-maintenance/docs/evaluation.md#full-results) add the PHM08 score,
 RMSE against the uncapped RUL, every paired difference, alert calibration, and whole-life
@@ -152,23 +154,21 @@ multiple comparisons. Coverage intervals are Wilson intervals over engines.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="predictive-maintenance/docs/figures/uncertainty-dark.png">
-  <img alt="Empirical coverage of the nominal 90% intervals per subset on the test endpoints, with Wilson intervals, and out of fold; mean width with open-ended intervals truncated at 125; the share of open-ended intervals; and test coverage by true remaining life for both models." src="predictive-maintenance/docs/figures/uncertainty-light.png">
+  <img alt="Empirical coverage of the nominal 90% intervals: pooled over all test engines and by band of true remaining life with Wilson intervals, the mid-life band below nominal shaded; the share of open-ended intervals in each band; coverage per subset; and the mean width on engines where both models' intervals are closed." src="predictive-maintenance/docs/figures/uncertainty-light.png">
 </picture>
 
-- **Marginal coverage hides structure.** Test-endpoint coverage averages over engines at every
-  remaining life, and an open-ended interval covers almost every engine far from failure.
-  Coverage by true RUL (lower panel) is a diagnostic, not a guarantee: in mid-life it falls to
-  about nominal for the LSTM and below it for LightGBM.
-- **The open-ended reading matters.** Read as closed at 125 instead, the same intervals would
-  contain the actual RUL far less often
-  ([interval width](predictive-maintenance/docs/evaluation.md#interval-width)).
-- **Width.** The middle panel truncates open-ended intervals at the cap (mean ± sd over repeats),
-  a summary defined after the test labels were read. The evaluation notes compare it with the
-  width on engines where both intervals are closed and with the width over each model's own
-  closed intervals, the only one of the three fixed before the test labels were read.
-- **Two populations.** Out-of-fold coverage (diamonds) weights engines equally over whole lives,
-  for single fold models. Both the population and the interval construction differ from the test
-  endpoints', so the two coverages are not comparable estimates of one quantity.
+- **Aggregate versus conditional.** The left panel puts pooled coverage over all test engines
+  beside coverage by band of true RUL. The aggregate exceeds the nominal 90%, while a shaded band
+  falls below it for at least one model: coverage is marginal, not conditional.
+- **Open-ended prevalence.** Below it, the share of open-ended intervals in each band: near zero
+  close to failure and dominant far from it, where an open-ended interval covers almost every
+  engine. Read as closed at 125 instead, the same intervals would contain the actual RUL far less
+  often ([interval width](predictive-maintenance/docs/evaluation.md#interval-width)).
+- **Per subset.** Marginal coverage with 95% Wilson intervals over engines.
+- **Width only where it is finite.** The lower-right panel averages upper minus lower on the
+  engines where both models' intervals are closed (n per subset). The results table's truncated
+  width and the pre-registered width over each model's own closed intervals are compared in the
+  evaluation notes.
 
 ### Alerts
 
@@ -191,8 +191,8 @@ The alert is evaluated in four respects, each on a stated population:
   missed engines (no alert while at least one cycle is left), and first alerts with more than 30
   or 60 cycles left.
 - **Temporal stability.** Out of fold: switch-offs, the alert turning off again before failure.
-  Some end alerts that began early, so the findings also count only the switch-offs in the last
-  30 cycles.
+  Some end alerts that began early, so the reading notes above also count only the switch-offs in
+  the last 30 cycles.
 
 The dot strip and counts show the first repeat; switch-offs are means over three repeats. Fewer
 switch-offs alone do not make an alert more useful: the costs of early, late and missed alerts
@@ -215,10 +215,10 @@ The [attribution checks](predictive-maintenance/docs/evaluation.md#attribution-c
 maps on held-out FD001 engines at four stages of life. In the median window, deleting readings
 in attribution order moves the prediction toward the reference faster than random order or a
 re-initialised network's order. But ranking readings by their distance from the reference alone
-does about as well, the medians hide a tail of windows where attribution order is worse than
-random, and the maps change with the reference. Completeness holds by construction and says
-nothing about faithfulness. The maps describe what the prediction is sensitive to, relative to
-the regime mean; they do not explain why an engine degrades.
+does about as well, the mean over windows is no better than random order, attribution order loses
+to random in most windows far from failure, and the maps change with the reference. Completeness
+holds by construction and says nothing about faithfulness. The maps describe what the prediction
+is sensitive to, relative to the regime mean; they do not explain why an engine degrades.
 
 ## Failure analysis
 
@@ -235,43 +235,47 @@ the regime mean; they do not explain why an engine degrades.
 The [failure-case gallery](predictive-maintenance/docs/failure-cases.md) lists the worst misses and
 the earliest, latest and missed alerts, engine by engine.
 
-## Serving
+## Dashboard
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="predictive-maintenance/docs/figures/dashboard-dark.png">
-  <img alt="Dashboard panel for the hero engine at the cycle its alert first fires: predicted RUL with its nominal 90% interval against the true RUL, and the probability of failure within 30 cycles crossing the alert threshold." src="predictive-maintenance/docs/figures/dashboard-light.png">
+  <img alt="The dashboard's fleet table at one replay tick: for each replayed FD001 engine, its status, current cycle, predicted RUL with its nominal 90% interval (open-ended rows read at least the lower end), the true RUL and the probability of failure within 30 cycles; the engine whose alert has just fired is highlighted." src="predictive-maintenance/docs/figures/dashboard-light.png">
 </picture>
 
+The dashboard's job is triage across a fleet, which no figure above shows: which engines need
+attention now. Each row is one replayed engine at the same tick, with its status (healthy, watch,
+alert or failed, as defined under the table), its predicted RUL and nominal interval, and its
+probability of failure within 30 cycles.
+
 <!-- dashboard:start -->
-Both captures show the same replay state: FD001 replay engine 81 at cycle 207 of 240, the cycle at which its alert first fires (the hero figure shows its whole life). The dashboard predicts 32 cycles (nominal 90% interval 18 to 51) and a 51% probability of failure within 30 cycles; the true RUL, known because the simulated engine ran to failure, is 33. These are the numbers in that engine's row of `replay-holdout.csv.gz`, which `predmaint.audit` checks.
+Both captures show one replay tick of the FD001 fleet: the tick at which engine 81's alert first fires, at cycle 207 of 240 (its row is highlighted; the hero figure shows its whole life). Of the 10 replayed engines, 1 is in alert, 2 are on watch and 7 are healthy. Engine 81 is predicted at 32 cycles (nominal 90% interval 18 to 51) with a 51% probability of failure within 30 cycles; its true RUL, known because the simulated engine ran to failure, is 33. Every row is the evaluated prediction in `replay-holdout.csv.gz` for that engine and cycle, which `predmaint.audit` checks.
 <!-- dashboard:end -->
 
-The dashboard replays simulated C-MAPSS engines from the replay holdout, one recorded cycle per
-tick; it is not a live feed or field telemetry. Run it with `uv run python -m predmaint.serve`.
-The REST API, a real example response, serving latency, Docker and the architecture are in
+The replay feeds simulated C-MAPSS engines one recorded cycle per tick; it is not a live feed or
+field telemetry. Run it with `uv run python -m predmaint.serve`. The REST API, a real example
+response, serving latency, Docker and the architecture are in
 [`docs/serving.md`](predictive-maintenance/docs/serving.md).
 
 ## Reproduce
 
 From `predictive-maintenance/`, with [uv](https://docs.astral.sh/uv/) (tested with 0.13.7) and
-Python 3.15, which uv can install.
+Python 3.15, which uv can install. None of these commands needs a download or a GPU unless noted.
 
-**Check the published results.** These commands are read-only, need no download and no GPU, and
-are what CI runs:
+| Task | Command |
+|---|---|
+| Preview one figure (light theme, 110 dpi, written to `.cache/figure-drafts/`) | `uv run python -m predmaint.figures uncertainty --draft` |
+| Render every figure for release (both themes, 240 dpi, `docs/figures/`) | `uv run python -m predmaint.figures` |
+| Validate every published value against the committed predictions | `uv run python -m predmaint.audit` |
 
-```bash
-uv sync
-uv run python -m predmaint.audit                  # recompute every table, interval and generated block
-uv run python -m predmaint.figures --out /tmp/f   # rebuild every figure from the committed predictions
-uv run pytest                                     # synthetic-data tests, plus the audit
-```
+`python -m predmaint.figures --list` names the figures, and `--changed` re-renders only figures
+whose inputs, source code or settings changed since their last render. CI runs `uv sync`, the
+audit, `pytest` and a full figure render into a temporary folder.
 
 **Regenerate the documents.** These rewrite files in `docs/` and the generated blocks in the
 README, the model card, the evaluation notes and the serving page:
 
 ```bash
-uv run python -m predmaint.report        # findings, tables and the API example
-uv run python -m predmaint.figures       # docs/figures
+uv run python -m predmaint.report        # abstract, findings, tables and the API example
 uv run python -m predmaint.gallery       # docs/failure-cases.md
 uv run python -m predmaint.screenshots   # dashboard images; needs Edge, Chrome or Chromium
 ```
@@ -304,10 +308,6 @@ the protocol, not the exact numbers.
   and the earliest, latest and missed alerts.
 - [Model card](MODEL_CARD.md): intended and out-of-scope uses, data and caveats.
 - [Serving](predictive-maintenance/docs/serving.md): the API, latency, Docker and architecture.
-- [Maintenance-note harness](predictive-maintenance/docs/notes-eval/README.md): an optional,
-  unused evaluation harness for language-model-written maintenance notes. Only its deterministic
-  template baseline has been graded; no model call has been made, so no model fidelity,
-  abstention, latency or cost result exists.
 
 ## Data, licence and history
 

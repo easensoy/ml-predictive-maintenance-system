@@ -1,7 +1,10 @@
 """Load trained artifacts and turn engine readings into calibrated, explained predictions."""
 
+import hashlib
 import json
 import math
+import threading
+from collections import OrderedDict
 from pathlib import Path
 
 import numpy as np
@@ -15,6 +18,10 @@ from predmaint.model import CHECKPOINT_FORMAT, Ensemble, RULNet, integrated_grad
 
 ARTIFACT_FILES = ("model.pt", "contract.json", "calibration.json", "metrics.json")
 CALIBRATION_FORMAT = 2
+# Attribution maps kept per predictor, keyed by the exact bytes of the window: the replay asks
+# again for an engine whose window has not moved (a new watcher, a refresh, a failed engine
+# waiting to restart), and integrated gradients dominates the cost of serving one.
+EXPLANATION_CACHE_SIZE = 64
 RETRAIN_HINT = (
     "Retrain with `python -m predmaint.train`, or check out the git commit recorded in the "
     "run's metrics.json"
@@ -131,6 +138,9 @@ class Predictor:
         )
         self._scores = np.asarray(self.calibration["scores"], np.float64)
         self._score_member = np.asarray(self.calibration["score_member"], np.int64)
+        self._reference_point: float | None = None
+        self._explanations: OrderedDict[bytes, np.ndarray] = OrderedDict()
+        self._explanations_lock = threading.Lock()
 
     @property
     def alert_threshold(self) -> float:
@@ -155,13 +165,37 @@ class Predictor:
 
     def explain(self, window: np.ndarray, baseline: np.ndarray | None = None) -> np.ndarray:
         """Integrated-gradients attribution of the ensemble's point RUL, in cycles: shape
-        (window, F). Networks with a shorter window attribute nothing to the earlier rows."""
+        (window, F). Networks with a shorter window attribute nothing to the earlier rows.
+
+        Against the default reference, a window whose float32 bytes equal one explained before
+        returns a copy of that earlier map: the networks are fixed once loaded, so recomputing it
+        would repeat the same arithmetic. Any other reference is always computed."""
+        values = window.astype(np.float32)
+        key = None
+        if baseline is None:
+            key = hashlib.sha256(repr(values.shape).encode() + values.tobytes()).digest()
+            with self._explanations_lock:
+                cached = self._explanations.get(key)
+                if cached is not None:
+                    self._explanations.move_to_end(key)
+                    return cached.copy()
         attributions = integrated_gradients(
             self.model.point,
-            torch.from_numpy(window.astype(np.float32)),
+            torch.from_numpy(values),
             None if baseline is None else torch.from_numpy(baseline.astype(np.float32)),
         )
-        return attributions.detach().numpy() * self.contract.max_rul
+        result = attributions.detach().numpy() * self.contract.max_rul
+        if key is not None:
+            with self._explanations_lock:
+                self._explanations[key] = result.copy()
+                while len(self._explanations) > EXPLANATION_CACHE_SIZE:
+                    self._explanations.popitem(last=False)
+        return result
+
+    def clear_explanations(self) -> None:
+        """Forget cached attribution maps, so the next call computes afresh (for benchmarks)."""
+        with self._explanations_lock:
+            self._explanations.clear()
 
     def status(self, probability: float, lower: float) -> str:
         """alert: failure within the horizon is more likely than not.
@@ -251,8 +285,12 @@ class Predictor:
         }
 
     def _baseline_point(self) -> float:
-        zeros = np.zeros((1, self.contract.window, self.contract.n_features), np.float32)
-        return float(self.predict_windows(zeros)["point"][0])
+        """The ensemble's point RUL for the reference window, every scaled reading at its
+        regime's training mean. It is fixed for a loaded model, so it is computed once."""
+        if self._reference_point is None:
+            zeros = np.zeros((1, self.contract.window, self.contract.n_features), np.float32)
+            self._reference_point = float(self.predict_windows(zeros)["point"][0])
+        return self._reference_point
 
     def info(self) -> dict:
         """What the dashboard and /api/model-info show: the served model's own numbers."""

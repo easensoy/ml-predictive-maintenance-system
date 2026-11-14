@@ -2,8 +2,9 @@
 that works.
 
     python -m predmaint.notes cases            # build the frozen cases, docs/notes-eval/cases.json
-    python -m predmaint.notes eval             # grade the deterministic template on every case
-    python -m predmaint.notes eval --claude    # also run and grade Claude (needs an API key)
+    python -m predmaint.notes eval             # grade the template and every recorded response
+    python -m predmaint.notes eval --claude --max-spend-usd USD   # also call Claude (needs a key)
+    python -m predmaint.notes eval --regrade   # grade one configuration's recorded responses
 
 A deterministic template is the baseline. Each note is graded on four properties:
 
@@ -16,18 +17,24 @@ A deterministic template is the baseline. Each note is graded on four properties
    uncertain to plan on, the note must decline to give an estimate; otherwise it must not.
 
 The Claude side needs the optional ``notes`` dependencies (``uv sync --extra notes``) and an API
-key in ``ANTHROPIC_API_KEY``; CI, the API and the dashboard never need either. Every response is
-appended to ``claude-responses.jsonl``, so grading can be rerun offline.
+key in ``ANTHROPIC_API_KEY``; CI, the API and the dashboard never need either. Before any call it
+bounds the worst-case cost of the calls still to make and refuses to start above
+``--max-spend-usd``; during the run it adds up the spend from each response's ``usage`` and stops
+before a call could take it past the limit. Every response is appended to
+``claude-responses.jsonl`` under a cache key, so a rerun makes only the missing calls, and grading
+(plain ``eval``, or ``--regrade`` for one configuration) runs offline without a client.
 """
 
 import argparse
 import copy
 import csv
+import hashlib
 import json
 import os
 import re
 import statistics
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -38,7 +45,36 @@ from predmaint.config import PROJECT_ROOT, Settings
 
 EVAL_DIR = PROJECT_ROOT / "docs" / "notes-eval"
 MODEL = "claude-opus-5-5"
-PRICE_PER_MTOK = {"input": 4.00, "output": 20.00}  # USD for MODEL
+EFFORTS = ("low", "medium", "high", "xhigh", "max")
+EFFORT = "medium"  # the default level on claude-opus-5-5, sent explicitly
+# The ceiling on each response's output, thinking included: thinking is always on for MODEL and
+# counts toward max_tokens. It bounds what a call can cost; the bill is usage.output_tokens.
+# About 16,000 is the documented default for non-streaming requests such as these.
+MAX_TOKENS = 16_000
+REPEAT_CASES, REPEATS = 30, 3
+FALLBACK_BETA = "server-side-fallback-2026-07-01"  # the header that fallbacks="default" needs
+# USD per million tokens, copied from the Claude API reference bundled with Claude Code (models
+# table cached 2026-10-06) and not re-checked against the pricing page: check it before a paid
+# run. claude-opus-5 and claude-opus-4-8 are the fallback targets that reference expects for
+# claude-opus-5-5. A model missing here cannot be run, because its cost cannot be bounded.
+PRICE_PER_MTOK = {
+    "claude-opus-5-5": {"input": 4.00, "output": 20.00},
+    "claude-opus-5": {"input": 5.00, "output": 25.00},
+    "claude-opus-4-8": {"input": 5.00, "output": 25.00},
+}
+# Cache writes bill at 1.25x (5-minute) or 2x (1-hour) base input and cache reads at a fraction of
+# it. No request here sets cache_control, so both counts should stay zero; they are priced at the
+# top of those ranges so that the tracked spend can only over-count.
+CACHE_WRITE_FACTOR, CACHE_READ_FACTOR = 2.0, 1.0
+# Added to one token per byte of the prompt for message framing and anything the API adds around
+# it: an assumed allowance, not a documented figure.
+FRAMING_TOKENS = 1_000
+TOKEN_FIELDS = (
+    "input_tokens",
+    "output_tokens",
+    "cache_creation_input_tokens",
+    "cache_read_input_tokens",
+)
 MAX_WIDTH = 80  # cycles: a wider closed interval is too uncertain to plan maintenance on
 WORDS = 80
 ABSTAIN_MARKER = "no maintenance estimate"
@@ -243,16 +279,33 @@ def evaluate(cases: list[dict], notes: dict[str, dict]) -> dict:
 # Claude
 
 
-def claude_request(record: dict, effort: str = "medium") -> dict[str, Any]:
+@dataclass(frozen=True)
+class RunConfig:
+    """One configuration of the Claude side. model, effort and max_tokens go into every request,
+    and so into its cache key; repeat_cases, repeats and max_cases pick the (case, repetition)
+    pairs that are called."""
+
+    model: str = MODEL
+    effort: str = EFFORT
+    max_tokens: int = MAX_TOKENS
+    repeat_cases: int = REPEAT_CASES
+    repeats: int = REPEATS
+    max_cases: int | None = None
+
+
+def claude_request(
+    record: dict, effort: str = EFFORT, model: str = MODEL, max_tokens: int = MAX_TOKENS
+) -> dict[str, Any]:
     """The request sent for one record (separate, so tests can check it without a key).
 
-    Structured output guarantees the reply parses; the server-side fallback re-runs a declined
-    request on a fallback model instead of returning the refusal."""
+    Structured output constrains the reply to the schema; the server-side fallback re-runs a
+    declined request on a fallback model instead of returning the refusal. max_tokens caps
+    thinking plus reply: it is the most a reply can be billed for, not what it is billed."""
     payload = {k: v for k, v in record.items() if k not in {"case_id", "kind"}}
     return {
-        "model": MODEL,
-        "max_tokens": 16000,
-        "betas": ["server-side-fallback-2026-07-01"],
+        "model": model,
+        "max_tokens": max_tokens,
+        "betas": [FALLBACK_BETA],
         "fallbacks": "default",
         "system": SYSTEM_PROMPT,
         "output_config": {
@@ -263,18 +316,138 @@ def claude_request(record: dict, effort: str = "medium") -> dict[str, Any]:
     }
 
 
-def claude_note(client: Any, record: dict, effort: str = "medium") -> dict:
-    """One Claude note, with its latency, token usage and stop reason."""
+def cache_key(request: dict, case_id: str, repetition: int) -> str:
+    """The identity of one call: a SHA-256 of the whole request (model, system prompt, output
+    schema, record, effort, max_tokens, betas and fallbacks), the case and the repetition index.
+    A response recorded under the key is reused instead of being paid for again."""
+    blob = json.dumps(
+        {"request": request, "case_id": case_id, "repetition": repetition},
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
+def plan_calls(cases: list[dict], run: RunConfig) -> list[dict]:
+    """Every call the configuration needs, in order: each case once, and the first
+    ``repeat_cases`` cases ``repeats`` times."""
+    calls: list[dict] = []
+    for i, case in enumerate(cases[: run.max_cases]):
+        request = claude_request(case, run.effort, run.model, run.max_tokens)
+        for repetition in range(run.repeats if i < run.repeat_cases else 1):
+            key = cache_key(request, case["case_id"], repetition)
+            calls.append({"case": case, "repetition": repetition, "request": request, "key": key})
+    return calls
+
+
+def price_of(model: str) -> dict[str, float]:
+    if model not in PRICE_PER_MTOK:
+        raise SystemExit(
+            f"No price for {model!r} in PRICE_PER_MTOK, so the cost of a run cannot be bounded. "
+            "Add its input and output prices from the pricing page first."
+        )
+    return PRICE_PER_MTOK[model]
+
+
+def input_token_bound(request: dict) -> int:
+    """The request's input tokens, over-counted without an API call: one token per UTF-8 byte of
+    the system prompt, output format and messages, plus FRAMING_TOKENS. The tokenizer is not
+    documented, so this is an assumption rather than a guarantee, which is why a run also stops
+    on the spend it records."""
+    sent = request["system"] + json.dumps(request["output_config"])
+    sent += json.dumps(request["messages"])
+    return len(sent.encode("utf-8")) + FRAMING_TOKENS
+
+
+def call_bound_usd(request: dict) -> float:
+    """The most one call can cost, worked out before it is made: the over-counted input plus the
+    full max_tokens of output at the requested model's price, and, with fallbacks on, the same
+    again at the dearest price in PRICE_PER_MTOK for the attempt a fallback model can make. The
+    declined attempt is billed too when it declined mid-reply or in a billed refusal category."""
+    tokens_in, tokens_out = input_token_bound(request), request["max_tokens"]
+    prices = [price_of(request["model"])]
+    if request.get("fallbacks"):
+        prices.append({k: max(p[k] for p in PRICE_PER_MTOK.values()) for k in ("input", "output")})
+    return sum(tokens_in * p["input"] + tokens_out * p["output"] for p in prices) / 1e6
+
+
+def _field(obj: Any, name: str) -> Any:
+    return obj.get(name) if isinstance(obj, dict) else getattr(obj, name, None)
+
+
+def billed_attempts(usage: Any, requested: str, served: str) -> list[dict]:
+    """The token counts of every billed attempt. With server-side fallback, ``usage.iterations``
+    records each attempt, billed at its own model's rates, and the top-level counts cover only
+    the attempt that answered; without iterations, the top-level counts are the whole bill."""
+    attempts: list[dict] = []
+    for entry in _field(usage, "iterations") or [usage]:
+        kind, model = _field(entry, "type"), _field(entry, "model")
+        model = model or (requested if kind == "message" else served)
+        attempts.append({"model": model} | {f: int(_field(entry, f) or 0) for f in TOKEN_FIELDS})
+    return attempts
+
+
+def attempt_cost_usd(attempt: dict) -> float | None:
+    """What one attempt is billed, from its usage counts; None when its model has no price."""
+    price = PRICE_PER_MTOK.get(attempt.get("model") or "")
+    if price is None:
+        return None
+    n = {f: attempt.get(f) or 0 for f in TOKEN_FIELDS}
+    tokens_in = (
+        n["input_tokens"]
+        + CACHE_READ_FACTOR * n["cache_read_input_tokens"]
+        + CACHE_WRITE_FACTOR * n["cache_creation_input_tokens"]
+    )
+    return (tokens_in * price["input"] + n["output_tokens"] * price["output"]) / 1e6
+
+
+def response_cost_usd(row: dict) -> float | None:
+    """What one recorded response was billed, summed over its attempts; None when an attempt's
+    model has no price. A refusal before any output is counted even in the categories that are
+    not billed, so this can only over-count. Lines from before attempts were recorded hold one
+    attempt's counts."""
+    total = 0.0
+    for attempt in row.get("attempts") or [row]:
+        cost = attempt_cost_usd(attempt)
+        if cost is None:
+            return None
+        total += cost
+    return total
+
+
+def claude_note(
+    client: Any,
+    record: dict,
+    effort: str = EFFORT,
+    *,
+    model: str = MODEL,
+    max_tokens: int = MAX_TOKENS,
+    repetition: int = 0,
+) -> dict:
+    """One Claude note, with its cache key, latency, billed token counts and stop reason."""
+    request = claude_request(record, effort, model, max_tokens)
     started = time.perf_counter()
-    response = client.beta.messages.create(**claude_request(record, effort))
+    response = client.beta.messages.create(**request)
+    served = getattr(response, "model", None) or model
+    usage = response.usage
     result: dict[str, Any] = {
         "case_id": record["case_id"],
-        "model": getattr(response, "model", MODEL),
+        "cache_key": cache_key(request, record["case_id"], repetition),
+        "repetition": repetition,
+        "requested_model": model,
+        "effort": effort,
+        "max_tokens": max_tokens,
+        "model": served,
         "stop_reason": response.stop_reason,
         "latency_s": round(time.perf_counter() - started, 3),
-        "input_tokens": response.usage.input_tokens,
-        "output_tokens": response.usage.output_tokens,
+        # The answering attempt's counts; "attempts" holds every billed attempt.
+        "input_tokens": usage.input_tokens,
+        "output_tokens": usage.output_tokens,
+        "thinking_tokens": _field(_field(usage, "output_tokens_details"), "thinking_tokens"),
+        "attempts": billed_attempts(usage, model, served),
     }
+    if response.stop_reason == "max_tokens":
+        result["truncated"] = True
     if response.stop_reason == "refusal":
         return result | {"note": "", "abstained": True, "refused": True}
     text = next((b.text for b in response.content if b.type == "text"), "")
@@ -299,51 +472,159 @@ def make_client() -> Any:
     return anthropic.Anthropic()
 
 
+def read_responses(path: Path) -> list[dict]:
+    if not path.is_file():
+        return []
+    lines = path.read_text(encoding="utf-8").splitlines()
+    return [json.loads(line) for line in lines if line.strip()]
+
+
+def recorded_keys(path: Path) -> set[str]:
+    """The cache keys already recorded. Lines from before cache keys existed have none."""
+    return {row["cache_key"] for row in read_responses(path) if "cache_key" in row}
+
+
 def run_claude(
-    cases: list[dict], out: Path, client: Any = None, repeat_cases: int = 30, repeats: int = 3
-) -> None:
-    """Call Claude once per case, and ``repeats`` times on the first ``repeat_cases`` cases,
-    appending every response to ``out``."""
+    cases: list[dict],
+    out: Path,
+    client: Any = None,
+    run: RunConfig | None = None,
+    *,
+    max_spend_usd: float,
+) -> dict[str, Any]:
+    """Make the calls the configuration still needs, appending every response to ``out``.
+
+    Calls already recorded under their cache key are skipped. Before any call, the worst case of
+    the rest (call_bound_usd) is added up, and the run refuses to start when it exceeds
+    ``max_spend_usd``. During the run the spend is added up from each response's usage, and the
+    run stops before any call whose worst case could take it past the limit."""
+    run = run or RunConfig()
+    calls = plan_calls(cases, run)
+    done = recorded_keys(out)
+    todo = [call for call in calls if call["key"] not in done]
+    bounds = [call_bound_usd(call["request"]) for call in todo]
+    status: dict[str, Any] = {
+        "planned": len(calls),
+        "already_recorded": len(calls) - len(todo),
+        "to_call": len(todo),
+        "worst_case_usd": sum(bounds),
+        "limit_usd": max_spend_usd,
+        "made": 0,
+        "spent_usd": 0.0,
+        "stopped": None,
+    }
+    if status["worst_case_usd"] > max_spend_usd:
+        raise SystemExit(
+            f"Refusing to start: the {len(todo)} calls not yet recorded could cost up to "
+            f"${status['worst_case_usd']:.2f}, which exceeds the ${max_spend_usd:.2f} limit. "
+            "Raise --max-spend-usd or make fewer calls (--max-cases, --repeat-cases, --repeats); "
+            "a lower --max-tokens also lowers the bound, but can cut replies off."
+        )
+    print(
+        f"Claude: {len(todo)} calls to make, {status['already_recorded']} of {len(calls)} already "
+        f"recorded; worst case ${status['worst_case_usd']:.2f} within a ${max_spend_usd:.2f} limit",
+        flush=True,
+    )
+    if not todo:
+        return status
     client = client or make_client()
     with out.open("a", encoding="utf-8") as log:
-        for i, case in enumerate(cases):
-            for _ in range(repeats if i < repeat_cases else 1):
-                log.write(json.dumps(claude_note(client, case)) + "\n")
-                log.flush()
+        for call, bound in zip(todo, bounds, strict=True):
+            if status["spent_usd"] + bound > max_spend_usd:
+                status["stopped"] = (
+                    f"stopped before call {status['made'] + 1} of {len(todo)}: "
+                    f"${status['spent_usd']:.2f} spent, and its worst case of ${bound:.2f} "
+                    "could pass the limit"
+                )
+                break
+            row = claude_note(
+                client,
+                call["case"],
+                run.effort,
+                model=run.model,
+                max_tokens=run.max_tokens,
+                repetition=call["repetition"],
+            )
+            log.write(json.dumps(row) + "\n")
+            log.flush()
+            status["made"] += 1
+            cost = response_cost_usd(row)
+            if cost is None:
+                unpriced = [a["model"] for a in row["attempts"] if a["model"] not in PRICE_PER_MTOK]
+                status["stopped"] = (
+                    f"stopped: an attempt ran on {', '.join(unpriced)}, which has no price, so "
+                    "the spend can no longer be tracked"
+                )
+                break
+            status["spent_usd"] += cost
+    return status
 
 
-def load_recorded(path: Path) -> dict[str, list[dict]]:
+def load_recorded(path: Path, keys: set[str] | None = None) -> dict[str, list[dict]]:
+    """Recorded responses grouped by case, in file order. With ``keys``, only the lines recorded
+    under those cache keys, each once and in repetition order; lines from before cache keys
+    existed are read only when no keys are given."""
     recorded: dict[str, list[dict]] = {}
-    if path.is_file():
-        for line in path.read_text(encoding="utf-8").splitlines():
-            if line.strip():
-                row = json.loads(line)
-                recorded.setdefault(row["case_id"], []).append(row)
+    seen: set[str] = set()
+    for row in read_responses(path):
+        if keys is not None:
+            key = row.get("cache_key")
+            if key not in keys or key in seen:
+                continue
+            seen.add(key)
+        recorded.setdefault(row["case_id"], []).append(row)
+    if keys is not None:
+        for runs in recorded.values():
+            runs.sort(key=lambda row: row["repetition"])
     return recorded
+
+
+def recorded_for(cases: list[dict], run: RunConfig, path: Path) -> dict[str, list[dict]]:
+    """One configuration's recorded responses, matched by cache key, after a line saying how much
+    of it is recorded and what its missing calls could cost at most."""
+    calls = plan_calls(cases, run)
+    recorded = load_recorded(path, {call["key"] for call in calls})
+    found = {row["cache_key"] for runs in recorded.values() for row in runs}
+    line = f"{len(found)} of {len(calls)} planned responses for this configuration are recorded"
+    missing = [call for call in calls if call["key"] not in found]
+    if missing and run.model in PRICE_PER_MTOK:
+        bound = sum(call_bound_usd(call["request"]) for call in missing)
+        line += f"; the {len(missing)} missing calls could cost up to ${bound:.2f}"
+    print(line, flush=True)
+    if not recorded:
+        raise SystemExit("No recorded responses match this configuration; nothing to grade.")
+    return recorded
+
+
+def _configuration(row: dict) -> str:
+    if "cache_key" not in row:
+        return f"{row.get('model', MODEL)}, settings not recorded"
+    return f"{row['requested_model']}, effort {row['effort']}, max_tokens {row['max_tokens']}"
 
 
 def claude_summary(cases: list[dict], recorded: dict[str, list[dict]]) -> dict:
     first = {case_id: runs[0] for case_id, runs in recorded.items()}
     rows = [r for runs in recorded.values() for r in runs]
     latencies = [r["latency_s"] for r in rows]
-    cost = (
-        sum(
-            r["input_tokens"] * PRICE_PER_MTOK["input"]
-            + r["output_tokens"] * PRICE_PER_MTOK["output"]
-            for r in rows
-        )
-        / 1e6
-    )
+    priced = [c for c in (response_cost_usd(r) for r in rows) if c is not None]
+    cost = sum(priced)
+    output_tokens = [r["output_tokens"] for r in rows]
     repeated = [runs for runs in recorded.values() if len(runs) > 1]
     same_decision = [len({r["abstained"] for r in runs}) == 1 for runs in repeated]
     same_numbers = [len({tuple(NUMBER.findall(r["note"])) for r in runs}) == 1 for runs in repeated]
     return {
         "calls": len(rows),
+        "configurations": sorted({_configuration(r) for r in rows}),
         "latency_s": {
             "median": statistics.median(latencies),
             "p95": float(np.percentile(latencies, 95)),
         },
-        "cost_usd": {"total": cost, "per_note": cost / len(rows)},
+        "cost_usd": {
+            "total": cost,
+            "per_note": cost / len(priced) if priced else None,
+            "unpriced_calls": len(rows) - len(priced),
+        },
+        "output_tokens": {"median": statistics.median(output_tokens), "max": max(output_tokens)},
         "repeatability": {
             "cases": len(repeated),
             "same_abstention": float(np.mean(same_decision)) if repeated else None,
@@ -351,6 +632,7 @@ def claude_summary(cases: list[dict], recorded: dict[str, list[dict]]) -> dict:
         },
         "refusals": sum(bool(r.get("refused")) for r in rows),
         "malformed": sum(bool(r.get("malformed")) for r in rows),
+        "truncated": sum(bool(r.get("truncated")) for r in rows),
         "notes": first,
         "evaluation": evaluate(cases, first),
     }
@@ -527,16 +809,31 @@ def write_report(cases: list[dict], template: dict, claude: dict | None, out_dir
         )
         lines.append(f"| {kind} | {k['n']} | {100 * all_four:.0f}% |")
     if claude:
-        r = claude["repeatability"]
+        r, cost = claude["repeatability"], claude["cost_usd"]
+        spend = "no cost figure, since no reply came from a priced model"
+        if cost["per_note"] is not None:
+            spend = f"about ${cost['per_note']:.4f} per call at listed prices, from usage counts"
+            if cost["unpriced_calls"]:
+                spend += f" ({cost['unpriced_calls']} calls on unpriced models left out)"
         lines += [
             "",
-            f"Claude ({MODEL}): {claude['calls']} calls, median latency "
-            f"{claude['latency_s']['median']:.1f} s (p95 {claude['latency_s']['p95']:.1f} s), "
-            f"about ${claude['cost_usd']['per_note']:.4f} per note at list prices; "
-            f"{claude['refusals']} refusals and {claude['malformed']} malformed replies. On "
-            f"{r['cases']} cases run three times, the abstention decision was the same "
+            f"Claude ({'; '.join(claude['configurations'])}): {claude['calls']} calls, median "
+            f"latency {claude['latency_s']['median']:.1f} s (p95 {claude['latency_s']['p95']:.1f} "
+            f"s), {spend}; {claude['refusals']} refusals, {claude['malformed']} malformed replies "
+            f"and {claude['truncated']} cut off at max_tokens (largest reply "
+            f"{claude['output_tokens']['max']} output tokens, thinking included). On {r['cases']} "
+            "cases run more than once, the abstention decision was the same "
             f"{100 * (r['same_abstention'] or 0):.0f}% of the time and the numbers "
             f"{100 * (r['same_numbers'] or 0):.0f}%.",
+        ]
+        if len(claude["configurations"]) > 1:
+            lines += [
+                "",
+                "These responses come from more than one configuration; "
+                "`python -m predmaint.notes eval --regrade` with one configuration's settings "
+                "grades it alone.",
+            ]
+        lines += [
             "",
             "## Cases where Claude loses to the template",
             "",
@@ -559,8 +856,10 @@ def write_report(cases: list[dict], template: dict, claude: dict | None, out_dir
             "the cases and the grader agree; they say nothing about the quality of model-written "
             "notes. The language-model side has not been run: no model call has been made, so no "
             "model fidelity, abstention, latency or cost figure exists. Running it needs an API "
-            "key in `ANTHROPIC_API_KEY` and `uv sync --extra notes`, then "
-            "`python -m predmaint.notes eval --claude`.",
+            "key in `ANTHROPIC_API_KEY`, `uv sync --extra notes` and a spending limit: "
+            "`python -m predmaint.notes eval --claude --max-spend-usd <USD>` refuses to start "
+            "when the worst-case cost of its calls exceeds the limit (README.md has the cost "
+            "controls).",
         ]
     (out_dir / "results.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -586,10 +885,63 @@ def main(argv: list[str] | None = None) -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("command", choices=["cases", "eval"])
-    parser.add_argument("--claude", action="store_true", help="also call Claude (needs a key)")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
+        "--claude",
+        action="store_true",
+        help="also call Claude for this configuration's calls that are not recorded yet "
+        "(needs a key and --max-spend-usd)",
+    )
+    mode.add_argument(
+        "--regrade",
+        action="store_true",
+        help="grade only this configuration's recorded responses; makes no call",
+    )
+    parser.add_argument(
+        "--max-spend-usd",
+        type=float,
+        help="spending limit for one --claude run: it refuses to start when the worst-case cost "
+        "of its calls exceeds this, and stops before the recorded spend could pass it",
+    )
+    parser.add_argument(
+        "--model", default=MODEL, help="must have a price in PRICE_PER_MTOK (default %(default)s)"
+    )
+    parser.add_argument(
+        "--effort",
+        default=EFFORT,
+        choices=EFFORTS,
+        help="output_config.effort (default %(default)s)",
+    )
+    parser.add_argument(
+        "--max-tokens",
+        type=int,
+        default=MAX_TOKENS,
+        help="ceiling on each reply's thinking plus text, not the billed amount "
+        "(default %(default)s)",
+    )
+    parser.add_argument(
+        "--repeat-cases",
+        type=int,
+        default=REPEAT_CASES,
+        help="how many of the first cases are called more than once (default %(default)s)",
+    )
+    parser.add_argument(
+        "--repeats", type=int, default=REPEATS, help="calls per repeated case (default %(default)s)"
+    )
+    parser.add_argument(
+        "--max-cases", type=int, help="use only the first N cases, for example for a pilot run"
+    )
     parser.add_argument("--subset", default="FD001")
     parser.add_argument("--out", type=Path, default=EVAL_DIR)
     args = parser.parse_args(argv)
+    if args.claude and args.max_spend_usd is None:
+        parser.error("--claude needs --max-spend-usd, the most this run may spend in USD")
+    if args.max_spend_usd is not None and args.max_spend_usd <= 0:
+        parser.error("--max-spend-usd must be positive")
+    if min(args.max_tokens, args.repeats) < 1 or args.repeat_cases < 0:
+        parser.error("--max-tokens and --repeats must be at least 1, --repeat-cases at least 0")
+    if args.max_cases is not None and args.max_cases < 1:
+        parser.error("--max-cases must be at least 1")
     args.out.mkdir(parents=True, exist_ok=True)
     cases_path = args.out / "cases.json"
     if args.command == "cases":
@@ -601,9 +953,25 @@ def main(argv: list[str] | None = None) -> int:
     template_notes = {c["case_id"]: template_note(c) for c in cases}
     template = evaluate(cases, template_notes)
     recorded_path = args.out / "claude-responses.jsonl"
+    run = RunConfig(
+        model=args.model,
+        effort=args.effort,
+        max_tokens=args.max_tokens,
+        repeat_cases=args.repeat_cases,
+        repeats=args.repeats,
+        max_cases=args.max_cases,
+    )
     if args.claude:
-        run_claude(cases, recorded_path)
-    recorded = load_recorded(recorded_path)
+        status = run_claude(cases, recorded_path, run=run, max_spend_usd=args.max_spend_usd)
+        stopped = f"; {status['stopped']}" if status["stopped"] else ""
+        print(
+            f"Claude: made {status['made']} of {status['to_call']} calls, "
+            f"${status['spent_usd']:.4f} by the usage counts{stopped}"
+        )
+    if args.claude or args.regrade:
+        recorded = recorded_for(cases, run, recorded_path)
+    else:
+        recorded = load_recorded(recorded_path)
     claude = claude_summary(cases, recorded) if recorded else None
     write_report(cases, template, claude, args.out)
     export_human_review(cases, template_notes, args.out / "human-review-template.csv")

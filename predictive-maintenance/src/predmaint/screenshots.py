@@ -3,12 +3,17 @@
     python -m predmaint.screenshots                  # needs Edge, Chrome or Chromium installed
     python -m predmaint.screenshots --browser PATH
 
+The capture shows the fleet table: every replayed engine's status, current cycle, predicted RUL
+with its nominal interval and failure probability, at one replay tick. That triage view across
+engines is what the dashboard adds to the README's single-engine figures.
+
 Nothing advances the replay while it is captured: the server runs without its replay loop, and
-the engine and cycle come from the rule the hero figure uses (``report.hero_state``: the FD001
-replay engine chosen by ``report.hero_engine``, at the cycle its alert first fires). The light and
-dark images therefore show the same engine at the same cycle. That state is written next to them
-as ``dashboard-state.json``; ``predmaint.audit`` checks it against the evaluated predictions in
-``replay-holdout.csv.gz``, and ``predmaint.report`` describes it under the screenshot.
+the tick is fixed by the rule the hero figure uses (``report.hero_state``: the FD001 replay
+engine chosen by ``report.hero_engine``, sought to the cycle its alert first fires; the other
+engines stay at their seeded starting cycles). Its row is highlighted. The light and dark images
+show the same state, which is written next to them as ``dashboard-state.json``, every displayed
+row included; ``predmaint.audit`` checks each row against the evaluated predictions in
+``replay-holdout.csv.gz``, and ``predmaint.report`` describes the state under the screenshot.
 
 The page loads ECharts and the Socket.IO client from jsDelivr, so capturing needs a network
 connection. This is a documentation tool: CI does not run it.
@@ -169,10 +174,11 @@ def main(argv: list[str] | None = None) -> int:
     args.out.mkdir(parents=True, exist_ok=True)
     for theme in ("light", "dark"):
         out = args.out / f"dashboard-{theme}.png"
-        capture(browser, f"{base}/?engine={unit}&only=prediction&theme={theme}", out)
+        capture(browser, f"{base}/?engine={unit}&only=fleet&theme={theme}", out)
         print(out)
     detail = _get(f"{base}/api/engines/{unit}")
     info = _get(f"{base}/api/model-info")
+    fleet = _get(f"{base}/api/fleet")
     shown = detail["history"][-1]
     if shown["cycle"] != cycle:
         raise SystemExit(f"The replay moved: showing cycle {shown['cycle']}, expected {cycle}")
@@ -190,7 +196,25 @@ def main(argv: list[str] | None = None) -> int:
         "status": shown["status"],
         "interval": info["interval"],
         "horizon_cycles": info["alert_cycles"],
-        "page": f"/?engine={unit}&only=prediction&theme=light|dark",
+        "page": f"/?engine={unit}&only=fleet&theme=light|dark",
+        "fleet": [
+            {
+                key: engine[key]
+                for key in (
+                    "unit",
+                    "cycle",
+                    "total_cycles",
+                    "rul_true",
+                    "point",
+                    "lower",
+                    "upper",
+                    "open_ended",
+                    "probability",
+                    "status",
+                )
+            }
+            for engine in fleet["engines"]
+        ],
         "viewport_css_px": list(VIEWPORT),
         "device_scale_factor": SCALE,
         "browser": Path(browser).stem,
